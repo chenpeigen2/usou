@@ -434,6 +434,17 @@ function auditContrast() {
   freeze.textContent = '*{transition:none !important}';
   document.head.appendChild(freeze);
   void document.body.offsetHeight;
+  // v1.7.16：**hover 态也要审计** —— 浅色主题的 `.badge.Android` 只有在行被 hover
+  // （行底由 --panel 变 --panel2）时才跌到 4.36:1，而审计器此前只量「当前鼠标位置」下的状态
+  // ⇒ 「鼠标移开就全过」掩盖了真实缺陷。这里用额外的 class（:where 不提升特异性）
+  // 给**每个采样元素**的祖先行加上强制 hover 底色，再量一次。
+  const hoverSheet = document.createElement('style');
+  hoverSheet.id = '__wb_audit_hover';
+  // 与各组件真实的 :hover 底色保持一致（.prow/.ritem → --panel2；.d-item → --hover-veil）
+  hoverSheet.textContent =
+    '.waudit-hover{background:var(--panel2) !important}' +
+    '.waudit-hover.d-item{background:var(--hover-veil) !important}';
+  document.head.appendChild(hoverSheet);
   for (const pair of CONTRAST_TARGETS) {
     const sel = pair[0], label = pair[1];
     const els = Array.from(document.querySelectorAll(sel)).slice(0, 12);
@@ -450,9 +461,24 @@ function auditContrast() {
       const ratio = _contrast(fg.rgb, bg);
       checked++;
       rows.push({ sel: label + '<' + sel + '>', ratio: ratio, need: need, fg: cs.color, bg: 'rgb(' + bg.join(',') + ')', fs: fs });
+      // —— hover 态复测：把最近的「行」祖先强制切到 hover 底色，再量一次 ——
+      const row = el.closest('.prow,.ritem,.ucard,.b,.lcard,.d-item,.ckrow') || el.parentElement;
+      if (row && row !== el) {
+        row.classList.add('waudit-hover');
+        const cs2 = getComputedStyle(el);
+        const fg2 = _parseColor(cs2.color);
+        const bg2 = _effectiveBg(el);
+        if (fg2) {
+          const r2 = _contrast(fg2.rgb, bg2);
+          checked++;
+          rows.push({ sel: label + '<' + sel + '>·hover', ratio: r2, need: need, fg: cs2.color, bg: 'rgb(' + bg2.join(',') + ')', fs: fs });
+        }
+        row.classList.remove('waudit-hover');
+      }
     }
   }
   freeze.remove();
+  hoverSheet.remove();
   const min = rows.length ? Math.min.apply(null, rows.map(r => r.ratio)) : 0;
   const fail = rows.filter(r => r.ratio < r.need);
   const bodyCs = getComputedStyle(document.body);

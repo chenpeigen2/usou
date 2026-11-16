@@ -655,7 +655,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
   --acc:#175bb8; --acc2:#7c4ddb;
   --grad:linear-gradient(135deg,#1e63b5,#7040c6);
   --on-grad:#ffffff;   /* 浅色渐变本就够暗 → 渐变上的文字维持白色（零视觉回归） */
-  --green:#0b7a55; --amber:#8f5708; --red:#c43b3b; --purple:#7b34c9; --yellow:#8a6a12;
+  --green:#0a6f4d; --amber:#8f5708; --red:#c43b3b; --purple:#7b34c9; --yellow:#8a6a12;
   --shadow:0 12px 30px rgba(28,50,84,.14);
   --shadow-strong:0 24px 60px rgba(24,45,80,.20);
   --shadow-modal:0 30px 70px rgba(24,45,80,.24);
@@ -680,7 +680,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
   --soft-acc:rgba(23,91,184,.09); --soft-acc2:rgba(23,91,184,.08);
   --soft-acc3:rgba(23,91,184,.11); --soft-acc4:rgba(23,91,184,.17);
   --soft-acc-b:rgba(23,91,184,.38);
-  --soft-green:rgba(11,122,85,.10); --soft-yellow:rgba(138,106,18,.12);
+  --soft-green:rgba(10,111,77,.10); --soft-yellow:rgba(138,106,18,.12);
   --soft-orange:rgba(168,56,10,.10); --soft-cyan:rgba(11,96,118,.10);
   --soft-purple:rgba(123,52,201,.10);
   --soft-amber:rgba(143,87,8,.10); --soft-amber2:rgba(143,87,8,.06);

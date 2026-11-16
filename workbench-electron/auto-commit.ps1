@@ -1,12 +1,13 @@
-# 迭代提交与推送（PM agent 每轮收尾调用）
-# 用法: pwsh -NoProfile -File "D:\code\usou\auto-commit-push.ps1" -Message "<本轮摘要>"
+# 迭代提交（PM agent 每轮收尾调用）—— 默认只 commit，不 push
+# 用法: pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit-push.ps1" -Message "<本轮摘要>"
 # 行为:
-#   1. 若工作区有变更 → 自动 add -A + commit（带版本号与摘要）
-#   2. 探测推送通路（SSH / HTTPS / 本地代理 7897）→ 可用则 push；不可用则把 commit 留在本地并明确报告
-# 退出码: 0 = 提交成功（push 成功或已排队待网络恢复）; 1 = 提交失败
+#   1. 若工作区有变更 → 自动 add -A + commit（消息含版本号与变更文件数）
+#   2. 报告本地待推送 commit 数；**默认不推送**（用户自行 push）
+#      仅当显式加 -Push 时才探测通路并尝试推送
+# 退出码: 0 = 提交成功（或无变更）; 1 = 提交失败
 param(
   [string]$Message = '',
-  [switch]$NoPush
+  [switch]$Push
 )
 $ErrorActionPreference = 'Stop'
 $git = 'C:\Program Files\Git\cmd\git.exe'
@@ -28,7 +29,7 @@ $msg
 
 - 版本: v$pkgVer
 - 变更文件: $($changed.Count) 个
-- 自动提交: workbench-electron/auto-commit-push.ps1
+- 自动提交: workbench-electron/auto-commit-push.ps1（只 commit，push 由用户自行执行）
 "@
   $r = Git @('add', '-A')
   if ($r.code -ne 0) { Write-Host "✘ git add 失败:`n$($r.out)" -ForegroundColor Red; exit 1 }
@@ -39,9 +40,20 @@ $msg
   Write-Host "· 工作区无变更，跳过提交" -ForegroundColor DarkGray
 }
 
-if ($NoPush) { Write-Host "· 按要求跳过 push"; exit 0 }
+# ---------- 2. 统计待推送 ----------
+$localCount = [int]((& $git rev-list --count HEAD 2>$null) -as [int])
+$remoteCount = 0
+$rc = & $git rev-list --count 'origin/main' 2>$null
+if ($LASTEXITCODE -eq 0 -and $rc) { $remoteCount = [int]($rc -as [int]) }
+$ahead = [Math]::Max(0, $localCount - $remoteCount)
 
-# ---------- 2. 探测推送通路 ----------
+if (-not $Push) {
+  Write-Host ("· 按策略只提交不推送 —— 本地待推送 commit: {0}（本地 {1} / 远端 {2}）" -f $ahead, $localCount, $remoteCount) -ForegroundColor Yellow
+  Write-Host "  需要推送时由你自行执行： cd D:\code\usou; git push -u origin main" -ForegroundColor DarkGray
+  exit 0
+}
+
+# ---------- 3. 仅在显式 -Push 时探测并推送 ----------
 function Test-Net([string]$host_, [int]$port, [int]$timeoutMs = 4000) {
   try {
     $c = New-Object System.Net.Sockets.TcpClient
@@ -51,22 +63,18 @@ function Test-Net([string]$host_, [int]$port, [int]$timeoutMs = 4000) {
   } catch { return $false }
 }
 
-$proxyPort = 7897   # 注册表里的 Clash/Mihomo 混合端口
+$proxyPort = 7897
 $proxyAlive = Test-Net '127.0.0.1' $proxyPort
 
-# SSH 必须**真握手**才算可用（TCP 端口通 ≠ SSH 可用：网关可能接受连接后 reset）
 $sshOk = $false
 try {
-  $env:GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 -o BatchMode=yes'
   $probe = & 'C:\Program Files\Git\usr\bin\ssh.exe' -T -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new git@github.com 2>&1
   $probeTxt = ($probe -join ' ')
-  # GitHub 认证成功会回 "successfully authenticated"（带 -T 时是欢迎语）；连接被拦则是 reset/exchange failure
   $sshOk = ($probeTxt -match 'successfully authenticated|Welcome to GitHub') -and ($probeTxt -notmatch 'exchange identification|reset by peer|Connection refused|timed out')
 } catch { $sshOk = $false }
 
 $httpsOk = $false
 if (-not $sshOk) {
-  # 必须用 git 自己探测（curl 能过 ≠ git 的 schannel 能过：DPI 可能按 SNI/指纹拦截）
   try {
     $env:GIT_TERMINAL_PROMPT = '0'
     $t = & $git -c http.proxy= -c https.proxy= ls-remote https://github.com/chenpeigen2/usou.git 2>&1
@@ -79,17 +87,6 @@ Write-Host ("  SSH(22/443)  : {0}" -f $(if ($sshOk) { '可用' } else { '不可�
 Write-Host ("  HTTPS(443)   : {0}" -f $(if ($httpsOk) { '可用' } else { '不可用' }))
 Write-Host ("  本地代理:{0} : {1}" -f $proxyPort, $(if ($proxyAlive) { '在线' } else { '离线' }))
 
-$ahead = 0
-
-# ---------- 3. 推送 ----------
-# 待推送数量：远程追踪分支可能不存在（从未 push 过），此时全部本地 commit 都是待推送
-$localCount = [int]((& $git rev-list --count HEAD 2>$null) -as [int])
-$remoteCount = 0
-$rc = & $git rev-list --count 'origin/main' 2>$null
-if ($LASTEXITCODE -eq 0 -and $rc) { $remoteCount = [int]($rc -as [int]) }
-$ahead = [Math]::Max(0, $localCount - $remoteCount)
-Write-Host ("  待推送 commit: {0}（本地 {1} / 远端 {2}）" -f $ahead, $localCount, $remoteCount)
-
 $env:GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10'
 if ($sshOk) {
   Write-Host "→ 通过 SSH 推送…" -ForegroundColor Cyan
@@ -100,21 +97,9 @@ if ($sshOk) {
 if ($httpsOk -or $proxyAlive) {
   if ($proxyAlive) { $env:HTTPS_PROXY = "http://127.0.0.1:$proxyPort"; $env:HTTP_PROXY = $env:HTTPS_PROXY }
   Write-Host "→ 通过 HTTPS 推送…" -ForegroundColor Cyan
-  # 强制走 HTTPS（remote 已是 SSH 地址，这里用显式 URL 覆盖）
   $r = Git @('push', '-u', 'https://github.com/chenpeigen2/usou.git', 'main')
-  if ($r.code -eq 0) {
-    Write-Host "✔ 推送成功（HTTPS）" -ForegroundColor Green
-    # 顺手把 remote 改回 SSH 地址
-    & $git remote set-url origin 'git@github.com:chenpeigen2/usou.git' 2>$null
-    exit 0
-  }
+  if ($r.code -eq 0) { Write-Host "✔ 推送成功（HTTPS）" -ForegroundColor Green; & $git remote set-url origin 'git@github.com:chenpeigen2/usou.git' 2>$null; exit 0 }
   Write-Host "✘ HTTPS 推送失败:`n$($r.out)" -ForegroundColor Red
 }
-
-Write-Host ""
-Write-Host "⚠ 网络不可达，commit 已安全留在本地 main 分支（未推送）" -ForegroundColor Yellow
-Write-Host "  原因: GitHub TLS 被网络策略拦截 / SSH 22 被阻断 / 本地代理 $proxyPort 离线" -ForegroundColor Yellow
-Write-Host "  恢复方式（任选其一）:" -ForegroundColor Yellow
-Write-Host "    1) 启动本机代理客户端（Clash/Mihomo，监听 127.0.0.1:$proxyPort）后重跑本脚本" -ForegroundColor Yellow
-Write-Host "    2) 手动执行: git push -u origin main" -ForegroundColor Yellow
+Write-Host "⚠ 网络不可达，commit 已留在本地 main（未推送）" -ForegroundColor Yellow
 exit 0

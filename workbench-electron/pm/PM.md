@@ -75,11 +75,10 @@ STATE.md 标记该主题为 DOING。
 - **收尾自检（必须跑，必须全过）**：`pwsh -NoProfile -File "D:\code\usou\workbench-electron\verify-delivery.ps1"`
   必须输出「✔ 交付态验收全过」。若报 `pm\ 只含 4 个治理文件` 失败 → 说明第 7 步清理没做干净 → **清干净再重跑，直到全过**。
   （本轮运行期间该脚本可能报此项失败——那是运行中间态，收尾时必须为 PASS 才能结束本轮。）
-- **版本入库（每轮收尾必做）**：`pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit-push.ps1" -Message "<本轮主题：v<版本> <一句话>"`
-  脚本会自动 `git add -A` + commit（消息含版本号与变更文件数），然后探测推送通路：
-  SSH 真握手 → HTTPS（git 原生探测）→ 本地代理 127.0.0.1:7897，三者任一可用即 push；
-  全不可用则**把 commit 安全留在本地 main 并明确报告**（不阻塞本轮收尾）。
-  报告里必须写出 commit hash 与 push 结论（成功 / 已留本地待网络恢复）。
+- **版本入库（每轮收尾必做）**：`pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit.ps1" -Message "<本轮主题：v<版本> <一句话>"`
+  脚本会自动 `git add -A` + commit（消息含版本号与变更文件数），并报告本地待推送 commit 数。
+  **默认不 push**（用户自行推送）—— 绝不在本流程里代为 push。
+  报告里必须写出 commit hash 与「待推送 N 个（由用户自行 push）」。
 - 返回报告：主题 / 决策 / QA 证据 / 产物 / 遗留风险 / 下一轮建议
 
 ## 四、质量红线（历轮血泪，违反即本轮失败）
@@ -91,8 +90,8 @@ STATE.md 标记该主题为 DOING。
 5. **`ELECTRON_RUN_AS_NODE`**：DSH/VS Code 终端会注入，启动器已防御，但 pwsh 里手动启动前要 `Remove-Item Env:ELECTRON_RUN_AS_NODE`。
 6. **版本号必须发版前改**：曾两次构建出旧版本号产物（第七/八轮）。
 7. **缓存/并发改动要实测计时**：性能类迭代必须有前后对比数据。
-8. **push 失败不阻塞迭代**：公司网络当前阻断 GitHub（SSH 22 reset / TLS 被 DPI 拦 / 本地代理 7897 离线）。
-   每轮照常 commit（本地留档），push 失败只报告不阻塞；网络恢复后重跑 `auto-commit-push.ps1` 补推即可。
+8. **只 commit，不 push**：用户明确要求每轮迭代**只做本地 commit，push 由用户自己执行**。
+   收尾跑 `auto-commit.ps1`（默认不推），报告里给出 commit hash 与本地待推送数量即可，**绝不代替用户 push**。
 
 ## 五、连续迭代模式（链式，默认）
 
@@ -114,3 +113,4 @@ STATE.md 标记该主题为 DOING。
   **保活用**——若链式批次因会话结束/异常中断，6 小时后重新拉起一批（最多 3 轮）。
 - 正常情况由 lead 在每轮收尾后**直接起下一轮**（本会话内用 workflow 串跑），不等定时。
 - 每次唤醒读状态 → 连跑最多 3 轮 SOP → 结束。用户无需参与。
+

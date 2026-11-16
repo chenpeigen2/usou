@@ -49,6 +49,13 @@
 - **一轮一主题**；QA 不过不硬发版；待办枯竭时只写巡检报告；结束保留打包版运行态。
 - 用户已永久授权全部自主决策，PM agent 禁止提问或等待确认。
 
+## 版本入库（每轮收尾）
+
+- 脚本：`workbench-electron/auto-commit.ps1 -Message "<本轮主题：v<版本> <一句话>"`
+- 行为：自动 `git add -A` + commit（消息含版本号与变更文件数），并报告本地待推送 commit 数。
+- **默认只 commit，绝不代为 push**——用户明确要求 push 由自己执行。仅在用户显式指示时才使用 `-Push` 开关。
+- 仓库：`git@github.com:chenpeigen2/usou.git`，分支 `main`，remote 已配置。
+
 ## 打包协议（build-agent）
 
 1. **先杀干净所有实例再构建**（历史教训：运行中重建会 EBUSY / 打断运行态）

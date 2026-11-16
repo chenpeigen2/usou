@@ -365,11 +365,25 @@ out\Workbench-1.5.0-portable.zip     # 便携包 113MB
 - 语法门禁 6/6；系统视图截图（趋势+快照表+v1.6.0 页脚）、Poker 详情二次打开截图
   （「来自缓存（刚刚生成）+ ↻ 重算」）均目检通过；打包版冒烟 4 进程日志干净。
 
-### 产物
-```
-out\Workbench-Setup-1.6.0.exe        # NSIS 安装包 83.5MB
-out\Workbench-1.6.0-portable.zip     # 便携包 113MB
-```
+## Git 版本管理约定（第二十六轮）
+
+- **仓库**：`git@github.com:chenpeigen2/usou.git`，分支 `main`，remote 已配置。
+- **首次 commit**：`c3c644e feat(workbench): 初始化工作台仓库…`（29 文件 / 1MB），**按用户要求未 push**。
+- **入库边界**：`.gitignore` 排除 Electron 运行时（268MB）、构建产物（465MB）、node_modules、
+  Chromium 缓存、QA 临时探针/截图/隔离 profile —— 只入库源码 + 治理文档 + 可复现构建脚本。
+- **每轮机制**：PM agent 收尾跑 `workbench-electron/auto-commit.ps1 -Message "<主题：v版本 一句话>"`，
+  自动 `add -A` + commit（消息含版本号与变更文件数），并报告本地待推送 commit 数。
+- **只 commit 不 push**（用户第十二轮明确要求）：push 由用户自己执行，流程**绝不代推**；
+  仅在用户显式指示时才使用脚本的 `-Push` 开关。
+- **网络实情（实测）**：公司网阻断 GitHub——SSH 22/443 均 `Connection reset by peer`；
+  HTTPS 443 TCP 通但 TLS 握手被 DPI 拦（schannel 失败，curl 可过但 git 不行）；
+  注册表配置了 Clash/Mihomo 混合端口 `127.0.0.1:7897` 但当前无代理进程在运行。
+  以上不影响本地 commit 流程。
+- **踩坑记录**：① `git rm -r --cached .` 不加 `-f` 会失败（需强制清索引）；
+  ② 忽略规则要覆盖嵌套目录（`pm\_qa_*/` 才能挡住 Chromium 缓存）；
+  ③ 探测「SSH 可用」必须**真握手**，TCP 端口通会被网关 reset 骗过；
+  ④ 探测「HTTPS 可用」必须用 **git 自己**，curl 成功不代表 git 的 schannel 能过；
+  ⑤ `origin/main` 不存在时 `rev-list origin/main..main` 会报错，需用本地总数减去远端追踪数。
 
 ---
 

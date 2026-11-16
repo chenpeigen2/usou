@@ -1,5 +1,5 @@
 # 迭代提交（PM agent 每轮收尾调用）—— 默认只 commit，不 push
-# 用法: pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit-push.ps1" -Message "<本轮摘要>"
+# 用法: pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit.ps1" -Message "<本轮摘要>"
 # 行为:
 #   1. 若工作区有变更 → 自动 add -A + commit（消息含版本号与变更文件数）
 #   2. 报告本地待推送 commit 数；**默认不推送**（用户自行 push）
@@ -29,7 +29,7 @@ $msg
 
 - 版本: v$pkgVer
 - 变更文件: $($changed.Count) 个
-- 自动提交: workbench-electron/auto-commit-push.ps1（只 commit，push 由用户自行执行）
+- 自动提交: workbench-electron/auto-commit.ps1（只 commit，push 由用户自行执行）
 "@
   $r = Git @('add', '-A')
   if ($r.code -ne 0) { Write-Host "✘ git add 失败:`n$($r.out)" -ForegroundColor Red; exit 1 }
@@ -103,3 +103,4 @@ if ($httpsOk -or $proxyAlive) {
 }
 Write-Host "⚠ 网络不可达，commit 已留在本地 main（未推送）" -ForegroundColor Yellow
 exit 0
+

@@ -13,14 +13,15 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第二十七轮 / v1.7.17 · **「今日简报的历史对比失真（新提交判定 + 最近改动口径）」** —— READY 池已空 ⇒ 本轮按 PM.md 第一节「待办池枯竭时自己造活」做真实巡检（打包版隔离实例 `--qashot=` 六视图截图 + 审计，**6 视图 failCount 全 0**），**渲染层无缺陷**，但**数据侧独立重算**（Node 直读 `data\scan-cache.json` + `data\history.json`）暴露了 `buildBrief()` 的**两处真实缺陷**（简报每条都在陈述不成立的事实）
-- **本轮主题一句话**：简报「与上次扫描相比，X 有新提交」因**字段名写错**而**永不触发**（静默失效）；「最近改动集中在 X（N 个文件）」把**已删除文件**算成「在动」（实测报出的 34 个文件**全部已删除**）
-- **版本**：v1.7.17
-- **交付态**：`out\Workbench-Setup-1.7.17.exe` + `out\Workbench-1.7.17-portable.zip` + blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.17.0**）
+- **本轮状态**：DONE · 第二十八轮 / v1.7.18 · **「失效项目仍被计入未提交统计（4 处口径统一 + 总览重绘收敛）」** —— 4 处统计口径（总览数字条 / 类型 chip / 项目列表统计行 / 托盘菜单）+ 1 处筛选器全部剔除 `PROJ_DEAD`；`checkProjectExistence()` 改为**全视图收敛**（projects 视图只重绘子容器、其余视图走 `render()`）
+- **本轮主题一句话**：目录已删除的项目（`D:\wt-demo` / `D:\wt-prev`）仍带 `dirty=1` 被算进「未提交」，4 处口径各自复读同一错误 ⇒ 修复后**托盘实测从「5 个仓库 / 8 个文件」变为「3 个仓库 / 6 个文件」**（= 屏上真正带「未提交 ●N」标记的行数），一屏内自相矛盾消除
+- **版本**：v1.7.18
+- **交付态**：`out\Workbench-Setup-1.7.18.exe`（83.55 MB）+ `out\Workbench-1.7.18-portable.zip`（113.21 MB）+ blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.18.0**）；旧 1.7.17 产物已清除
 - **运行时数据**：`%APPDATA%\工作台\`（scan-cache.json / history.json / settings.json / main.log；交付态干净，settings theme=dark · autoScanHours=0 默认）
-- **最后巡检**：2026-11-16 19:47 —— 打包版 **4 进程**（`out\win-unpacked\工作台.exe`，ProductVersion = 1.7.17.0）、启动日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、全日志 `[renderer]` 行 = **0** / error 行 = **0**、托盘在位（菜单含「上次扫描：5 小时前（13:47）」「未提交：5 个仓库 / 8 个文件」）
-- **已知遗留（非本轮缺陷）**：① **托盘「未提交：5 个仓库 / 8 个文件」仍是旧口径**（失效项目 `D:\wt-demo`/`D:\wt-prev` 各带 dirty=1 却被计入）⇒ 与项目视图统计行「未提交 5」同款，已立项 **P1**（下一轮 v1.7.18）；② **history.json 按「项目名」做 key** ⇒ 4 个同名 `TclLauncher` 塌成 1 键（保留最旧那个）⇒ 未提交文件数 8→5、趋势图末段 11→5（真实 8）⇒ 假信号 + **history 同状态不可复现**（塌缩值在 6 快照间反复跳）⇒ 已立项 **P1**（v1.7.19）；③ 缓存里的已删除条目（60 条中 36 条）要等下一次**真实扫描**才会从缓存里消失（本机 autoScan=0）
-- **下一轮指针**：READY 池现有 **2 项 P1** —— ①「失效项目仍被计入未提交统计（4 处口径 + 总览重绘收敛）」②「历史快照按项目名做 key ⇒ 同名项目塌缩」；按「改动面最小 + 自证于单屏」优先取 **①**（`renderer/app.js` + `main.js`，4 处口径统一排除 `PROJ_DEAD`，并处理 `checkProjectExistence()` 只在 projects 视图重绘 ⇒ 总览数字条会停在 5 的收敛问题）；**② 涉及持久化数据结构（path-key + 旧快照兼容），风险量级不同 ⇒ 放最后一轮**
+- **最后巡检**：2026-11-16 21:34 —— 打包版 **4 进程**（`out\win-unpacked\工作台.exe`，ProductVersion = 1.7.18.0）、启动日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、全日志 `[renderer]` 行 = **0** / error 行 = **0**、托盘菜单实测 **「未提交：3 个仓库 / 6 个文件」**（修复前 5 / 8）、六视图 CDP 审计 **failCount 全 0**（overview 241 / projects 176 / recent 190 / disk 34 / system 146 / settings 38 个元素）、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.18）`
+- **本轮改动面**：`main.js` +32 / `renderer/app.js` +23−8 / `package.json` 版本号 —— 合计 **3 文件 49 增 8 删**（新增 `trayDeadDirtySet()`：复用既有同步 `pathExists()` ⇒ **零新增 IPC**、与渲染层 `PROJ_DEAD` 同源同判定、只查 `isGit && dirty>0` 的 5 个项目、按 `scanTime` 做键 + 5 秒 TTL memo）
+- **已知遗留（非本轮缺陷）**：① **history.json 按「项目名」做 key** ⇒ 4 个同名 `TclLauncher` 塌成 1 键（保留最旧那个）⇒ 未提交文件数 8→5、趋势图末段 11→5（真实 8）⇒ 假信号 + **history 同状态不可复现**（塌缩值在 6 快照间反复跳）⇒ 已立项 **P1**（下一轮 v1.7.19）；② 缓存里的已删除条目（60 条中 36 条）要等下一次**真实扫描**才会从缓存里消失（本机 autoScan=0）；③ 托盘/总览的失效判定靠 `existsSync`，若用户把目录**换成同名文件**（非删除）仍判为存活（极端场景，未立项）
+- **下一轮指针**：READY 池现有 **1 项 P1** —— ①「历史快照按项目名做 key ⇒ 同名项目塌缩」；涉及持久化数据结构（path-key + 旧快照兼容 + 6 个快照的迁移策略），风险量级与纯渲染层修复不同 ⇒ 需独立一轮、改动前先备份 `history.json`；**用户已指示第 28 轮后停止自动迭代**，此项待人工确认后再启动
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

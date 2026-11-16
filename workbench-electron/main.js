@@ -85,6 +85,32 @@ let trayMenuTimer = null;
 let lastTrayLabels = [];
 let trayQaSpec = '';
 
+/* v1.7.18：失效项目集合 —— 供托盘「未提交」口径剔除**已删除目录**的项目。
+   背景：v1.7.15 已给失效项目行去掉「未提交 ●N」标记（目录都没了还标未提交 = 陈述不成立的事实），
+   但托盘 L128 的「未提交：N 个仓库 / M 个文件」仍在算它们 ⇒ 实测本机 `D:\wt-demo` / `D:\wt-prev`
+   各带 dirty=1 ⇒ 托盘播报「5 个仓库 / 8 个文件」，真实应为「3 个仓库 / 6 个文件」，
+   与同一屏上真正带标记的 3 行自相矛盾。
+   设计（见 DECISIONS 第二十八轮 Q2）：
+     · 通道复用**既有同步** `pathExists()`（= `path:exists` 内部同一个 `existsSync` 判定）⇒ **零新增 IPC**、
+       且与渲染层 `PROJ_DEAD` **同源同判定** ⇒ 两个进程不可能给出两种答案；
+     · **只查 isGit 且 dirty>0 的项目**（其余项目根本不影响「未提交」口径）⇒ 本机实际 5 次 existsSync，不是 59 次；
+     · 按 `scanTime` 做键 + 5 秒 TTL 的 memo：启动/扫描完成/定时刷新可能同秒连发，TTL 内复用；
+       用 TTL 而非永久缓存 ⇒ 用户刚删掉目录时最多 5 秒托盘就跟着变（永久缓存会一直骗人到下次扫描）。 */
+const TRAY_DEAD_TTL = 5000;
+let trayDeadMemo = { key: '', at: 0, set: null };
+function trayDeadDirtySet(ps, scanTime) {
+  const key = String(scanTime) + '|' + ps.length;
+  const now = Date.now();
+  if (trayDeadMemo.set && trayDeadMemo.key === key && (now - trayDeadMemo.at) < TRAY_DEAD_TTL) return trayDeadMemo.set;
+  const set = new Set();
+  for (const p of ps) {
+    if (!p || !p.isGit || !(Number(p.dirty) > 0)) continue;
+    if (!pathExists(p.path)) set.add(p.path);
+  }
+  trayDeadMemo = { key: key, at: now, set: set };
+  return set;
+}
+
 function trayStatus() {
   const out = { hasCache: false, scanTime: '', clock: '', ageText: '暂无数据', ageMinutes: null, projectCount: 0, dirtyProjects: 0, dirtyFiles: 0 };
   let cache = null;
@@ -108,8 +134,12 @@ function trayStatus() {
   }
   const ps = Array.isArray(cache.projects) ? cache.projects : [];
   out.projectCount = ps.length;
+  // v1.7.18：剔除「磁盘上已不存在」的项目 —— 目录都没了还标未提交 = 陈述不成立的事实
+  //（与渲染层 PROJ_DEAD 同源同判定，见 trayDeadDirtySet 注释）
+  const deadDirty = trayDeadDirtySet(ps, s);
   for (const p of ps) {
-    // 口径与渲染层（数字条「个仓库未提交」）严格一致：必须是 git 仓库且有未提交改动
+    // 口径与渲染层（数字条「个仓库未提交」）严格一致：必须是 git 仓库、有未提交改动、且目录仍存在
+    if (p && deadDirty.has(p.path)) continue;
     const n = (p && p.isGit) ? (Number(p.dirty) || 0) : 0;
     if (n > 0) { out.dirtyProjects++; out.dirtyFiles += n; }
   }

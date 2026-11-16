@@ -1506,7 +1506,8 @@ function renderOverview() {
   const m = DATA.meta;
   const projects = DATA.projects || [];
   const gitN = projects.filter(p => p.isGit).length;
-  const dirtyN = projects.filter(p => p.isGit && p.dirty > 0).length;
+  // v1.7.18：剔除失效项目 —— 目录都没了还标未提交 = 陈述不成立的事实（同 renderProjectList/renderTypeChips 口径）
+  const dirtyN = projects.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
   const favN = (FAVS || []).length;
   const sizeSum = projects.reduce((s, p) => s + (p.sizeMB || 0), 0);
   const n = new Date();
@@ -1689,8 +1690,15 @@ async function checkProjectExistence(list) {
   let changed = dead.size !== PROJ_DEAD.size;
   if (!changed) { for (const p of dead) { if (!PROJ_DEAD.has(p)) { changed = true; break; } } }
   PROJ_DEAD = dead;
-  // 只在项目视图重绘子容器（不碰搜索框）⇒ 零失焦、零布局位移
-  if (changed && view === 'projects') renderProjectList();
+  // v1.7.18：失效集合变化后**所有视图**都要收敛 —— 原实现只在 projects 视图重绘，
+  // ⇒ 总览数字条（`ms-dirty`）永远停在首帧的 5（首帧时 PROJ_DEAD 还是空集），
+  //   或用户从项目视图切回总览时看到「5 → 3」的跳变。
+  // 按视图分流（与 checkRecentExistence L1665 完全同构）：
+  //   · projects —— 只重绘两个子容器（#type-chips + #proj-list），**不碰 #q 搜索框** ⇒ 零失焦、零布局位移；
+  //   · 其余视图 —— 走 render()（总览视图内零 <input>，全量重绘不会丢焦点）。
+  if (!changed) return;
+  if (view === 'projects') { renderTypeChips(); renderProjectList(); }
+  else render();
 }
 
 /* v1.7.16：失效条目**沉底** —— 把「磁盘上已不存在」的条目排到列表末尾。
@@ -1757,7 +1765,8 @@ function renderTypeChips() {
   const types = [...new Set(projects.map(p => p.type))];
   const counts = { '全部': projects.length };
   projects.forEach(p => { counts[p.type] = (counts[p.type] || 0) + 1; });
-  counts['未提交'] = projects.filter(p => p.isGit && p.dirty > 0).length;
+  // v1.7.18：chip 口径与列表统计行、总览数字条、托盘严格一致 —— 必须剔除失效项目
+  counts['未提交'] = projects.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
   const order = ['全部', '未提交'].concat(types);
   $('#type-chips').innerHTML = order.map(t =>
     '<button class="chipbtn' + (t === filterType ? ' on' : '') + '" data-act="typefilter" data-t="' + esc(t) + '">' + esc(t) + ' ' + (counts[t] || 0) + '</button>').join('');
@@ -1783,7 +1792,8 @@ function renderProjectList() {
   const projects = DATA.projects || [];
   const hitSet = new Set(projectHits(q));
   const list = projects.filter(p => {
-    if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0)) return false; }
+    // v1.7.18：与 chip「未提交 N」同一口径 —— 失效项目不算未提交（否则 chip 写 3、点进去列 5 行，又一屏内自相矛盾）
+    if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0) || PROJ_DEAD.has(p.path)) return false; }
     else if (filterType !== '全部' && p.type !== filterType) return false;
     return hitSet.has(p);
   });
@@ -1800,7 +1810,8 @@ function renderProjectList() {
     return (b.rootMTime || '').localeCompare(a.rootMTime || '');
   });
   const gitN = list.filter(p => p.isGit).length;
-  const dirtyN = list.filter(p => p.isGit && p.dirty > 0).length;
+  // v1.7.18：剔除失效项目 —— 屏上真正带「未提交 ●N」标记的只有存活行（prow 里 `!dead && isGit && dirty>0`）
+  const dirtyN = list.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
   const favN = list.filter(p => isFav(p.path)).length;
   const deadN = list.filter(p => PROJ_DEAD.has(p.path)).length;
   const sizeSum = list.reduce((s, p) => s + (p.sizeMB || 0), 0);

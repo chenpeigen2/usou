@@ -2223,3 +2223,51 @@ D:\code\usou\workbench-electron\out\
 - STATE / README 已更新；**本轮全部临时物已删除**（CDP 工具 3 个 + 断言脚本 1 个 + 截图脚本 2 个、QA 截图 6 张、隔离 profile 3 个、dev `data\settings.json` 已还原为 theme=dark）⇒ `pm\` 目录恢复为只含 4 个治理文件。
 - Git：本轮改动走 `auto-commit.ps1` 入库（**只 commit 不 push**，按 AGENTS.md 约定）。
 - 按 PM.md 第五节「批次到顶不再停」：本轮收尾后由编排器立即拉起下一轮（版本 1.7.17 → 1.7.18，指针 = READY 池 2 项 P1，优先取「失效项目仍被计入未提交统计」），本轮不自起、不等定时器。
+
+# 第二十八轮：失效项目仍被计入「未提交」统计（4 处口径统一 + 总览重绘收敛）（P1 · 链式续批 · 编排侧第 73 轮 · v1.7.18）
+
+> **巡检（2026-11-16 20:05）**：交付态健康 —— **4 个「工作台」进程**（`out\win-unpacked\工作台.exe`，ProductVersion = **1.7.17.0**）；`%APPDATA%\工作台\main.log` 尾部 `tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、`[renderer]` 错误 = 0 / error 行 = 0；`git status` 干净（HEAD = `90a2abe`，其下 `7586bff` = 第二十七轮）；`pm\` 仅 4 个治理文件；`package.json` = **1.7.17**。
+> **本轮缺陷在运行态日志里当场复现**：`tray menu rebuilt (定时)` 连续两次输出 `未提交：5 个仓库 / 8 个文件` —— 而独立重算的正确值是 **3 个仓库 / 6 个文件**（差值恰为两个已删除项目 `D:\wt-demo` / `D:\wt-prev` 各 dirty=1）。
+> **选题**：BACKLOG READY 池 = **2 项 P1**（第 22、23 行）。取 **第 22 行「失效项目仍被计入未提交统计」**：改动面最小（3 处一行式过滤 + 1 处重绘门控 + 主进程 1 个判定）、可在**单屏**自证（同一屏上「统计行 = 5 / 带标记行 = 3」的自相矛盾肉眼可见）、且**托盘文案**可机器取证（`--trayqa` 钩子直接输出 `status.dirtyProjects/dirtyFiles`）。
+> 第 23 行（history 按项目名做 key ⇒ 同名塌缩）**留到 v1.7.19**：它要动**持久化数据结构**（`appendHistory` 写侧 + 读侧归一化 + `byName` 改按 path），风险与验证成本都明显更高，按「小步快跑」放到最后一轮单独做。
+> 按 DECISIONS.md 最后轮次 +1 = **第二十八轮**（编排侧本会话为第 73 轮）；版本 1.7.17 → 1.7.18。
+
+### 自问自答（备选 → 结论 → 理由）
+
+- **Q1 4 处口径的「同一口径」到底怎么定义？**
+  - 备选：A. 各处自己写过滤条件｜B. 抽出统一判定函数 `isDirtyProject(p)`（或 `countDirty(list)`）供 4 处共用｜C. 在数据层（`src/scanner.js`）直接把失效项目的 `dirty` 清成 0。
+  - 结论：**A 的写法 + B 的意图**：渲染层 3 处共用同一个局部谓词写法（`p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)`），主进程 1 处用同构判定；**不抽公共模块、不改数据层**。
+  - 理由：① **C 是错的** —— `dirty` 是扫描时的**事实快照**，篡改数据源等于让「已删除项目的未提交数」永久消失，一旦目录恢复存在就再也算不回来（v1.7.13/v1.7.15/v1.7.16 三轮反复确立的原则：**只改判定、不改快照**）；② 渲染层与主进程**分属两个进程、两份代码**（`renderer/app.js` 与 `main.js`），无法共享函数而不引入新模块；③ 三处渲染层写法都在同一文件、相隔不到 300 行，抽函数的收益低于阅读成本；④ 但**语义必须统一**：判定 = 「是 git 仓库 **且** 有未提交改动 **且** 目录仍存在」，四处一字不差。
+
+- **Q2 主进程怎么知道哪些项目失效了？（本轮唯一有设计空间的点）**
+  - 备选：A. `trayStatus()` 内直接用**已有的**同步 `pathExists()`（`main.js` L584）现查｜B. 新增 IPC（渲染层把 `PROJ_DEAD` 推给主进程）｜C. 把「失效」写进 `scan-cache.json` 的 `meta`（扫描时落盘）。
+  - 结论：**A**，并加**按 `scanTime` 键 + 5 秒 TTL 的 memo**。
+  - 理由：① **零新增 IPC**（`AGENTS.md` 契约「只增不改名」下，能不增就不增）、**零数据文件结构改动**（C 会让旧缓存不兼容）；② 现查的**语义与渲染层完全同源**：`path:exists`（`main.js` L627）内部就是 `existsSync` 循环，与 `pathExists()` 同一个判定 ⇒ 两个进程**不可能给出两种答案**（若用 B/C，一旦推送/落盘时机不同就会出现「托盘 3 / 数字条 5」的新型不一致）；③ 成本可接受：**≤59 次 `existsSync`**，`trayStatus()` 只在「启动 / 每 60 秒定时 / 扫描完成 / 设置变更 / 开机自启切换」被调用（实测 5 个调用点），且 `existsSync` 是本地磁盘元数据操作（v1.7.15 起 `path:exists` 已是同一做法，实测无卡顿）；④ memo 是必要的**防抖**：启动瞬间 `refreshTrayMenu('启动', {force:true})` 与扫描完成可能在同一秒内连续触发，5 秒 TTL 内复用同一结果，避免同一批路径被连查多次；TTL 而非永久缓存，是为了「用户刚删掉目录」时最多 5 秒后托盘就跟着变（永久缓存会一直骗人到下次扫描）。
+
+- **Q3 总览数字条为什么会「停在 5」？重绘门控怎么改才不重犯失焦事故？**
+  - 定位：`checkProjectExistence()` L1693 `if (changed && view === 'projects') renderProjectList();` —— **只有 projects 视图会重绘**。总览视图下 `PROJ_DEAD` 更新完毕**没有任何人通知数字条**⇒ 数字条永远停在首帧的 5（首帧时 `PROJ_DEAD` 还是空集）。
+  - 备选：A. 放开成 `if (changed) render();`｜B. 按视图分流：projects 走子容器（`renderTypeChips()` + `renderProjectList()`），其余视图走 `render()`｜C. 只加 overview 分支 `else if (view === 'overview') renderOverview();`。
+  - 结论：**B**。
+  - 理由：① **A 会重犯 v1.7.12 的失焦事故** —— projects 视图的 `render()` 会重建 `<input id="q">`（L1738），用户正在打字时焦点丢失、输入被清空；② **C 不够** —— `renderOverview()` 不是视图渲染的全部（还有 `renderFoot()` 页脚），且**未来任何新视图**都会漏；B 用「projects 特例 + 其余全量」正好把「唯一有输入框的视图」隔离出来，与 `checkRecentExistence()` L1665 的既有先例（`view === 'recent' ? renderRecentList() : render()`）**完全同构**；③ projects 分支还要补 `renderTypeChips()` —— 否则 chip 的「未提交 N」在失效集合变化后不更新（v1.7.15 只重绘了 `#proj-list`，本轮修了 chip 口径就必须让它也收敛）；④ 两个子容器（`#type-chips` / `#proj-list`）都在 `#q` 之外 ⇒ **零失焦、零布局位移**，与 v1.7.15 的结论一致。
+
+- **Q4 怎么防止「过度剔除」？（质量红线：不能为了消掉 5 就把活项目也剔了）**
+  - 风险：过滤条件写成 `!PROJ_DEAD.has(p.path)` 后，若 `PROJ_DEAD` 被**误填**（例如 `path:exists` 因权限问题对受保护目录返回 `false`），活项目会被整体剔除 ⇒ 数字条变成 0、用户以为「所有项目都干净了」，**比原来的 5 更危险**（原来只是多算，改完可能少算到 0）。
+  - 结论：**断言里必须同时钉住两侧**：① **该剔的剔了**（未提交 5 → 3，托盘 8 → 6）；② **不该剔的没剔**（存活 57 行 `isGit` 判定不变、`git` 计数仍 46、`list.length` 仍 59、`AsyncAnimator`(dirty=2) 与 `24bit`(dirty=1) 仍被计入 ⇒ 剔除后剩 3 个仓库 6 个文件**恰好**等于独立重算值）。
+  - 理由：单侧断言（只测「变成 3」）无法区分「正确剔除 2 个失效」与「错误剔除了别的组合」；**两侧同时钉住**才能证明剔除**精确命中**。
+
+- **Q5 托盘要不要顺带修 `projectCount`？**
+  - 结论：**不修，且不改任何菜单文案结构**。
+  - 理由：`projectCount` 虽在 `trayStatus()` 里被赋值（L89 默认 0 / L110 赋值），但 `trayMenuTemplate()` 与 tooltip **都没有渲染它**（grep 确认只有 2 处出现，均为赋值）⇒ 它是一个**死字段**，改它既不影响任何可见文案，又会把本轮改动面从「口径」扩到「清理死代码」。**记录为下一轮可选的小清理**（见遗留风险）。
+
+### 本轮收尾（第二十八轮完成）
+
+- **交付态**：`out\Workbench-Setup-1.7.18.exe`（83.55 MB）+ `out\Workbench-1.7.18-portable.zip`（113.21 MB）+ blockmap；1.7.17 旧产物按绝对路径核验 `underOut=True` 后全部删除（残留 = **0**）；打包版干净启动 → **4 进程**（ProductVersion **1.7.18.0**）、启动日志四项标志全 True、`[renderer]` 行 = **0** / error 行 = **0**。
+- **核心实证**：托盘菜单实测 **「未提交：3 个仓库 / 6 个文件」**（修复前同一菜单连续两次输出「5 个仓库 / 8 个文件」）= 屏上真正带「未提交 ●N」标记的 3 行 ⇒ **同一屏自相矛盾消除**。
+- **双侧断言**（Q4 要求）：① 该剔的剔了 —— 未提交 5 → 3、托盘文件数 8 → 6；② 不该剔的没剔 —— 存活 57 行 `isGit` 判定不变、`list.length` 仍 59、`AsyncAnimator`(dirty=2) 与 `24bit`(dirty=1) 仍被计入 ⇒ 剔除后剩 3 仓库 6 文件**恰好**等于独立重算值（证明剔除**精确命中**，非误伤组合）。
+- **六视图 CDP 审计**：failCount **全 0**（overview 241 / projects 176 / recent 190 / disk 34 / system 146 / settings 38 个元素，最低对比度 **4.73:1**，深色主题 `bodyColor=rgb(233,239,248)` / `bodyBg=rgb(10,14,20)`）。
+- **改动面**：`main.js` **+32** / `renderer/app.js` **+23−8** / `package.json` 版本号 —— 合计 **3 文件 49 增 8 删**；**零新增 IPC、零外部依赖、零数据文件结构改动**。
+- **比计划多修 1 处**：`filterType === '未提交'` 的**筛选器**也是旧口径 —— 只改 chip 不改它就会变成「chip 写 3、点进去列 5 行」，把矛盾从统计行挪到筛选结果里。本轮一并修掉（Q1 的「语义必须统一」扩展到筛选谓词）。
+- **BACKLOG**：「失效项目仍被计入未提交统计」→ **DONE**（附 v1.7.18 与验证结论）⇒ **剩余 READY = 1 项 P1**（history 按项目名做 key ⇒ 同名项目塌缩）。
+- **STATE / README 已更新**；**本轮全部临时物已删除**（`pm\r28probe.mjs`、`pm\r28tray.json`、`pm\r28shots\`（6 张截图 + 审计 JSON））⇒ `pm\` 目录恢复为只含 4 个治理文件。
+- **Git**：本轮改动走 `auto-commit.ps1` 入库（**只 commit 不 push**，按 AGENTS.md 约定 —— 推送由用户自己执行）。
+- **停止链式**：用户指示「做完 28 轮停止吧」⇒ 本轮收尾后**不再自动拉起下一轮**。剩余 1 项 P1（history path-key）涉及持久化数据结构 + 旧快照兼容 + `byName` 改按 path 查，需独立一轮并先备份 `history.json`，**待人工确认后再启动**。

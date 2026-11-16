@@ -4,14 +4,29 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第二十六轮 / v1.7.16 · **「失效条目沉底（最近动态 / 项目雷达）」** —— READY 池已空 ⇒ 本轮按 PM.md 第一节「待办池枯竭时自己造活」做真实巡检（打包版隔离实例 `--qashot=` 六视图截图 + 审计），**巡检发现 1 个真实缺陷并当场立项**（P2）：60 条「最近动态」里 **36 条已失效**且**占据列表前 37 位** ⇒ 24 条真实文件全被挤出首屏
-- **本轮主题一句话**：失效条目（磁盘上已不存在）按过期快照的 mtime 排在最前 ⇒ 沉底（收藏 > 存活 > 失效），保留「已删除」角标不丢信息
-- **版本**：v1.7.16
-- **交付态**：`out\Workbench-Setup-1.7.16.exe` + `out\Workbench-1.7.16-portable.zip` + blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.16.0**）
+- **本轮状态**：DONE · 第二十七轮 / v1.7.17 · **「今日简报的历史对比失真（新提交判定 + 最近改动口径）」** —— READY 池已空 ⇒ 本轮按 PM.md 第一节「待办池枯竭时自己造活」做真实巡检（打包版隔离实例 `--qashot=` 六视图截图 + 审计，**6 视图 failCount 全 0**），**渲染层无缺陷**，但**数据侧独立重算**（Node 直读 `data\scan-cache.json` + `data\history.json`）暴露了 `buildBrief()` 的**两处真实缺陷**（简报每条都在陈述不成立的事实）
+- **本轮主题一句话**：简报「与上次扫描相比，X 有新提交」因**字段名写错**而**永不触发**（静默失效）；「最近改动集中在 X（N 个文件）」把**已删除文件**算成「在动」（实测报出的 34 个文件**全部已删除**）
+- **版本**：v1.7.17
+- **交付态**：`out\Workbench-Setup-1.7.17.exe` + `out\Workbench-1.7.17-portable.zip` + blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.17.0**）
 - **运行时数据**：`%APPDATA%\工作台\`（scan-cache.json / history.json / settings.json / main.log；交付态干净，settings theme=dark · autoScanHours=0 默认）
-- **最后巡检**：2026-11-16 19:15 —— 打包版 **4 进程**（`out\win-unpacked\工作台.exe`，ProductVersion = 1.7.16.0）、启动日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、新增 `[renderer]` 行 = **0** / error 行 = **0**、托盘在位（菜单含「上次扫描：5 小时前（13:47）」「未提交：5 个仓库 / 8 个文件」）
-- **已知遗留（非本轮缺陷）**：缓存里的已删除条目（60 条中 36 条）要等下一次**真实扫描**才会从缓存里消失（本机 autoScan=0 ⇒ 可能长期在缓存里）—— 但本轮的**沉底**让它们不再挡路；`D:\wt-demo` / `D:\wt-prev` 同理（真实用户数据，非 QA 临时文件）
-- **下一轮指针**：READY 池**为空** ⇒ 下一轮先做真实巡检找问题；若无新问题，从 IDEA 池升级「**每周开发节奏周报**」（activity + history 自动生成 Markdown）—— 评估改动面（要新增聚合 + 导出 + UI），建议拆成「纯聚合函数 + 一处入口」两步走
+- **最后巡检**：2026-11-16 19:47 —— 打包版 **4 进程**（`out\win-unpacked\工作台.exe`，ProductVersion = 1.7.17.0）、启动日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、全日志 `[renderer]` 行 = **0** / error 行 = **0**、托盘在位（菜单含「上次扫描：5 小时前（13:47）」「未提交：5 个仓库 / 8 个文件」）
+- **已知遗留（非本轮缺陷）**：① **托盘「未提交：5 个仓库 / 8 个文件」仍是旧口径**（失效项目 `D:\wt-demo`/`D:\wt-prev` 各带 dirty=1 却被计入）⇒ 与项目视图统计行「未提交 5」同款，已立项 **P1**（下一轮 v1.7.18）；② **history.json 按「项目名」做 key** ⇒ 4 个同名 `TclLauncher` 塌成 1 键（保留最旧那个）⇒ 未提交文件数 8→5、趋势图末段 11→5（真实 8）⇒ 假信号 + **history 同状态不可复现**（塌缩值在 6 快照间反复跳）⇒ 已立项 **P1**（v1.7.19）；③ 缓存里的已删除条目（60 条中 36 条）要等下一次**真实扫描**才会从缓存里消失（本机 autoScan=0）
+- **下一轮指针**：READY 池现有 **2 项 P1** —— ①「失效项目仍被计入未提交统计（4 处口径 + 总览重绘收敛）」②「历史快照按项目名做 key ⇒ 同名项目塌缩」；按「改动面最小 + 自证于单屏」优先取 **①**（`renderer/app.js` + `main.js`，4 处口径统一排除 `PROJ_DEAD`，并处理 `checkProjectExistence()` 只在 projects 视图重绘 ⇒ 总览数字条会停在 5 的收敛问题）；**② 涉及持久化数据结构（path-key + 旧快照兼容），风险量级不同 ⇒ 放最后一轮**
+
+## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
+
+- 主题：**「今日简报的历史对比失真（新提交判定 + 最近改动口径）」** —— READY 池空 ⇒ 本轮**造活**（真实巡检发现并立项）
+- 决策：`D:\code\usou\workbench\DECISIONS.md` 第二十七轮（自问自答 7 问 + QA/发版实测回填）
+- **根因/机会（两处，同属「过期快照」家族）**：
+  - ① **字段名写错 ⇒ 功能静默失效**：`buildBrief()` 判「有新提交」用 `cc.commitTime > pp.time`，但 `pp` 是 `history.json` 里的**项目条目**（契约 `{dirty,sizeMB,commitTime}`，见 `src/store.js` 的 `appendHistory`）—— **根本没有 `time` 字段**（`time` 只是**快照顶层**的扫描时刻）⇒ `pp.time` 恒 `undefined` ⇒ `cc.commitTime > undefined` 恒 false ⇒ **该分支永不触发**。实测：最近两次快照（13:03:10 → 13:47:54）之间 `fcm-helper` **确有新提交**（`2026-11-10 14:15:17` → `2026-11-16 13:35:59`），**旧逻辑识别数 = 0**；逐快照回溯 5 次对比，**旧逻辑一次都没命中**
+  - ② **把已删除文件算成「在动」**：「最近改动集中在 X（N 个文件）」取 `DATA.recent.slice(0,40)` 按 `dir` 分组。实测前 40 条里 **36 条磁盘上已不存在（活 = 4）**，报出的 `D:\code\usou → 34 个文件` **全部已删除**（真实活文件 = **0**）⇒ 简报每天播报「最近改动集中在 D:\code\usou（34 个文件）」，而那个目录里**一个活文件都没有**
+- 实现（改动面 = **仅 1 文件** `renderer/app.js`，`buildBrief()` 两处）：① 判定改为 `cc.commitTime > pp.commitTime`（**同一维度**；`!pp.commitTime` 分支已覆盖「上次还没有提交」）；② 「最近改动集中在」改为**复用 v1.7.13 已有的失效集合 `RECENT_DEAD`** 剔除失效条目，且**先剔除再取前 40**（否则死条目先占满窗口、把活文件挤到窗口外 —— 实测活文件里 20 条在原下标 40 之后），**无存活文件则不播报该条**；**零新增 IPC、零新增全局状态、main.js/preload.js/src/style.css/index.html 零改动**
+- 验证：语法 6/6（实现后 + 发版前各一遍）、重名函数 0、内联 onclick 0、零外部依赖、**零新增 IPC**、零既有数据文件结构改动；**QA 断言 16/16 PASS（dev + 打包版 v1.7.17 各一遍）**（含「数据契约核实：history 项目条目**无** `time` 字段 ⇒ 根因成立」与「**旧逻辑命中 = 0** ⇒ 证明缺陷真实存在」两条**反向断言**）；**独立数据侧互证 3/3 PASS**（Node 直读缓存 + `existsSync`：失效 36/存活 24、活文件最多的目录 = `Downloads` 12、新提交项目 = `fcm-helper` —— 与运行时**完全一致**，不让应用自说自话）；**几何量测**：简报列表 9 项、`scrollHeight 278 > clientHeight 242`（可滚动）、第 9 项 `top=444 bottom=473` **完全落在列表内**（231~473）⇒ 新条目**真实可见**（不是「DOM 里有但滚不到」）；**4 张截图**目检（dev 浅色总览 / dev 滚动到第 9 条 / dev 浅色对比度 / **打包版总览页脚 v1.7.17**）；深浅两套审计 failCount 全 = **0**（241 元素 / min 4.64~4.73）；dev/打包态新增 `[renderer]` 错误 = 0、error 行 = 0
+- 发版：`package.json` 1.7.16 → **1.7.17**；构建前 `remaining app instances after kill = 0`、清 `ELECTRON_RUN_AS_NODE`（核验 `present=False`）、镜像 npmmirror；`npx electron-builder --win --publish never` **exit 0**；`Compress-Archive -CompressionLevel Optimal` 出 zip；1.7.16 的 Setup/zip/blockmap 按绝对路径核验 `underOut=True` 后删除（**旧版本残留计数 = 0**）；`data\scan-cache.json` + `history.json` 复制 `%APPDATA%\工作台\`；打包版 `Start-Process` 等 11 秒 → **4 进程**（1.7.17.0）、`app ready/window created/tray created/pulse started` **四项全 True**、全日志 `[renderer]`/error 行 = **0**，**运行态已保留**
+- 产物：`out\Workbench-Setup-1.7.17.exe`（87,610,932 B / 83.56 MB）、`out\Workbench-1.7.17-portable.zip`（118,704,884 B / 113.16 MB）、blockmap（91,868 B）、`out\win-unpacked\工作台.exe`（当前运行中，ProductVersion = 1.7.17.0）
+- **巡检发现（本轮）**：交付态健康、**渲染层无缺陷**（六视图审计全 0）；本轮修掉 **2 个既有缺陷**（简报「新提交」永不触发 + 简报「最近改动」把死文件算成在动）；**并行巡检的 agent-30 另发现 2 个同族缺陷并已立项 P1**（失效项目仍计入未提交统计 / history 按项目名做 key ⇒ 同名项目塌缩）
+- **QA 方法论沉淀（本轮，3 条）**：① **字段名错了 ⇒ 功能静默失效** —— `pp.time` vs `pp.commitTime` 的一字之差让整条分支永不触发，而它**不报错、不空面板、日志全绿** ⇒ **巡检必须做「数据侧独立重算」**，不能只看渲染截图；② **「在动」只属于还存在的文件** —— 失效条目保留「删除前」的 mtime（往往比活文件新）⇒ 任何「最近 N 条」统计若不剔除失效项，就会**陈述不成立的事实**；③ **先剔除再取窗口** —— 先 `slice` 后剔 ⇒ 死条目占满窗口把活文件挤出去（实测 20 条活文件在原下标 40 之后）
+- 规则：批次到顶不再停（PM.md 第五节）；本轮收尾后由编排器立即拉起下一轮，本轮不自起
 
 ## 最近一轮（第二十六轮 / v1.7.16 · 链式续批 · 编排侧第 71 轮）
 

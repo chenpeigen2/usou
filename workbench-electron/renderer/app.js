@@ -1070,8 +1070,18 @@ function buildBrief() {
   if (today && today.count > 0) push('var(--green)', '今天 D:\\code 下有 <b>' + today.count + '</b> 个文件在动',
     '今天 D:\\code 下有 ' + today.count + ' 个文件在动', 'goto', 'recent', '切到「最近」视图');
 
+  // v1.7.17：**只统计磁盘上仍然存在的文件**。
+  // 根因：快照里的失效条目（磁盘上已不存在）保留了「删除前」的 mtime，往往比活文件新
+  // ⇒ 实测前 40 条里 36 条已失效、且「D:\code\usou」那 34 条**全部已删除**
+  // ⇒ 简报每天播报「最近改动集中在 D:\code\usou（34 个文件）」，而那个目录里**一个活文件都没有**
+  //   ⇒ 陈述了一个不成立的事实（与 v1.7.15「目录都没了还标未提交」同款）。
+  // 修法：复用 v1.7.13 已有的失效集合 RECENT_DEAD（零新增 IPC、零新增状态）剔除失效条目；
+  // 若剔除后没有任何存活文件，则**不播报这一条**（没有事实基础，宁缺毋滥）。
+  // 注意顺序：**先剔除失效、再取前 40** —— 反过来的话，死条目会先占满窗口，
+  // 把真正的活文件挤到窗口外（实测活文件里 20 条在原下标 40 之后 ⇒ 必须先剔除）。
+  const liveRecent = (DATA.recent || []).filter(r => !RECENT_DEAD.has(r.path)).slice(0, 40);
   const dirs = {};
-  (DATA.recent || []).slice(0, 40).forEach(r => { dirs[r.dir] = (dirs[r.dir] || 0) + 1; });
+  liveRecent.forEach(r => { dirs[r.dir] = (dirs[r.dir] || 0) + 1; });
   const topDir = Object.entries(dirs).sort((a, b) => b[1] - a[1])[0];
   if (topDir && topDir[1] > 1) push('var(--green)', '最近改动集中在 <b>' + esc(shortPath(topDir[0])) + '</b>（' + topDir[1] + ' 个文件）',
     '最近改动集中在 ' + shortPath(topDir[0]) + '（' + topDir[1] + ' 个文件）', 'goto', 'recent', '切到「最近」视图');
@@ -1100,7 +1110,12 @@ function buildBrief() {
       const hAct = hit ? 'detail' : 'goto';
       const hP = hit ? hit.path : 'projects';
       const hTip = hit ? '查看「' + name + '」项目详情' : '切到「项目」视图';
-      if (cc.commitTime && (!pp.commitTime || cc.commitTime > pp.time)) {
+      // v1.7.17：原先比的是 `cc.commitTime > pp.time` —— 但 `pp` 是 history.json 里的**项目条目**，
+      // 其契约是 `{ dirty, sizeMB, commitTime }`（见 src/store.js 的 appendHistory），
+      // **根本没有 `time` 字段**（`time` 只是**快照顶层**的扫描时刻）⇒ `pp.time` 恒为 undefined
+      // ⇒ `cc.commitTime > undefined` 恒为 false ⇒ 「有新提交」这条**永远检测不到、静默失效**。
+      // 修法：比**上一次的提交时间** `pp.commitTime`（同一维度，且 `!pp.commitTime` 分支已覆盖「上次还没有提交」）。
+      if (cc.commitTime && (!pp.commitTime || cc.commitTime > pp.commitTime)) {
         push('var(--acc)', '与上次扫描相比，「<b>' + esc(name) + '</b>」有新提交',
           '与上次扫描相比，「' + name + '」有新提交', hAct, hP, hTip); diffN++;
       } else if (cc.dirty > pp.dirty) {

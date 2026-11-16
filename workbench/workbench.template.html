@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工作台</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2d333b;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950;
+    --amber:#d29922; --red:#f85149; --purple:#bc8cff; --blue:#58a6ff; --yellow:#e3b341;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--text); font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif; padding:24px; max-width:1500px; margin:0 auto}
+  a{color:var(--accent); text-decoration:none} a:hover{text-decoration:underline}
+  h2{font-size:16px; margin:28px 0 12px; padding-left:10px; border-left:3px solid var(--accent)}
+  h3{font-size:13px; color:var(--muted); margin:14px 0 8px}
+  header{display:flex; flex-wrap:wrap; gap:12px; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:16px}
+  header h1{font-size:22px} header .sub{color:var(--muted); font-size:13px; margin-top:2px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:2px 10px; font-size:12px; color:var(--muted); white-space:nowrap}
+  .chip b{color:var(--text); font-weight:600}
+  .drive-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .drive{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+  .drive .name{font-size:15px; font-weight:600; margin-bottom:6px}
+  .drive .nums{color:var(--muted); font-size:12px; margin-top:6px; display:flex; justify-content:space-between}
+  .bar{height:8px; background:#21262d; border-radius:4px; overflow:hidden}
+  .bar>i{display:block; height:100%; border-radius:4px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px}
+  input,select{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:6px 12px; font-size:13px; outline:none}
+  input:focus{border-color:var(--accent)}
+  #q{width:280px}
+  .chipbtn{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:3px 12px; font-size:12px; color:var(--muted); cursor:pointer}
+  .chipbtn.on{background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600}
+  .stats{color:var(--muted); font-size:12px; margin-left:auto}
+  .prow{display:grid; grid-template-columns:16px minmax(140px,1.4fr) 74px minmax(200px,2.2fr) 84px 120px 96px; gap:8px; align-items:center; background:var(--panel); border:1px solid var(--line); border-top:none; padding:7px 12px; font-size:13px}
+  .prow.head{background:var(--panel2); border-top:1px solid var(--line); border-radius:10px 10px 0 0; color:var(--muted); font-size:12px; position:sticky; top:0; z-index:2}
+  #proj-list .prow:last-child{border-radius:0 0 10px 10px}
+  .prow:hover:not(.head){background:var(--panel2)}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .dot.clean{background:var(--green)} .dot.dirty{background:var(--amber)} .dot.none{background:none; border:1.5px solid var(--muted)}
+  .pname{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .badge{display:inline-block; border-radius:4px; padding:0 7px; font-size:11px; line-height:19px; background:#21262d; color:var(--muted)}
+  .badge.Android{color:var(--green); background:rgba(63,185,80,.12)}
+  .badge.Web{color:var(--blue); background:rgba(88,166,255,.12)}
+  .badge.Python{color:var(--yellow); background:rgba(227,179,65,.12)}
+  .badge.Java{color:#f0883e; background:rgba(240,136,62,.12)}
+  .badge.文档{color:var(--purple); background:rgba(188,140,255,.12)}
+  .commit{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .commit b{color:var(--text); font-weight:600; margin-right:6px}
+  .num{text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
+  .ops{display:flex; gap:6px; justify-content:flex-end}
+  .ibtn{background:none; border:1px solid var(--line); border-radius:6px; color:var(--muted); cursor:pointer; padding:2px 8px; font-size:12px}
+  .ibtn:hover{color:var(--accent); border-color:var(--accent)}
+  .rlist{background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .ritem{display:grid; grid-template-columns:130px minmax(160px,1.2fr) 2fr 80px; gap:10px; padding:6px 14px; font-size:13px; border-top:1px solid #21262d; align-items:baseline}
+  .ritem:first-child{border-top:none}
+  .ritem .t{color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px}
+  .ritem .d{color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
+  .ritem .s{color:var(--muted); font-size:12px; text-align:right; font-variant-numeric:tabular-nums}
+  .three-col{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px}
+  .ucard{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+  .ucard h3{margin-top:0} .ucard h3 span{color:var(--accent)}
+  .uitem{display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:13px; border-top:1px dashed #21262d}
+  .uitem:first-of-type{border-top:none}
+  .uitem .m{color:var(--muted); font-size:11px; white-space:nowrap}
+  .link-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px}
+  .lcard{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 14px; color:var(--text); display:flex; flex-direction:column}
+  .lcard:hover{border-color:var(--accent); text-decoration:none}
+  .lcard .p{color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
+  footer{color:var(--muted); font-size:12px; margin:36px 0 10px; border-top:1px solid var(--line); padding-top:14px}
+  #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#2ea043; color:#fff; border-radius:8px; padding:8px 18px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s}
+  #toast.show{opacity:1}
+  .empty{color:var(--muted); padding:18px; text-align:center}
+  @media (max-width:900px){ .prow{grid-template-columns:16px 1.3fr 70px 2fr 80px; } .prow .c-mod,.prow .c-ops{display:none} .ritem{grid-template-columns:110px 1fr 60px} .ritem .d{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⚡ 工作台</h1>
+    <div class="sub" id="meta-line"></div>
+  </div>
+  <div class="chips" id="meta-chips"></div>
+</header>
+
+<main>
+  <section>
+    <h2>磁盘</h2>
+    <div class="drive-grid" id="drives"></div>
+  </section>
+
+  <section>
+    <h2>项目雷达</h2>
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="搜索项目 / 路径 / 分支 / 提交…">
+      <div class="chips" id="type-chips"></div>
+      <select id="sort">
+        <option value="mtime">按修改时间</option>
+        <option value="commit">按最近提交</option>
+        <option value="size">按体量</option>
+        <option value="name">按名称</option>
+      </select>
+      <div class="stats" id="proj-stats"></div>
+    </div>
+    <div id="proj-list"></div>
+  </section>
+
+  <section>
+    <h2>最近动态 <span style="color:var(--muted);font-size:12px;font-weight:400">（桌面 / 文档 / 下载 / D:\code / E:\workspace 限深扫描 Top 60）</span></h2>
+    <div class="rlist" id="recent-list"></div>
+  </section>
+
+  <section>
+    <h2>常用文件夹</h2>
+    <div class="three-col" id="uf-cards"></div>
+  </section>
+
+  <section>
+    <h2>工具链</h2>
+    <div class="chips" id="tools"></div>
+    <h3>本机发现的 AI CLI / Agent 配置</h3>
+    <div class="chips" id="ai"></div>
+  </section>
+
+  <section>
+    <h2>快速入口</h2>
+    <div class="link-grid" id="links"></div>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+<div id="toast"></div>
+
+<script id="wb-data" type="application/json">__WB_DATA__</script>
+<script>
+'use strict';
+const DATA = JSON.parse(document.getElementById('wb-data').textContent);
+const BASE = DATA.meta.scanTime ? new Date(DATA.meta.scanTime.replace(' ','T')) : new Date();
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fileUrl = p => encodeURI('file:///' + String(p).replace(/\\/g, '/'));
+const pad = n => String(n).padStart(2, '0');
+function fmtSize(kb){ if (kb == null) return '—'; if (kb >= 1048576) return (kb/1048576).toFixed(1)+' GB'; if (kb >= 1024) return (kb/1024).toFixed(1)+' MB'; return Math.round(kb)+' KB'; }
+function fmtMB(mb){ if (!mb) return '—'; return mb >= 1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(1)+' MB'; }
+function relTime(s){
+  if (!s) return '—';
+  const t = new Date(String(s).slice(0, 19).replace(' ', 'T')); if (isNaN(t)) return s;
+  let d = Math.round((BASE - t) / 60000);              // 分钟
+  if (d < 0) d = 0;
+  if (d < 1) return '刚刚';
+  if (d < 60) return d + ' 分钟前';
+  if (d < 1440) return Math.floor(d/60) + ' 小时前';
+  if (d < 43200) return Math.floor(d/1440) + ' 天前';
+  return Math.floor(d/43200) + ' 个月前';
+}
+function shortTime(s){ return s ? s.slice(5,16) : '—'; }
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('show'), 1400);
+}
+function copyText(t){
+  const done = ()=>toast('已复制：' + t);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done).catch(()=>{ fallback(); });
+  } else fallback();
+  function fallback(){
+    const ta = document.createElement('textarea'); ta.value = t;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e){ toast('复制失败'); }
+    ta.remove();
+  }
+}
+
+/* ---------- 头部 ---------- */
+(function(){
+  const m = DATA.meta;
+  document.title = '工作台 · ' + m.host;
+  document.getElementById('meta-line').textContent =
+    m.user + ' · ' + m.os + ' (' + m.arch + ') · ' + m.cpu;
+  const upDays = Math.floor((BASE - new Date(m.bootTime.replace(' ','T'))) / 86400000);
+  const chips = [
+    ['主机', m.host], ['内存', m.ramTotalGB + 'G / 空闲 ' + m.ramFreeGB + 'G'],
+    ['开机', upDays + ' 天'], ['扫描', m.scanTime + '（耗时 ' + m.durationSec + 's）']
+  ];
+  document.getElementById('meta-chips').innerHTML =
+    chips.map(c => '<span class="chip"><b>' + esc(c[0]) + '</b> ' + esc(c[1]) + '</span>').join('');
+})();
+
+/* ---------- 磁盘 ---------- */
+document.getElementById('drives').innerHTML = DATA.drives.map(d => {
+  const pct = d.totalGB ? Math.round(d.usedGB / d.totalGB * 100) : 0;
+  const color = pct > 90 ? 'var(--red)' : pct > 75 ? 'var(--amber)' : 'var(--accent)';
+  return '<a class="drive" href="' + fileUrl(d.root) + '">' +
+    '<div class="name">' + esc(d.name) + ':　<span style="color:var(--muted);font-weight:400;font-size:12px">' + esc(d.root) + '</span></div>' +
+    '<div class="bar"><i style="width:' + pct + '%;background:' + color + '"></i></div>' +
+    '<div class="nums"><span>已用 ' + d.usedGB + ' GB (' + pct + '%)</span><span>剩 ' + d.freeGB + ' GB</span></div></a>';
+}).join('');
+
+/* ---------- 项目雷达 ---------- */
+const TYPES = [...new Set(DATA.projects.map(p => p.type))];
+let filterType = '全部', q = '';
+function renderTypeChips(){
+  const counts = { '全部': DATA.projects.length };
+  DATA.projects.forEach(p => counts[p.type] = (counts[p.type] || 0) + 1);
+  counts['未提交'] = DATA.projects.filter(p => p.isGit && p.dirty > 0).length;
+  const order = ['全部','未提交'].concat(TYPES);
+  document.getElementById('type-chips').innerHTML = order.map(t =>
+    '<button class="chipbtn' + (t === filterType ? ' on' : '') + '" data-t="' + esc(t) + '">' +
+    esc(t) + ' ' + (counts[t] || 0) + '</button>').join('');
+  document.querySelectorAll('#type-chips .chipbtn').forEach(b =>
+    b.onclick = () => { filterType = b.dataset.t; renderTypeChips(); renderProjects(); });
+}
+function renderProjects(){
+  let list = DATA.projects.filter(p => {
+    if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0)) return false; }
+    else if (filterType !== '全部' && p.type !== filterType) return false;
+    if (q) {
+      const hay = (p.name + ' ' + p.path + ' ' + p.branch + ' ' + p.lastCommitSubject).toLowerCase();
+      if (!hay.includes(q.toLowerCase())) return false;
+    }
+    return true;
+  });
+  const sort = document.getElementById('sort').value;
+  list.sort((a, b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name, 'zh-Hans-CN');
+    if (sort === 'size') return (b.sizeMB || 0) - (a.sizeMB || 0);
+    if (sort === 'commit') return (b.lastCommitTime || '').localeCompare(a.lastCommitTime || '');
+    return (b.rootMTime || '').localeCompare(a.rootMTime || '');
+  });
+  const gitN = list.filter(p => p.isGit).length;
+  const dirtyN = list.filter(p => p.isGit && p.dirty > 0).length;
+  const sizeSum = list.reduce((s, p) => s + (p.sizeMB || 0), 0);
+  document.getElementById('proj-stats').textContent =
+    list.length + ' 项 · git ' + gitN + ' · 未提交 ' + dirtyN + ' · 体量 ' + fmtMB(sizeSum);
+  const head = '<div class="prow head"><span></span><span>项目</span><span>类型</span><span>git 状态</span>' +
+    '<span class="num">体量</span><span>修改于</span><span class="c-ops ops">操作</span></div>';
+  const rows = list.map(p => {
+    const dot = !p.isGit ? 'none' : (p.dirty > 0 ? 'dirty' : 'clean');
+    const gitCell = p.isGit
+      ? '<b>' + esc(p.branch) + '</b>' + (p.dirty ? '<span style="color:var(--amber)">●' + p.dirty + '</span> ' : '') +
+        esc((p.lastCommitSubject || '').slice(0, 60)) +
+        '<span style="color:var(--muted)"> · ' + relTime(p.lastCommitTime) + '</span>'
+      : '<span style="color:var(--muted)">非 git 目录</span>';
+    return '<div class="prow">' +
+      '<span><span class="dot ' + dot + '" title="' + (dot==='dirty'?'有未提交改动':dot==='clean'?'工作区干净':'非 git') + '"></span></span>' +
+      '<span class="pname"><a href="' + fileUrl(p.path) + '" target="_blank" title="' + esc(p.path) + '">' + esc(p.name) + '</a></span>' +
+      '<span><span class="badge ' + esc(p.type) + '">' + esc(p.type) + '</span></span>' +
+      '<span class="commit">' + gitCell + '</span>' +
+      '<span class="num">' + fmtMB(p.sizeMB) + '</span>' +
+      '<span class="c-mod" style="color:var(--muted);font-size:12px">' + relTime(p.rootMTime) + '</span>' +
+      '<span class="c-ops ops"><button class="ibtn" data-cp="' + esc(p.path) + '">复制路径</button></span>' +
+      '</div>';
+  }).join('');
+  document.getElementById('proj-list').innerHTML = head + (rows || '<div class="prow"><span class="empty" style="grid-column:1/-1">无匹配项目</span></div>');
+  document.querySelectorAll('#proj-list [data-cp]').forEach(b => b.onclick = () => copyText(b.dataset.cp));
+}
+document.getElementById('q').oninput = e => { q = e.target.value.trim(); renderProjects(); };
+document.getElementById('sort').onchange = renderProjects;
+renderTypeChips(); renderProjects();
+
+/* ---------- 最近动态 ---------- */
+document.getElementById('recent-list').innerHTML = (DATA.recent || []).map(r =>
+  '<div class="ritem"><span class="t">' + esc(shortTime(r.mtime)) + '</span>' +
+  '<span><a href="' + fileUrl(r.path) + '" target="_blank" title="' + esc(r.path) + '">' + esc(r.name) + '</a></span>' +
+  '<span class="d" title="' + esc(r.dir) + '">' + esc(r.dir) + '</span>' +
+  '<span class="s">' + fmtSize(r.sizeKB) + '</span></div>').join('')
+  || '<div class="empty">无记录</div>';
+
+/* ---------- 常用文件夹 ---------- */
+(function(){
+  const names = { Desktop:'桌面', Documents:'文档', Downloads:'下载' };
+  document.getElementById('uf-cards').innerHTML = Object.keys(names).map(k => {
+    const uf = (DATA.userFolders || {})[k]; if (!uf) return '';
+    const items = (uf.items || []).map(it =>
+      '<div class="uitem"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+      (it.isDir ? '📁 ' : '📄 ') +
+      '<a href="' + fileUrl(it.path) + '" target="_blank" title="' + esc(it.path || '') + '">' + esc(it.name) + '</a></span>' +
+      '<span class="m">' + (it.isDir ? '' : fmtSize(it.sizeKB)) + ' · ' + esc(it.mtime) + '</span></div>');
+    return '<div class="ucard"><h3>' + names[k] + ' <span>' + uf.count + ' 项（前 ' + (uf.items||[]).length + '）</span></h3>' +
+      (items.join('') || '<div class="empty">空</div>') + '</div>';
+  }).join('');
+})();
+
+/* ---------- 工具链 & AI ---------- */
+document.getElementById('tools').innerHTML = (DATA.tools || []).map(t =>
+  '<span class="chip"><b>' + esc(t.name) + '</b> ' + esc((t.version || '').slice(0, 40)) + '</span>').join('')
+  || '<span class="chip">无</span>';
+document.getElementById('ai').innerHTML = (DATA.aiTools || []).map(a =>
+  '<span class="chip">' + esc(a) + '</span>').join('') || '<span class="chip">无</span>';
+
+/* ---------- 快速入口 ---------- */
+document.getElementById('links').innerHTML = (DATA.links || []).map(l =>
+  '<a class="lcard" href="' + fileUrl(l.path) + '"><span>📁 ' + esc(l.name) + '</span><span class="p">' + esc(l.path) + '</span></a>').join('');
+
+/* ---------- 页脚 ---------- */
+document.getElementById('footer').innerHTML =
+  '数据生成于 ' + esc(DATA.meta.scanTime) + ' · 由 scan.ps1 本地扫描生成，数据不出本机 · ' +
+  '刷新方式：双击 <b>refresh.cmd</b>（先重新扫描再打开本页） · 体量统计已排除 node_modules / build / .gradle 等构建产物';
+</script>
+</body>
+</html>

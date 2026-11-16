@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'">
+<title>工作台</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="titlebar">
+  <div class="tb-brand">
+    <span class="logo"><img src="icon.png" alt=""></span>
+    <span class="tb-title">工作台</span>
+    <span class="tb-host" id="tb-host"></span>
+  </div>
+  <div class="tb-center" id="tb-status"></div>
+  <div class="tb-right">
+    <button id="tb-refresh" class="tb-refresh" title="重新扫描"></button>
+    <button id="tb-theme" class="tb-theme" title="切换主题" aria-label="切换主题">☀️</button>
+    <span class="tb-clock" id="tb-clock"></span>
+    <div class="tb-btns">
+      <button id="win-min" title="最小化">─</button>
+      <button id="win-max" title="最大化 / 还原">☐</button>
+      <button id="win-close" title="关闭">✕</button>
+    </div>
+  </div>
+</div>
+<div id="shell">
+  <aside id="side">
+    <nav id="nav">
+      <div class="nav-cap">工作区</div>
+      <button data-view="overview">🏠　总览</button>
+      <button data-view="projects">📦　项目</button>
+      <button data-view="recent">🕘　最近</button>
+      <div class="nav-cap">工具</div>
+      <button data-view="disk">🧹　空间</button>
+      <button data-view="system">🛠️　系统</button>
+      <div class="nav-cap">其他</div>
+      <button data-view="settings">⚙️　设置</button>
+    </nav>
+    <div id="side-foot"></div>
+  </aside>
+  <main id="main"><div id="view"></div></main>
+</div>
+<div id="modal" class="hidden"><div id="modal-box"></div></div>
+<div id="palette" class="hidden">
+  <div class="pal-box">
+    <input id="pal-input" placeholder="搜索项目 / 文件夹 / 文件 / 动作…（空格分词 · 拼音首字母 gzq · ↑↓ 选择 · Enter 执行 · Esc 关闭）" autocomplete="off" spellcheck="false">
+    <div id="pal-list"></div>
+  </div>
+</div>
+<div id="toast-wrap"></div>
+<script src="app.js"></script>
+</body>
+</html>

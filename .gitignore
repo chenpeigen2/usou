@@ -1,0 +1,44 @@
+# ============================================================
+#  工作台 · 仓库忽略规则
+#  原则：只入库「源码 + 治理文档 + 可复现的构建脚本」，
+#  大体积运行时/构建产物/依赖/缓存一律排除（可由脚本重建）。
+# ============================================================
+
+# ---- Electron 运行时（268MB，来自本机其他项目复制，可重新 vendor）----
+workbench-electron/runtime/
+
+# ---- 构建产物（465MB：安装包 / 便携 zip / win-unpacked）----
+workbench-electron/out/
+
+# ---- npm 依赖（package-lock.json 已入库，可 npm ci 还原）----
+node_modules/
+workbench-electron/node_modules/
+
+# ---- 运行时数据与缓存（机器本地状态，不该进版本库）----
+workbench-electron/data/
+workbench/data/
+workbench/data.json
+workbench-electron/pm/_qa_*/
+workbench-electron/pm/_shots*/
+workbench-electron/pm/_*.js
+workbench-electron/pm/_*.out
+workbench-electron/pm/_*.json
+workbench-electron/pm/_*.log
+*.log
+
+# ---- QA 临时产物（每次迭代都会产生）----
+pm-qa-*.png
+pm-r*.png
+pm-chain-*.png
+pm-b*.png
+lead-*.js
+qa-*.png
+shot-*.png
+screen-*.png
+
+# ---- 系统 / 编辑器 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/

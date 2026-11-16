@@ -1,0 +1,16 @@
+{
+  "name": "usou-workbench",
+  "productName": "工作台",
+  "version": "1.7.15",
+  "description": "本机工作台管理软件（Electron）",
+  "main": "main.js",
+  "author": "peigen1.chen",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win --publish never"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.18.0"
+  }
+}

@@ -1,0 +1,1977 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工作台</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2330; --line:#2d333b;
+    --text:#e6edf3; --muted:#8b949e; --accent:#58a6ff; --green:#3fb950;
+    --amber:#d29922; --red:#f85149; --purple:#bc8cff; --blue:#58a6ff; --yellow:#e3b341;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--text); font:14px/1.6 "Segoe UI","Microsoft YaHei",system-ui,sans-serif; padding:24px; max-width:1500px; margin:0 auto}
+  a{color:var(--accent); text-decoration:none} a:hover{text-decoration:underline}
+  h2{font-size:16px; margin:28px 0 12px; padding-left:10px; border-left:3px solid var(--accent)}
+  h3{font-size:13px; color:var(--muted); margin:14px 0 8px}
+  header{display:flex; flex-wrap:wrap; gap:12px; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:16px}
+  header h1{font-size:22px} header .sub{color:var(--muted); font-size:13px; margin-top:2px}
+  .chips{display:flex; flex-wrap:wrap; gap:6px}
+  .chip{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:2px 10px; font-size:12px; color:var(--muted); white-space:nowrap}
+  .chip b{color:var(--text); font-weight:600}
+  .drive-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:12px}
+  .drive{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px 16px}
+  .drive .name{font-size:15px; font-weight:600; margin-bottom:6px}
+  .drive .nums{color:var(--muted); font-size:12px; margin-top:6px; display:flex; justify-content:space-between}
+  .bar{height:8px; background:#21262d; border-radius:4px; overflow:hidden}
+  .bar>i{display:block; height:100%; border-radius:4px}
+  .toolbar{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin-bottom:10px}
+  input,select{background:var(--panel); border:1px solid var(--line); color:var(--text); border-radius:8px; padding:6px 12px; font-size:13px; outline:none}
+  input:focus{border-color:var(--accent)}
+  #q{width:280px}
+  .chipbtn{background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:3px 12px; font-size:12px; color:var(--muted); cursor:pointer}
+  .chipbtn.on{background:var(--accent); border-color:var(--accent); color:#0d1117; font-weight:600}
+  .stats{color:var(--muted); font-size:12px; margin-left:auto}
+  .prow{display:grid; grid-template-columns:16px minmax(140px,1.4fr) 74px minmax(200px,2.2fr) 84px 120px 96px; gap:8px; align-items:center; background:var(--panel); border:1px solid var(--line); border-top:none; padding:7px 12px; font-size:13px}
+  .prow.head{background:var(--panel2); border-top:1px solid var(--line); border-radius:10px 10px 0 0; color:var(--muted); font-size:12px; position:sticky; top:0; z-index:2}
+  #proj-list .prow:last-child{border-radius:0 0 10px 10px}
+  .prow:hover:not(.head){background:var(--panel2)}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .dot.clean{background:var(--green)} .dot.dirty{background:var(--amber)} .dot.none{background:none; border:1.5px solid var(--muted)}
+  .pname{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .badge{display:inline-block; border-radius:4px; padding:0 7px; font-size:11px; line-height:19px; background:#21262d; color:var(--muted)}
+  .badge.Android{color:var(--green); background:rgba(63,185,80,.12)}
+  .badge.Web{color:var(--blue); background:rgba(88,166,255,.12)}
+  .badge.Python{color:var(--yellow); background:rgba(227,179,65,.12)}
+  .badge.Java{color:#f0883e; background:rgba(240,136,62,.12)}
+  .badge.文档{color:var(--purple); background:rgba(188,140,255,.12)}
+  .commit{color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .commit b{color:var(--text); font-weight:600; margin-right:6px}
+  .num{text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
+  .ops{display:flex; gap:6px; justify-content:flex-end}
+  .ibtn{background:none; border:1px solid var(--line); border-radius:6px; color:var(--muted); cursor:pointer; padding:2px 8px; font-size:12px}
+  .ibtn:hover{color:var(--accent); border-color:var(--accent)}
+  .rlist{background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .ritem{display:grid; grid-template-columns:130px minmax(160px,1.2fr) 2fr 80px; gap:10px; padding:6px 14px; font-size:13px; border-top:1px solid #21262d; align-items:baseline}
+  .ritem:first-child{border-top:none}
+  .ritem .t{color:var(--muted); font-variant-numeric:tabular-nums; font-size:12px}
+  .ritem .d{color:var(--muted); font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
+  .ritem .s{color:var(--muted); font-size:12px; text-align:right; font-variant-numeric:tabular-nums}
+  .three-col{display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:14px}
+  .ucard{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px}
+  .ucard h3{margin-top:0} .ucard h3 span{color:var(--accent)}
+  .uitem{display:flex; justify-content:space-between; gap:10px; padding:3px 0; font-size:13px; border-top:1px dashed #21262d}
+  .uitem:first-of-type{border-top:none}
+  .uitem .m{color:var(--muted); font-size:11px; white-space:nowrap}
+  .link-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px}
+  .lcard{background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:10px 14px; color:var(--text); display:flex; flex-direction:column}
+  .lcard:hover{border-color:var(--accent); text-decoration:none}
+  .lcard .p{color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
+  footer{color:var(--muted); font-size:12px; margin:36px 0 10px; border-top:1px solid var(--line); padding-top:14px}
+  #toast{position:fixed; bottom:26px; left:50%; transform:translateX(-50%); background:#2ea043; color:#fff; border-radius:8px; padding:8px 18px; font-size:13px; opacity:0; pointer-events:none; transition:opacity .25s}
+  #toast.show{opacity:1}
+  .empty{color:var(--muted); padding:18px; text-align:center}
+  @media (max-width:900px){ .prow{grid-template-columns:16px 1.3fr 70px 2fr 80px; } .prow .c-mod,.prow .c-ops{display:none} .ritem{grid-template-columns:110px 1fr 60px} .ritem .d{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>⚡ 工作台</h1>
+    <div class="sub" id="meta-line"></div>
+  </div>
+  <div class="chips" id="meta-chips"></div>
+</header>
+
+<main>
+  <section>
+    <h2>磁盘</h2>
+    <div class="drive-grid" id="drives"></div>
+  </section>
+
+  <section>
+    <h2>项目雷达</h2>
+    <div class="toolbar">
+      <input id="q" type="search" placeholder="搜索项目 / 路径 / 分支 / 提交…">
+      <div class="chips" id="type-chips"></div>
+      <select id="sort">
+        <option value="mtime">按修改时间</option>
+        <option value="commit">按最近提交</option>
+        <option value="size">按体量</option>
+        <option value="name">按名称</option>
+      </select>
+      <div class="stats" id="proj-stats"></div>
+    </div>
+    <div id="proj-list"></div>
+  </section>
+
+  <section>
+    <h2>最近动态 <span style="color:var(--muted);font-size:12px;font-weight:400">（桌面 / 文档 / 下载 / D:\code / E:\workspace 限深扫描 Top 60）</span></h2>
+    <div class="rlist" id="recent-list"></div>
+  </section>
+
+  <section>
+    <h2>常用文件夹</h2>
+    <div class="three-col" id="uf-cards"></div>
+  </section>
+
+  <section>
+    <h2>工具链</h2>
+    <div class="chips" id="tools"></div>
+    <h3>本机发现的 AI CLI / Agent 配置</h3>
+    <div class="chips" id="ai"></div>
+  </section>
+
+  <section>
+    <h2>快速入口</h2>
+    <div class="link-grid" id="links"></div>
+  </section>
+</main>
+
+<footer id="footer"></footer>
+<div id="toast"></div>
+
+<script id="wb-data" type="application/json">{
+  "meta": {
+    "host": "SZ-13041587-01",
+    "user": "TCT-HQ\\peigen1.chen",
+    "os": "Microsoft Windows 10 企业版",
+    "arch": "64 位",
+    "cpu": "13th Gen Intel(R) Core(TM) i7-13700",
+    "ramTotalGB": 31.6,
+    "ramFreeGB": 10.2,
+    "bootTime": "2026-11-11 15:40:08",
+    "scanTime": "2026-11-14 20:00:15",
+    "durationSec": 358.5,
+    "fast": false
+  },
+  "drives": [
+    {
+      "name": "C",
+      "root": "C:\\",
+      "usedGB": 123.9,
+      "freeGB": 26.1,
+      "totalGB": 150.0
+    },
+    {
+      "name": "D",
+      "root": "D:\\",
+      "usedGB": 223.8,
+      "freeGB": 102.8,
+      "totalGB": 326.6
+    },
+    {
+      "name": "E",
+      "root": "E:\\",
+      "usedGB": 223.4,
+      "freeGB": 707.6,
+      "totalGB": 931.0
+    },
+    {
+      "name": "F",
+      "root": "F:\\",
+      "usedGB": 110.7,
+      "freeGB": 821.3,
+      "totalGB": 932.0
+    }
+  ],
+  "projects": [
+    {
+      "name": "24bit",
+      "path": "D:\\code\\24bit",
+      "type": "Rust",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-07 17:48:05 +0800",
+      "lastCommitSubject": "release: v1.0.0 — Tauri desktop client with full playback controls",
+      "dirty": 1,
+      "sizeMB": 3.0,
+      "fileCount": 110,
+      "rootMTime": "2026-11-12 10:09:56"
+    },
+    {
+      "name": "3d娃娃",
+      "path": "D:\\code\\3d娃娃",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-29 17:11:00 +0800",
+      "lastCommitSubject": "feat: 优化青蛙模型并补充部署工具",
+      "dirty": 0,
+      "sizeMB": 86.8,
+      "fileCount": 132,
+      "rootMTime": "2026-11-11 10:19:09"
+    },
+    {
+      "name": "America",
+      "path": "D:\\code\\America",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-06 11:46:30 +0800",
+      "lastCommitSubject": "Initial commit: \"The Way I Still Love You - America\" Remotion film",
+      "dirty": 0,
+      "sizeMB": 1230.5,
+      "fileCount": 54,
+      "rootMTime": "2026-11-06 11:45:35"
+    },
+    {
+      "name": "Australia",
+      "path": "D:\\code\\Australia",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-06 11:11:52 +0800",
+      "lastCommitSubject": "Initial commit: Remotion 1080p live-action music video",
+      "dirty": 0,
+      "sizeMB": 824.6,
+      "fileCount": 50,
+      "rootMTime": "2026-11-06 08:49:32"
+    },
+    {
+      "name": "CNBMoblieBank",
+      "path": "D:\\code\\CNBMoblieBank",
+      "type": "Android",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-10 17:38:24 +0800",
+      "lastCommitSubject": "Improve life page visuals and navigation icons",
+      "dirty": 0,
+      "sizeMB": 1530.5,
+      "fileCount": 1273,
+      "rootMTime": "2026-10-10 18:05:40"
+    },
+    {
+      "name": "ds-search-fetch",
+      "path": "D:\\code\\ds-search-fetch",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-23 17:32:34 +0800",
+      "lastCommitSubject": "Add DeepSeek search site (Express proxy + React TS)",
+      "dirty": 0,
+      "sizeMB": 0.1,
+      "fileCount": 23,
+      "rootMTime": "2026-10-23 17:28:38"
+    },
+    {
+      "name": "IKanBot",
+      "path": "D:\\code\\IKanBot",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-02 14:48:18 +0800",
+      "lastCommitSubject": "feat: R58 标签是账的结论 —— 钱档只由流水推出、裸码不落库、免收留原因、作废退回报价",
+      "dirty": 0,
+      "sizeMB": 641.8,
+      "fileCount": 1351,
+      "rootMTime": "2026-11-07 09:04:42"
+    },
+    {
+      "name": "Lamian",
+      "path": "D:\\code\\Lamian",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-05 10:50:22 +0800",
+      "lastCommitSubject": "初始化提交：拉面 3D 重建工程与网页展示",
+      "dirty": 0,
+      "sizeMB": 801.4,
+      "fileCount": 150,
+      "rootMTime": "2026-11-06 11:03:22"
+    },
+    {
+      "name": "LatinAmerica",
+      "path": "D:\\code\\LatinAmerica",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-05 14:20:49 +0800",
+      "lastCommitSubject": "Initial commit: Latinoamerica travel film (Remotion)",
+      "dirty": 0,
+      "sizeMB": 1068.2,
+      "fileCount": 43,
+      "rootMTime": "2026-11-05 14:20:22"
+    },
+    {
+      "name": "Leaf",
+      "path": "D:\\code\\Leaf",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-10 18:20:29 +0800",
+      "lastCommitSubject": "feat: 银杏寄语 — 一棵会替你留一句话的银杏树",
+      "dirty": 0,
+      "sizeMB": 0.2,
+      "fileCount": 32,
+      "rootMTime": "2026-11-10 18:23:39"
+    },
+    {
+      "name": "LoveCan",
+      "path": "D:\\code\\LoveCan",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-21 21:48:12 +0800",
+      "lastCommitSubject": "重写 README：用产品介绍替换模板说明",
+      "dirty": 0,
+      "sizeMB": 1110.7,
+      "fileCount": 7285,
+      "rootMTime": "2026-10-21 21:47:32"
+    },
+    {
+      "name": "Lowa",
+      "path": "D:\\code\\Lowa",
+      "type": "Android",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 0.3,
+      "fileCount": 64,
+      "rootMTime": "2026-11-03 16:13:47"
+    },
+    {
+      "name": "OneShot",
+      "path": "D:\\code\\OneShot",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-26 13:48:02 +0800",
+      "lastCommitSubject": "feat: 重构图书示例并完善框架运行时",
+      "dirty": 0,
+      "sizeMB": 35.4,
+      "fileCount": 182,
+      "rootMTime": "2026-10-26 13:25:05"
+    },
+    {
+      "name": "Paper",
+      "path": "D:\\code\\Paper",
+      "type": "其他",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-13 15:40:57 +0800",
+      "lastCommitSubject": "Word-synced lyrics, scene retiming and stock-footage sources",
+      "dirty": 0,
+      "sizeMB": 953.6,
+      "fileCount": 213,
+      "rootMTime": "2026-11-12 19:20:38"
+    },
+    {
+      "name": "Poker",
+      "path": "D:\\code\\Poker",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-13 17:40:54 +0800",
+      "lastCommitSubject": "feat: 《读局》单挑德州扑克 — 可归纳的 AI 对手与读人闭环",
+      "dirty": 0,
+      "sizeMB": 0.8,
+      "fileCount": 57,
+      "rootMTime": "2026-11-13 18:05:08"
+    },
+    {
+      "name": "Seattle",
+      "path": "D:\\code\\Seattle",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-23 16:27:04 +0800",
+      "lastCommitSubject": "docs: 修正后端描述为 Deno 运行时，部署章节改为站点 Functions 运行时适配层",
+      "dirty": 0,
+      "sizeMB": 0.3,
+      "fileCount": 43,
+      "rootMTime": "2026-10-23 16:21:24"
+    },
+    {
+      "name": "Sol",
+      "path": "D:\\code\\Sol",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-03 00:42:04 +0800",
+      "lastCommitSubject": "feat: 高清行星影像与精细光照，升级星空视觉体验",
+      "dirty": 0,
+      "sizeMB": 24.7,
+      "fileCount": 91,
+      "rootMTime": "2026-11-05 09:44:25"
+    },
+    {
+      "name": "TheBigBangHalloween",
+      "path": "D:\\code\\TheBigBangHalloween",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-30 16:51:48 +0800",
+      "lastCommitSubject": "feat: 留灯 · 万圣节共享灯田场景",
+      "dirty": 0,
+      "sizeMB": 3.7,
+      "fileCount": 30,
+      "rootMTime": "2026-10-30 16:51:28"
+    },
+    {
+      "name": "WellLovw",
+      "path": "D:\\code\\WellLovw",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 13409.8,
+      "fileCount": 6059,
+      "rootMTime": "2026-10-24 11:17:27"
+    },
+    {
+      "name": "WeRea",
+      "path": "D:\\code\\WeRea",
+      "type": "文档",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-06 18:43:36 +0800",
+      "lastCommitSubject": "Add RUN.md runbook and align docs with glossary",
+      "dirty": 0,
+      "sizeMB": 187.1,
+      "fileCount": 1092,
+      "rootMTime": "2026-11-06 18:35:56"
+    },
+    {
+      "name": "wpk180",
+      "path": "D:\\code\\wpk180",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 2063.1,
+      "fileCount": 41375,
+      "rootMTime": "2026-10-09 15:53:28"
+    },
+    {
+      "name": "ai_coding_framework",
+      "path": "D:\\ai_coding_framework",
+      "type": "其他",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-11-10 21:05:28 +0800",
+      "lastCommitSubject": "docs(ai-asset-cert): anr-agent CLAUDE.md 同步 frontmatter，stability-analyzer 各宿主版本统一 0.1.3",
+      "dirty": 0,
+      "sizeMB": 164.4,
+      "fileCount": 2802,
+      "rootMTime": "2026-11-10 20:44:53"
+    },
+    {
+      "name": "ai_coding_framework_codex_full",
+      "path": "D:\\ai_coding_framework_codex_full",
+      "type": "其他",
+      "isGit": true,
+      "branch": "feature/full-codex-support",
+      "lastCommitTime": "2026-09-21 17:05:12 +0800",
+      "lastCommitSubject": "fix(codex): make SkillOpt session hook compatible",
+      "dirty": 0,
+      "sizeMB": 10.6,
+      "fileCount": 674,
+      "rootMTime": "2026-09-21 16:23:01"
+    },
+    {
+      "name": "app-launcher",
+      "path": "D:\\app-launcher",
+      "type": "Web",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-11-10 14:15:32 +0800",
+      "lastCommitSubject": "merge: sync fcm-helper — 一键制备 Ubuntu 离线运行包",
+      "dirty": 0,
+      "sizeMB": 49.0,
+      "fileCount": 551,
+      "rootMTime": "2026-11-10 14:15:33"
+    },
+    {
+      "name": "AppiaAndroid",
+      "path": "D:\\AppiaAndroid",
+      "type": "Android",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-09-24 15:41:37 +0800",
+      "lastCommitSubject": "feat(chat): UI_Use_Real_Name 接线（缺省 true）",
+      "dirty": 0,
+      "sizeMB": 5.5,
+      "fileCount": 329,
+      "rootMTime": "2026-09-24 16:48:11"
+    },
+    {
+      "name": "AsyncAnimator",
+      "path": "D:\\AsyncAnimator",
+      "type": "Android",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-11-11 17:39:16 +0800",
+      "lastCommitSubject": "lib: add toggleable frame performance monitor",
+      "dirty": 0,
+      "sizeMB": 2.7,
+      "fileCount": 236,
+      "rootMTime": "2026-11-11 15:54:28"
+    },
+    {
+      "name": "awesome-code",
+      "path": "D:\\awesome-code",
+      "type": "Android",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-06-09 17:13:58 +0800",
+      "lastCommitSubject": "ignore",
+      "dirty": 0,
+      "sizeMB": 149.0,
+      "fileCount": 4369,
+      "rootMTime": "2026-07-06 14:24:05"
+    },
+    {
+      "name": "codebuddy-usage-doc",
+      "path": "D:\\codebuddy-usage-doc",
+      "type": "其他",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-11-12 16:54:34 +0800",
+      "lastCommitSubject": "refactor(skills): merge all PPT skills into courseware-pptx",
+      "dirty": 0,
+      "sizeMB": 437.7,
+      "fileCount": 2476,
+      "rootMTime": "2026-11-12 17:35:14"
+    },
+    {
+      "name": "fcm-helper",
+      "path": "D:\\fcm-helper",
+      "type": "Web",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-11-10 14:15:17 +0800",
+      "lastCommitSubject": "feat(layout): 一键制备 Ubuntu 离线运行包",
+      "dirty": 6,
+      "sizeMB": 138.4,
+      "fileCount": 1125,
+      "rootMTime": "2026-11-12 17:18:37"
+    },
+    {
+      "name": "FileSearch",
+      "path": "D:\\FileSearch",
+      "type": "其他",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-07-20 12:19:58 +0800",
+      "lastCommitSubject": "fix history back",
+      "dirty": 0,
+      "sizeMB": 0.1,
+      "fileCount": 8,
+      "rootMTime": "2026-07-20 12:17:36"
+    },
+    {
+      "name": "LauncherSwipeDetect",
+      "path": "D:\\LauncherSwipeDetect",
+      "type": "Android",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 49.1,
+      "fileCount": 17,
+      "rootMTime": "2026-09-17 17:06:26"
+    },
+    {
+      "name": "LingerLane",
+      "path": "D:\\LingerLane",
+      "type": "Rust",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-09-24 10:44:40 +0800",
+      "lastCommitSubject": "docs: one-scene-one-image rule with gate fade entry, split outdoor into 4 scenes",
+      "dirty": 0,
+      "sizeMB": 127.4,
+      "fileCount": 1659,
+      "rootMTime": "2026-09-24 17:02:28"
+    },
+    {
+      "name": "Mars",
+      "path": "D:\\Mars",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-10-16 17:38:40 +0800",
+      "lastCommitSubject": "Initial commit: Mars interactive atlas + Google-Earth-style cinematic Mars globe",
+      "dirty": 0,
+      "sizeMB": 16.5,
+      "fileCount": 75,
+      "rootMTime": "2026-10-16 17:39:04"
+    },
+    {
+      "name": "MaterialExpressiveInbox",
+      "path": "D:\\MaterialExpressiveInbox",
+      "type": "Android",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 18.0,
+      "fileCount": 308,
+      "rootMTime": "2026-09-09 11:13:09"
+    },
+    {
+      "name": "MilkyWay",
+      "path": "D:\\MilkyWay",
+      "type": "Web",
+      "isGit": true,
+      "branch": "main",
+      "lastCommitTime": "2026-08-25 16:00:26 +0800",
+      "lastCommitSubject": "Tone down glow: reduce haze and overall brightness",
+      "dirty": 0,
+      "sizeMB": 0.1,
+      "fileCount": 19,
+      "rootMTime": "2026-08-25 16:02:46"
+    },
+    {
+      "name": "my-app",
+      "path": "D:\\my-app",
+      "type": "Web",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-10-26 14:45:27 +0800",
+      "lastCommitSubject": "Initial commit from Create Next App",
+      "dirty": 0,
+      "sizeMB": 0.2,
+      "fileCount": 19,
+      "rootMTime": "2026-10-26 14:45:23"
+    },
+    {
+      "name": "my-app-ts7",
+      "path": "D:\\my-app-ts7",
+      "type": "Web",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-10-26 14:51:22 +0800",
+      "lastCommitSubject": "Initial commit from Create Next App",
+      "dirty": 0,
+      "sizeMB": 0.2,
+      "fileCount": 19,
+      "rootMTime": "2026-10-26 14:51:17"
+    },
+    {
+      "name": "SimpleLauncher",
+      "path": "D:\\SimpleLauncher",
+      "type": "Android",
+      "isGit": true,
+      "branch": "SimpleLauncher_C_master",
+      "lastCommitTime": "2026-07-22 11:43:57 +0800",
+      "lastCommitSubject": "修改版本号“",
+      "dirty": 0,
+      "sizeMB": 55.9,
+      "fileCount": 983,
+      "rootMTime": "2026-08-25 17:26:51"
+    },
+    {
+      "name": "TclLauncher",
+      "path": "D:\\TclLauncher",
+      "type": "Android",
+      "isGit": true,
+      "branch": "fix/K325GTMO16UP-3086-window-leak",
+      "lastCommitTime": "2026-11-10 11:38:26 +0800",
+      "lastCommitSubject": "fix([流水线][通讯深度测试][CI_Beryl_TMO_W][daily/vBT1A-R][WINDOW_LEAK][com.tcl.android.launcher]Activity com.tcl.android.launcher.uioverrides.TclQuickstepLauncher has leaked window): 修复AllApps排序弹窗未随Activity销毁导致的窗口泄漏 details:SortSelectorDialog以Launcher Activity为Context创建并show，窗口挂在Activity的window token上；壁纸/深浅色模式变化触发WallpaperThemeManager.updateTheme()调用activity.recreate()销毁旧Activity时，该Dialog只在再次点击排序图标(AllAppsTransitionController退出AllApps状态切换)时被dismiss，而dismissSortSelectorDialog()为死代码无任何调用者，导致Activity销毁后Dialog窗口仍存在，框架打印android.view.WindowLeaked solution:在TclQuickstepLauncher.onDestroy()中调用mAppsView.dismissDialog()关闭AllApps排序弹窗；同时在TclAppsSearchAndSortContainerLayout.onDetachedFromWindow()中兜底调用dismissDialog()，并在dismissDialog()里dismiss后置空mSortSelectorDialog引用，避免Dialog继续持有已销毁的Activity suggestion:1)进入AllApps点击排序图标并保持弹窗显示，切换深色模式/壁纸主题触发recreate，确认logcat无android.view.WindowLeaked；2)保持排序弹窗显示按Home键或打开其他应用再回桌面，确认无WindowLeaked；3)回归AllApps排序切换、退出AllApps、旋转屏幕功能正常 Closes K325GTMO16UP-3086",
+      "dirty": 0,
+      "sizeMB": 27103.6,
+      "fileCount": 86891,
+      "rootMTime": "2026-11-09 19:41:36"
+    },
+    {
+      "name": "TclLauncher_C_hotapp",
+      "path": "D:\\TclLauncher_C_hotapp",
+      "type": "Android",
+      "isGit": true,
+      "branch": "TclLauncher_C_cpg_hotapp_local",
+      "lastCommitTime": "2026-06-16 18:11:03 +0800",
+      "lastCommitSubject": "feat(LAUNCHER-20508): 迁移HotApp模块到C架构",
+      "dirty": 0,
+      "sizeMB": 147.0,
+      "fileCount": 6236,
+      "rootMTime": "2026-06-17 14:47:42"
+    },
+    {
+      "name": "TclLauncherTestSuite",
+      "path": "D:\\TclLauncherTestSuite",
+      "type": "Android",
+      "isGit": true,
+      "branch": "master",
+      "lastCommitTime": "2026-06-18 11:39:22 +0800",
+      "lastCommitSubject": "create TclLauncherTestSuite",
+      "dirty": 0,
+      "sizeMB": 0.3,
+      "fileCount": 85,
+      "rootMTime": "2026-06-18 11:45:20"
+    },
+    {
+      "name": "CLAUNCER2",
+      "path": "D:\\CLAUNCER2",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 1391.9,
+      "fileCount": 15308,
+      "rootMTime": "2026-11-13 19:06:00"
+    },
+    {
+      "name": "TclLauncher",
+      "path": "D:\\CLAUNCER2\\TclLauncher",
+      "type": "Android",
+      "isGit": true,
+      "branch": "TclLauncher_C_rel_peigen1chen_20261106",
+      "lastCommitTime": "2026-11-14 03:26:23 +0000",
+      "lastCommitSubject": "Merge branch 'TclLauncher_C_rel_update' into 'TclLauncher_C_release'",
+      "dirty": 2,
+      "sizeMB": 1375.9,
+      "fileCount": 15272,
+      "rootMTime": "2026-11-14 16:54:58"
+    },
+    {
+      "name": "CLauncher",
+      "path": "D:\\CLauncher",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 1787.2,
+      "fileCount": 57562,
+      "rootMTime": "2026-11-03 15:46:15"
+    },
+    {
+      "name": "TclLauncher",
+      "path": "D:\\CLauncher\\TclLauncher",
+      "type": "Android",
+      "isGit": true,
+      "branch": "TclLauncher_C_decouple",
+      "lastCommitTime": "2026-11-13 09:38:32 +0800",
+      "lastCommitSubject": "docs(LAUNCHER-25106): 汇总 Launcher 解耦候选扫描",
+      "dirty": 0,
+      "sizeMB": 840.1,
+      "fileCount": 11453,
+      "rootMTime": "2026-11-13 09:38:31"
+    },
+    {
+      "name": "TclLauncher_WT_GL8035",
+      "path": "D:\\CLauncher\\TclLauncher_WT_GL8035",
+      "type": "Android",
+      "isGit": true,
+      "branch": "TclLauncher_C_dev_GL_8035",
+      "lastCommitTime": "2026-08-18 14:19:27 +0000",
+      "lastCommitSubject": "Merge branch 'TclLauncher_C_d_update' into 'TclLauncher_C_dev'",
+      "dirty": 0,
+      "sizeMB": 130.6,
+      "fileCount": 6456,
+      "rootMTime": "2026-08-19 11:43:41"
+    },
+    {
+      "name": "triage-20261103-base",
+      "path": "D:\\CLauncher\\triage-20261103-base",
+      "type": "Android",
+      "isGit": true,
+      "branch": "HEAD",
+      "lastCommitTime": "2026-11-03 15:39:25 +0800",
+      "lastCommitSubject": "fix(MPBJJHSDT-111): 修复白色壁纸下重命名文件夹时输入框边框不可见",
+      "dirty": 0,
+      "sizeMB": 136.0,
+      "fileCount": 6607,
+      "rootMTime": "2026-11-10 17:21:09"
+    },
+    {
+      "name": "BBKLauncher",
+      "path": "D:\\BBKLauncher",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 539.1,
+      "fileCount": 18279,
+      "rootMTime": "2026-10-21 22:09:48"
+    },
+    {
+      "name": "VClauncher",
+      "path": "D:\\VClauncher",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 3050.0,
+      "fileCount": 6355,
+      "rootMTime": "2026-07-02 13:48:44"
+    },
+    {
+      "name": "TclLauncher",
+      "path": "D:\\VClauncher\\TclLauncher",
+      "type": "Android",
+      "isGit": true,
+      "branch": "TclLauncher_V_dev",
+      "lastCommitTime": "2026-10-10 12:35:32 +0000",
+      "lastCommitSubject": "Merge branch 'TclLauncher_V_d_for_update' into 'TclLauncher_V_dev'",
+      "dirty": 0,
+      "sizeMB": 3050.0,
+      "fileCount": 6355,
+      "rootMTime": "2026-07-28 17:43:08"
+    },
+    {
+      "name": "oppo_a6_launcher",
+      "path": "D:\\oppo_a6_launcher",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 242.7,
+      "fileCount": 16448,
+      "rootMTime": "2026-01-03 17:02:45"
+    },
+    {
+      "name": "apps",
+      "path": "E:\\workspace\\apps",
+      "type": "其他",
+      "isGit": true,
+      "branch": "rom-w-fcm-mainline-v91-mp-v6.0",
+      "lastCommitTime": "2026-06-15 10:32:45 +0800",
+      "lastCommitSubject": "Merge \"[1 of 1][SWCAN-2472]Bell operator apps update FB\" into rom-w-fcm-mainline-dev",
+      "dirty": 0,
+      "sizeMB": 15439.9,
+      "fileCount": 1594,
+      "rootMTime": "2026-10-19 12:26:47"
+    },
+    {
+      "name": "docs",
+      "path": "E:\\workspace\\docs",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 1.6,
+      "fileCount": 41,
+      "rootMTime": "2026-10-19 15:18:07"
+    },
+    {
+      "name": "k80_5g-drill",
+      "path": "E:\\workspace\\k80_5g-drill",
+      "type": "其他",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 4.7,
+      "fileCount": 91,
+      "rootMTime": "2026-10-13 00:54:55"
+    },
+    {
+      "name": "overlay",
+      "path": "E:\\workspace\\overlay",
+      "type": "其他",
+      "isGit": true,
+      "branch": "HEAD",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 0.0,
+      "fileCount": 0,
+      "rootMTime": "2026-07-16 17:27:58"
+    },
+    {
+      "name": "u_aio_resources",
+      "path": "E:\\workspace\\u_aio_resources",
+      "type": "其他",
+      "isGit": true,
+      "branch": "rom-c-fcm-mainline-dev",
+      "lastCommitTime": "2026-11-12 17:57:05 +0800",
+      "lastCommitSubject": "Merge \"[1 of 1][K80GL-6167][Google Certification][k80-pro/debuging/googlects/vEMP3-1105/][GMSE+]未预置Google’s Find Hub\" into rom-c-fcm-mainline-dev",
+      "dirty": 0,
+      "sizeMB": 29426.2,
+      "fileCount": 13356,
+      "rootMTime": "2026-11-03 18:03:24"
+    },
+    {
+      "name": "MyApplication",
+      "path": "C:\\Users\\peigen1.chen\\AndroidStudioProjects\\MyApplication",
+      "type": "Android",
+      "isGit": false,
+      "branch": "",
+      "lastCommitTime": "",
+      "lastCommitSubject": "",
+      "dirty": 0,
+      "sizeMB": 0.2,
+      "fileCount": 39,
+      "rootMTime": "2026-06-15 17:00:49"
+    }
+  ],
+  "recent": [
+    {
+      "name": ".读局 · Read the Room.qoder.site",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\.读局 · Read the Room.qoder.site",
+      "sizeKB": 3.5,
+      "mtime": "2026-11-13 18:05:08"
+    },
+    {
+      "name": "SOL-星空明信片 (2).png",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\SOL-星空明信片 (2).png",
+      "sizeKB": 129.2,
+      "mtime": "2026-11-13 18:04:03"
+    },
+    {
+      "name": "SOL-星空明信片 (1).png",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\SOL-星空明信片 (1).png",
+      "sizeKB": 196.5,
+      "mtime": "2026-11-13 18:02:15"
+    },
+    {
+      "name": ".gitignore",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\.gitignore",
+      "sizeKB": 0.1,
+      "mtime": "2026-11-13 17:40:44"
+    },
+    {
+      "name": "README.md",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\README.md",
+      "sizeKB": 3.4,
+      "mtime": "2026-11-13 17:38:39"
+    },
+    {
+      "name": "package.json",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\package.json",
+      "sizeKB": 0.8,
+      "mtime": "2026-11-13 16:11:48"
+    },
+    {
+      "name": "tsconfig.tests.json",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\tsconfig.tests.json",
+      "sizeKB": 0.2,
+      "mtime": "2026-11-13 16:11:44"
+    },
+    {
+      "name": "vitest.config.ts",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\vitest.config.ts",
+      "sizeKB": 0.6,
+      "mtime": "2026-11-13 16:10:55"
+    },
+    {
+      "name": "pnpm-workspace.yaml",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\pnpm-workspace.yaml",
+      "sizeKB": 0.1,
+      "mtime": "2026-11-13 16:10:22"
+    },
+    {
+      "name": "pnpm-lock.yaml",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\pnpm-lock.yaml",
+      "sizeKB": 65.2,
+      "mtime": "2026-11-13 16:07:52"
+    },
+    {
+      "name": "tsconfig.base.json",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\tsconfig.base.json",
+      "sizeKB": 0.7,
+      "mtime": "2026-11-13 16:03:43"
+    },
+    {
+      "name": ".oxlintrc.json",
+      "dir": "D:\\code\\Poker",
+      "path": "D:\\code\\Poker\\.oxlintrc.json",
+      "sizeKB": 0.2,
+      "mtime": "2026-11-13 16:03:43"
+    },
+    {
+      "name": "ai-tool-usage (1).html",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\ai-tool-usage (1).html",
+      "sizeKB": 180.1,
+      "mtime": "2026-11-13 14:46:31"
+    },
+    {
+      "name": "ai-tool-usage.html",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\ai-tool-usage.html",
+      "sizeKB": 180.1,
+      "mtime": "2026-11-13 14:46:27"
+    },
+    {
+      "name": "Teleweb_MTK_SP8.6.6.lnk",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\Teleweb_MTK_SP8.6.6.lnk",
+      "sizeKB": 0.7,
+      "mtime": "2026-11-13 10:28:24"
+    },
+    {
+      "name": "K80_MP TCL UI 10.0(Android C) APPlist V1.6-20261110.xlsx",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\K80_MP TCL UI 10.0(Android C) APPlist V1.6-20261110.xlsx",
+      "sizeKB": 641.3,
+      "mtime": "2026-11-13 10:08:03"
+    },
+    {
+      "name": "K80A&K80A SE BOS Guideline 20260805_v1.2.xlsx",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\K80A&K80A SE BOS Guideline 20260805_v1.2.xlsx",
+      "sizeKB": 21.1,
+      "mtime": "2026-11-13 10:07:46"
+    },
+    {
+      "name": "K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN) (1).xlsx",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN) (1).xlsx",
+      "sizeKB": 587.8,
+      "mtime": "2026-11-13 10:05:09"
+    },
+    {
+      "name": "K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN).xlsx",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN).xlsx",
+      "sizeKB": 587.8,
+      "mtime": "2026-11-13 10:05:07"
+    },
+    {
+      "name": ".gitignore",
+      "dir": "D:\\code\\Paper",
+      "path": "D:\\code\\Paper\\.gitignore",
+      "sizeKB": 0.3,
+      "mtime": "2026-11-12 23:44:34"
+    },
+    {
+      "name": "hprof_counts.jsh",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_counts.jsh",
+      "sizeKB": 0.8,
+      "mtime": "2026-11-12 20:26:45"
+    },
+    {
+      "name": "hprof_taskbar_paths.txt",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_taskbar_paths.txt",
+      "sizeKB": 7.4,
+      "mtime": "2026-11-12 20:24:43"
+    },
+    {
+      "name": "hprof_taskbar_paths.jsh",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_taskbar_paths.jsh",
+      "sizeKB": 1.4,
+      "mtime": "2026-11-12 20:23:38"
+    },
+    {
+      "name": "hprof_target_paths.txt",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_target_paths.txt",
+      "sizeKB": 8.2,
+      "mtime": "2026-11-12 20:16:43"
+    },
+    {
+      "name": "hprof_target_paths.jsh",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_target_paths.jsh",
+      "sizeKB": 1.5,
+      "mtime": "2026-11-12 20:15:32"
+    },
+    {
+      "name": "launcher_heap_2026_11_09_10_52_17.hprof",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\launcher_heap_2026_11_09_10_52_17.hprof",
+      "sizeKB": 96745.6,
+      "mtime": "2026-11-12 19:44:25"
+    },
+    {
+      "name": "AI提效分工_给组长的沟通.md",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\AI提效分工_给组长的沟通.md",
+      "sizeKB": 5.9,
+      "mtime": "2026-11-12 18:27:01"
+    },
+    {
+      "name": "Tlink-Image-1794477755556.png",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\Tlink-Image-1794477755556.png",
+      "sizeKB": 29.9,
+      "mtime": "2026-11-12 18:02:38"
+    },
+    {
+      "name": "Paper - Soleima[Paper].flac",
+      "dir": "D:\\code\\Paper",
+      "path": "D:\\code\\Paper\\Paper - Soleima[Paper].flac",
+      "sizeKB": 118594.8,
+      "mtime": "2026-11-12 15:14:33"
+    },
+    {
+      "name": "课程总览与边界.md",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付\\课程总览与边界.md",
+      "sizeKB": 3.3,
+      "mtime": "2026-11-12 14:30:09"
+    },
+    {
+      "name": "manifest.json",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付\\manifest.json",
+      "sizeKB": 13.0,
+      "mtime": "2026-11-12 14:30:09"
+    },
+    {
+      "name": "03-exam-questions.md",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付\\03-exam-questions.md",
+      "sizeKB": 14.7,
+      "mtime": "2026-11-12 14:30:09"
+    },
+    {
+      "name": "434中财国际商务专业基础_考什么与真题渠道.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\434中财国际商务专业基础_考什么与真题渠道.pdf",
+      "sizeKB": 328.7,
+      "mtime": "2026-11-12 14:20:06"
+    },
+    {
+      "name": "396经济类综合能力_考什么与真题渠道.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\396经济类综合能力_考什么与真题渠道.pdf",
+      "sizeKB": 418.3,
+      "mtime": "2026-11-12 14:19:49"
+    },
+    {
+      "name": "README.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\README.pdf",
+      "sizeKB": 309.0,
+      "mtime": "2026-11-12 14:19:47"
+    },
+    {
+      "name": "396经济类综合能力_考什么与真题渠道.md",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\396经济类综合能力_考什么与真题渠道.md",
+      "sizeKB": 8.0,
+      "mtime": "2026-11-12 14:19:25"
+    },
+    {
+      "name": "README.md",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\README.md",
+      "sizeKB": 4.9,
+      "mtime": "2026-11-12 14:19:11"
+    },
+    {
+      "name": "434中财国际商务专业基础_考什么与真题渠道.md",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\434中财国际商务专业基础_考什么与真题渠道.md",
+      "sizeKB": 5.9,
+      "mtime": "2026-11-12 13:17:15"
+    },
+    {
+      "name": "中央财经大学2021年硕士研究生招生章程.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\中央财经大学2021年硕士研究生招生章程.pdf",
+      "sizeKB": 251.5,
+      "mtime": "2026-11-12 13:09:03"
+    },
+    {
+      "name": "中央财经大学2026年_招生专业目录.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\中央财经大学2026年_招生专业目录.pdf",
+      "sizeKB": 143.9,
+      "mtime": "2026-11-12 13:09:02"
+    },
+    {
+      "name": "中央财经大学2026年_初试自命题业务课考试参考书目.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\中央财经大学2026年_初试自命题业务课考试参考书目.pdf",
+      "sizeKB": 95.8,
+      "mtime": "2026-11-12 13:09:02"
+    },
+    {
+      "name": "中央财经大学2026年_复试专业课笔试参考书目.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\中央财经大学2026年_复试专业课笔试参考书目.pdf",
+      "sizeKB": 149.5,
+      "mtime": "2026-11-12 13:09:02"
+    },
+    {
+      "name": "中央财经大学_硕士研究生复试专业课笔试参考书目.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\中央财经大学_硕士研究生复试专业课笔试参考书目.pdf",
+      "sizeKB": 169.9,
+      "mtime": "2026-11-12 13:06:49"
+    },
+    {
+      "name": "396经济类联考_2025考试大纲.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434\\396经济类联考_2025考试大纲.pdf",
+      "sizeKB": 184.2,
+      "mtime": "2026-11-12 13:06:48"
+    },
+    {
+      "name": "onboarding-checklists.xlsx",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\onboarding-checklists.xlsx",
+      "sizeKB": 13.7,
+      "mtime": "2026-11-12 10:28:36"
+    },
+    {
+      "name": "竞争优势、竞争烈度与人民币国际化_姚子钰.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\竞争优势、竞争烈度与人民币国际化_姚子钰.pdf",
+      "sizeKB": 1242.2,
+      "mtime": "2026-11-11 20:17:38"
+    },
+    {
+      "name": "竞争优势、竞争烈度与人民币国际化_姚子钰.caj",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\竞争优势、竞争烈度与人民币国际化_姚子钰.caj",
+      "sizeKB": 1647.0,
+      "mtime": "2026-11-11 20:14:03"
+    },
+    {
+      "name": "downloadArticleFile.do",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\downloadArticleFile.do",
+      "sizeKB": 3.1,
+      "mtime": "2026-11-11 20:11:24"
+    },
+    {
+      "name": "大国竞争对人民币国际化的影响_经济理论与经济管理2025年第5期.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\大国竞争对人民币国际化的影响_经济理论与经济管理2025年第5期.pdf",
+      "sizeKB": 12695.2,
+      "mtime": "2026-11-11 20:09:59"
+    },
+    {
+      "name": "9438915 (1).pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\9438915 (1).pdf",
+      "sizeKB": 389.2,
+      "mtime": "2026-11-11 19:43:59"
+    },
+    {
+      "name": "9438915.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\9438915.pdf",
+      "sizeKB": 389.2,
+      "mtime": "2026-11-11 19:43:32"
+    },
+    {
+      "name": "Cargo.lock",
+      "dir": "D:\\code\\24bit",
+      "path": "D:\\code\\24bit\\Cargo.lock",
+      "sizeKB": 137.3,
+      "mtime": "2026-11-11 19:43:01"
+    },
+    {
+      "name": ".gitignore",
+      "dir": "D:\\code\\24bit",
+      "path": "D:\\code\\24bit\\.gitignore",
+      "sizeKB": 0.2,
+      "mtime": "2026-11-11 19:30:14"
+    },
+    {
+      "name": "Cargo.toml",
+      "dir": "D:\\code\\24bit",
+      "path": "D:\\code\\24bit\\Cargo.toml",
+      "sizeKB": 0.8,
+      "mtime": "2026-11-11 19:30:14"
+    },
+    {
+      "name": "README.md",
+      "dir": "D:\\code\\24bit",
+      "path": "D:\\code\\24bit\\README.md",
+      "sizeKB": 6.8,
+      "mtime": "2026-11-11 19:30:14"
+    },
+    {
+      "name": "Tlink-Image-1794382311861.png",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\Tlink-Image-1794382311861.png",
+      "sizeKB": 577.4,
+      "mtime": "2026-11-11 15:31:56"
+    },
+    {
+      "name": "1b7e4f44c7fdc0a2ab2ffd90d2f513_20260506163654890383.pdf",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\1b7e4f44c7fdc0a2ab2ffd90d2f513_20260506163654890383.pdf",
+      "sizeKB": 2439.3,
+      "mtime": "2026-11-11 14:52:36"
+    },
+    {
+      "name": "Microsoft Edge.lnk",
+      "dir": "C:\\Users\\peigen1.chen\\Desktop",
+      "path": "C:\\Users\\peigen1.chen\\Desktop\\Microsoft Edge.lnk",
+      "sizeKB": 2.3,
+      "mtime": "2026-11-11 11:09:06"
+    },
+    {
+      "name": "latest.yml",
+      "dir": "C:\\Users\\peigen1.chen\\Downloads",
+      "path": "C:\\Users\\peigen1.chen\\Downloads\\latest.yml",
+      "sizeKB": 0.3,
+      "mtime": "2026-11-11 10:42:09"
+    },
+    {
+      "name": "jet_engine_exploded_view.png",
+      "dir": "D:\\code\\3d娃娃",
+      "path": "D:\\code\\3d娃娃\\jet_engine_exploded_view.png",
+      "sizeKB": 20115.0,
+      "mtime": "2026-11-11 10:19:11"
+    }
+  ],
+  "userFolders": {
+    "Documents": {
+      "count": 65,
+      "items": [
+        {
+          "name": "Qoder",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\Qoder",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-13 17:56"
+        },
+        {
+          "name": "TencentMeeting",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\TencentMeeting",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-05 13:57"
+        },
+        {
+          "name": "xwechat_files",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\xwechat_files",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-05 13:57"
+        },
+        {
+          "name": "MeetingRecords",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\MeetingRecords",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-05 13:56"
+        },
+        {
+          "name": "deepseek-harness",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\deepseek-harness",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-03 13:41"
+        },
+        {
+          "name": "OPPO 互联",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\OPPO 互联",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-09-11 15:39"
+        },
+        {
+          "name": "从零开始拥抱Compose_模板版_修复.pptx",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\从零开始拥抱Compose_模板版_修复.pptx",
+          "isDir": false,
+          "sizeKB": 3729.4,
+          "mtime": "2026-07-24 10:43"
+        },
+        {
+          "name": "docs",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\docs",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-07-22 09:41"
+        },
+        {
+          "name": "WindowsPowerShell",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\WindowsPowerShell",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-07-21 15:48"
+        },
+        {
+          "name": "ai-coding-学习计划表-CodeBuddy版.md",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\ai-coding-学习计划表-CodeBuddy版.md",
+          "isDir": false,
+          "sizeKB": 7.4,
+          "mtime": "2026-06-29 09:36"
+        },
+        {
+          "name": "ai-coding-学习计划表.md",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\ai-coding-学习计划表.md",
+          "isDir": false,
+          "sizeKB": 3.5,
+          "mtime": "2026-06-26 17:55"
+        },
+        {
+          "name": "ai-coding-学员过关记录卡.md",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\ai-coding-学员过关记录卡.md",
+          "isDir": false,
+          "sizeKB": 5.4,
+          "mtime": "2026-06-26 17:51"
+        },
+        {
+          "name": "ai-coding-培训课程大纲.md",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\ai-coding-培训课程大纲.md",
+          "isDir": false,
+          "sizeKB": 15.6,
+          "mtime": "2026-06-26 17:50"
+        },
+        {
+          "name": "ai-coding-入门指引.md",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\ai-coding-入门指引.md",
+          "isDir": false,
+          "sizeKB": 41.8,
+          "mtime": "2026-06-26 17:49"
+        },
+        {
+          "name": "ai-coding-培训计划表.md",
+          "path": "C:\\Users\\peigen1.chen\\Documents\\ai-coding-培训计划表.md",
+          "isDir": false,
+          "sizeKB": 5.8,
+          "mtime": "2026-06-26 17:49"
+        }
+      ]
+    },
+    "Downloads": {
+      "count": 91,
+      "items": [
+        {
+          "name": "SOL-星空明信片 (2).png",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\SOL-星空明信片 (2).png",
+          "isDir": false,
+          "sizeKB": 129.2,
+          "mtime": "2026-11-13 18:04"
+        },
+        {
+          "name": "SOL-星空明信片 (1).png",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\SOL-星空明信片 (1).png",
+          "isDir": false,
+          "sizeKB": 196.5,
+          "mtime": "2026-11-13 18:02"
+        },
+        {
+          "name": "ai-tool-usage (1).html",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\ai-tool-usage (1).html",
+          "isDir": false,
+          "sizeKB": 180.1,
+          "mtime": "2026-11-13 14:46"
+        },
+        {
+          "name": "ai-tool-usage.html",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\ai-tool-usage.html",
+          "isDir": false,
+          "sizeKB": 180.1,
+          "mtime": "2026-11-13 14:46"
+        },
+        {
+          "name": "K80_MP TCL UI 10.0(Android C) APPlist V1.6-20261110.xlsx",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\K80_MP TCL UI 10.0(Android C) APPlist V1.6-20261110.xlsx",
+          "isDir": false,
+          "sizeKB": 641.3,
+          "mtime": "2026-11-13 10:08"
+        },
+        {
+          "name": "K80A&K80A SE BOS Guideline 20260805_v1.2.xlsx",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\K80A&K80A SE BOS Guideline 20260805_v1.2.xlsx",
+          "isDir": false,
+          "sizeKB": 21.1,
+          "mtime": "2026-11-13 10:07"
+        },
+        {
+          "name": "K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN) (1).xlsx",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN) (1).xlsx",
+          "isDir": false,
+          "sizeKB": 587.8,
+          "mtime": "2026-11-13 10:05"
+        },
+        {
+          "name": "K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN).xlsx",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\K80A (NP) TMO 10.0(Android C) APPlist V1.2-20261110(EN).xlsx",
+          "isDir": false,
+          "sizeKB": 587.8,
+          "mtime": "2026-11-13 10:05"
+        },
+        {
+          "name": "hprof_counts.jsh",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_counts.jsh",
+          "isDir": false,
+          "sizeKB": 0.8,
+          "mtime": "2026-11-12 20:26"
+        },
+        {
+          "name": "hprof_taskbar_paths.txt",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_taskbar_paths.txt",
+          "isDir": false,
+          "sizeKB": 7.4,
+          "mtime": "2026-11-12 20:24"
+        },
+        {
+          "name": "hprof_taskbar_paths.jsh",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_taskbar_paths.jsh",
+          "isDir": false,
+          "sizeKB": 1.4,
+          "mtime": "2026-11-12 20:23"
+        },
+        {
+          "name": "hprof_target_paths.txt",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_target_paths.txt",
+          "isDir": false,
+          "sizeKB": 8.2,
+          "mtime": "2026-11-12 20:16"
+        },
+        {
+          "name": "hprof_target_paths.jsh",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\hprof_target_paths.jsh",
+          "isDir": false,
+          "sizeKB": 1.5,
+          "mtime": "2026-11-12 20:15"
+        },
+        {
+          "name": "launcher_heap_2026_11_09_10_52_17.hprof",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\launcher_heap_2026_11_09_10_52_17.hprof",
+          "isDir": false,
+          "sizeKB": 96745.6,
+          "mtime": "2026-11-12 19:44"
+        },
+        {
+          "name": "onboarding-checklists.xlsx",
+          "path": "C:\\Users\\peigen1.chen\\Downloads\\onboarding-checklists.xlsx",
+          "isDir": false,
+          "sizeKB": 13.7,
+          "mtime": "2026-11-12 10:28"
+        }
+      ]
+    },
+    "Desktop": {
+      "count": 71,
+      "items": [
+        {
+          "name": "Teleweb_MTK_SP8.6.6.lnk",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\Teleweb_MTK_SP8.6.6.lnk",
+          "isDir": false,
+          "sizeKB": 0.7,
+          "mtime": "2026-11-13 10:28"
+        },
+        {
+          "name": "AI提效分工_给组长的沟通.md",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\AI提效分工_给组长的沟通.md",
+          "isDir": false,
+          "sizeKB": 5.9,
+          "mtime": "2026-11-12 18:27"
+        },
+        {
+          "name": "Tlink-Image-1794477755556.png",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\Tlink-Image-1794477755556.png",
+          "isDir": false,
+          "sizeKB": 29.9,
+          "mtime": "2026-11-12 18:02"
+        },
+        {
+          "name": "考研资料_396+434",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\考研资料_396+434",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-12 14:00"
+        },
+        {
+          "name": "Tlink-Image-1794382311861.png",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\Tlink-Image-1794382311861.png",
+          "isDir": false,
+          "sizeKB": 577.4,
+          "mtime": "2026-11-11 15:31"
+        },
+        {
+          "name": "Microsoft Edge.lnk",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\Microsoft Edge.lnk",
+          "isDir": false,
+          "sizeKB": 2.3,
+          "mtime": "2026-11-11 11:09"
+        },
+        {
+          "name": "MiniMax Code.lnk",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\MiniMax Code.lnk",
+          "isDir": false,
+          "sizeKB": 1.1,
+          "mtime": "2026-11-11 10:15"
+        },
+        {
+          "name": "AI资产认证材料",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\AI资产认证材料",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-10 21:07"
+        },
+        {
+          "name": "应用开发工具大纲_讲解视频.srt",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\应用开发工具大纲_讲解视频.srt",
+          "isDir": false,
+          "sizeKB": 20.8,
+          "mtime": "2026-11-10 20:37"
+        },
+        {
+          "name": "新人入职办公流程_讲解视频.srt",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\新人入职办公流程_讲解视频.srt",
+          "isDir": false,
+          "sizeKB": 21.2,
+          "mtime": "2026-11-10 20:37"
+        },
+        {
+          "name": "应用开发工具大纲_讲解视频.mp4",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\应用开发工具大纲_讲解视频.mp4",
+          "isDir": false,
+          "sizeKB": 50412.8,
+          "mtime": "2026-11-10 20:37"
+        },
+        {
+          "name": "新人入职办公流程_讲解视频.mp4",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\新人入职办公流程_讲解视频.mp4",
+          "isDir": false,
+          "sizeKB": 50276.0,
+          "mtime": "2026-11-10 20:37"
+        },
+        {
+          "name": "入职培训课程交付",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\入职培训课程交付",
+          "isDir": true,
+          "sizeKB": null,
+          "mtime": "2026-11-10 17:35"
+        },
+        {
+          "name": "Qoder CN.lnk",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\Qoder CN.lnk",
+          "isDir": false,
+          "sizeKB": 2.5,
+          "mtime": "2026-11-09 22:24"
+        },
+        {
+          "name": "ZyClone.lnk",
+          "path": "C:\\Users\\peigen1.chen\\Desktop\\ZyClone.lnk",
+          "isDir": false,
+          "sizeKB": 1.1,
+          "mtime": "2026-11-06 18:02"
+        }
+      ]
+    }
+  },
+  "tools": [
+    {
+      "name": "git",
+      "version": "git version 2.55.0.windows.3",
+      "path": "C:\\Program Files\\Git\\cmd\\git.exe"
+    },
+    {
+      "name": "node",
+      "version": "v24.22.1",
+      "path": "C:\\Program Files\\nodejs\\node.exe"
+    },
+    {
+      "name": "npm",
+      "version": "11.19.1",
+      "path": "C:\\Program Files\\nodejs\\npm.ps1"
+    },
+    {
+      "name": "pnpm",
+      "version": "12.15.0",
+      "path": "C:\\Users\\peigen1.chen\\AppData\\Local\\pnpm\\bin\\pnpm.cmd"
+    },
+    {
+      "name": "python",
+      "version": null,
+      "path": "C:\\Users\\peigen1.chen\\AppData\\Local\\Programs\\Python\\Python314\\python.exe"
+    },
+    {
+      "name": "java",
+      "version": "java version \"21.0.12.1\" 2026-08-18 LTS",
+      "path": "C:\\Program Files\\Common Files\\Oracle\\Java\\javapath\\java.exe"
+    },
+    {
+      "name": "adb",
+      "version": "Android Debug Bridge version 1.0.41",
+      "path": "D:\\platform-tools\\adb.exe"
+    }
+  ],
+  "aiTools": [
+    ".claude",
+    ".codex",
+    ".codebuddy",
+    ".codebuddycn",
+    ".cursor",
+    ".qoder",
+    ".qoder-cn",
+    ".kimi-code",
+    ".kimi-work",
+    ".kimi-webbridge",
+    ".trae-cn",
+    ".zcode",
+    ".copilot",
+    ".minimax",
+    ".qwenworkcn",
+    ".jugg",
+    ".pi",
+    ".mavis",
+    ".workbuddy",
+    ".workbuddy-ai",
+    ".qmind",
+    ".codegraph",
+    ".tlink",
+    ".tmeet",
+    ".loongsuite-pilot",
+    ".agent-browser",
+    ".dsh",
+    ".qoderwork"
+  ],
+  "links": [
+    {
+      "name": "桌面",
+      "path": "C:\\Users\\peigen1.chen\\Desktop"
+    },
+    {
+      "name": "文档",
+      "path": "C:\\Users\\peigen1.chen\\Documents"
+    },
+    {
+      "name": "下载",
+      "path": "C:\\Users\\peigen1.chen\\Downloads"
+    },
+    {
+      "name": "D:\\code 项目群",
+      "path": "D:\\code"
+    },
+    {
+      "name": "TclLauncher 主仓库",
+      "path": "D:\\TclLauncher"
+    },
+    {
+      "name": "CLAUNCER2 工作区",
+      "path": "D:\\CLAUNCER2"
+    },
+    {
+      "name": "D:\\tools 工具",
+      "path": "D:\\tools"
+    },
+    {
+      "name": "D:\\download 下载",
+      "path": "D:\\download"
+    },
+    {
+      "name": "归档整理_20261105",
+      "path": "D:\\归档整理_20261105"
+    },
+    {
+      "name": "E:\\workspace",
+      "path": "E:\\workspace"
+    },
+    {
+      "name": "E:\\launcher_hprof 内存分析",
+      "path": "E:\\launcher_hprof"
+    },
+    {
+      "name": "E:\\android-development-docs",
+      "path": "E:\\android-development-docs"
+    },
+    {
+      "name": "E:\\WorkBuddy Worksapace 日报",
+      "path": "E:\\WorkBuddy Worksapace"
+    },
+    {
+      "name": "F:\\TCL_Layout_Toolv0.6",
+      "path": "F:\\TCL_Layout_Toolv0.6"
+    },
+    {
+      "name": "F:\\CDriveData C盘迁移数据",
+      "path": "F:\\CDriveData"
+    },
+    {
+      "name": "C:\\TCL",
+      "path": "C:\\TCL"
+    }
+  ]
+}</script>
+<script>
+'use strict';
+const DATA = JSON.parse(document.getElementById('wb-data').textContent);
+const BASE = DATA.meta.scanTime ? new Date(DATA.meta.scanTime.replace(' ','T')) : new Date();
+
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fileUrl = p => encodeURI('file:///' + String(p).replace(/\\/g, '/'));
+const pad = n => String(n).padStart(2, '0');
+function fmtSize(kb){ if (kb == null) return '—'; if (kb >= 1048576) return (kb/1048576).toFixed(1)+' GB'; if (kb >= 1024) return (kb/1024).toFixed(1)+' MB'; return Math.round(kb)+' KB'; }
+function fmtMB(mb){ if (!mb) return '—'; return mb >= 1024 ? (mb/1024).toFixed(2)+' GB' : mb.toFixed(1)+' MB'; }
+function relTime(s){
+  if (!s) return '—';
+  const t = new Date(String(s).slice(0, 19).replace(' ', 'T')); if (isNaN(t)) return s;
+  let d = Math.round((BASE - t) / 60000);              // 分钟
+  if (d < 0) d = 0;
+  if (d < 1) return '刚刚';
+  if (d < 60) return d + ' 分钟前';
+  if (d < 1440) return Math.floor(d/60) + ' 小时前';
+  if (d < 43200) return Math.floor(d/1440) + ' 天前';
+  return Math.floor(d/43200) + ' 个月前';
+}
+function shortTime(s){ return s ? s.slice(5,16) : '—'; }
+function toast(msg){
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(el._t); el._t = setTimeout(()=>el.classList.remove('show'), 1400);
+}
+function copyText(t){
+  const done = ()=>toast('已复制：' + t);
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(t).then(done).catch(()=>{ fallback(); });
+  } else fallback();
+  function fallback(){
+    const ta = document.createElement('textarea'); ta.value = t;
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch(e){ toast('复制失败'); }
+    ta.remove();
+  }
+}
+
+/* ---------- 头部 ---------- */
+(function(){
+  const m = DATA.meta;
+  document.title = '工作台 · ' + m.host;
+  document.getElementById('meta-line').textContent =
+    m.user + ' · ' + m.os + ' (' + m.arch + ') · ' + m.cpu;
+  const upDays = Math.floor((BASE - new Date(m.bootTime.replace(' ','T'))) / 86400000);
+  const chips = [
+    ['主机', m.host], ['内存', m.ramTotalGB + 'G / 空闲 ' + m.ramFreeGB + 'G'],
+    ['开机', upDays + ' 天'], ['扫描', m.scanTime + '（耗时 ' + m.durationSec + 's）']
+  ];
+  document.getElementById('meta-chips').innerHTML =
+    chips.map(c => '<span class="chip"><b>' + esc(c[0]) + '</b> ' + esc(c[1]) + '</span>').join('');
+})();
+
+/* ---------- 磁盘 ---------- */
+document.getElementById('drives').innerHTML = DATA.drives.map(d => {
+  const pct = d.totalGB ? Math.round(d.usedGB / d.totalGB * 100) : 0;
+  const color = pct > 90 ? 'var(--red)' : pct > 75 ? 'var(--amber)' : 'var(--accent)';
+  return '<a class="drive" href="' + fileUrl(d.root) + '">' +
+    '<div class="name">' + esc(d.name) + ':　<span style="color:var(--muted);font-weight:400;font-size:12px">' + esc(d.root) + '</span></div>' +
+    '<div class="bar"><i style="width:' + pct + '%;background:' + color + '"></i></div>' +
+    '<div class="nums"><span>已用 ' + d.usedGB + ' GB (' + pct + '%)</span><span>剩 ' + d.freeGB + ' GB</span></div></a>';
+}).join('');
+
+/* ---------- 项目雷达 ---------- */
+const TYPES = [...new Set(DATA.projects.map(p => p.type))];
+let filterType = '全部', q = '';
+function renderTypeChips(){
+  const counts = { '全部': DATA.projects.length };
+  DATA.projects.forEach(p => counts[p.type] = (counts[p.type] || 0) + 1);
+  counts['未提交'] = DATA.projects.filter(p => p.isGit && p.dirty > 0).length;
+  const order = ['全部','未提交'].concat(TYPES);
+  document.getElementById('type-chips').innerHTML = order.map(t =>
+    '<button class="chipbtn' + (t === filterType ? ' on' : '') + '" data-t="' + esc(t) + '">' +
+    esc(t) + ' ' + (counts[t] || 0) + '</button>').join('');
+  document.querySelectorAll('#type-chips .chipbtn').forEach(b =>
+    b.onclick = () => { filterType = b.dataset.t; renderTypeChips(); renderProjects(); });
+}
+function renderProjects(){
+  let list = DATA.projects.filter(p => {
+    if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0)) return false; }
+    else if (filterType !== '全部' && p.type !== filterType) return false;
+    if (q) {
+      const hay = (p.name + ' ' + p.path + ' ' + p.branch + ' ' + p.lastCommitSubject).toLowerCase();
+      if (!hay.includes(q.toLowerCase())) return false;
+    }
+    return true;
+  });
+  const sort = document.getElementById('sort').value;
+  list.sort((a, b) => {
+    if (sort === 'name') return a.name.localeCompare(b.name, 'zh-Hans-CN');
+    if (sort === 'size') return (b.sizeMB || 0) - (a.sizeMB || 0);
+    if (sort === 'commit') return (b.lastCommitTime || '').localeCompare(a.lastCommitTime || '');
+    return (b.rootMTime || '').localeCompare(a.rootMTime || '');
+  });
+  const gitN = list.filter(p => p.isGit).length;
+  const dirtyN = list.filter(p => p.isGit && p.dirty > 0).length;
+  const sizeSum = list.reduce((s, p) => s + (p.sizeMB || 0), 0);
+  document.getElementById('proj-stats').textContent =
+    list.length + ' 项 · git ' + gitN + ' · 未提交 ' + dirtyN + ' · 体量 ' + fmtMB(sizeSum);
+  const head = '<div class="prow head"><span></span><span>项目</span><span>类型</span><span>git 状态</span>' +
+    '<span class="num">体量</span><span>修改于</span><span class="c-ops ops">操作</span></div>';
+  const rows = list.map(p => {
+    const dot = !p.isGit ? 'none' : (p.dirty > 0 ? 'dirty' : 'clean');
+    const gitCell = p.isGit
+      ? '<b>' + esc(p.branch) + '</b>' + (p.dirty ? '<span style="color:var(--amber)">●' + p.dirty + '</span> ' : '') +
+        esc((p.lastCommitSubject || '').slice(0, 60)) +
+        '<span style="color:var(--muted)"> · ' + relTime(p.lastCommitTime) + '</span>'
+      : '<span style="color:var(--muted)">非 git 目录</span>';
+    return '<div class="prow">' +
+      '<span><span class="dot ' + dot + '" title="' + (dot==='dirty'?'有未提交改动':dot==='clean'?'工作区干净':'非 git') + '"></span></span>' +
+      '<span class="pname"><a href="' + fileUrl(p.path) + '" target="_blank" title="' + esc(p.path) + '">' + esc(p.name) + '</a></span>' +
+      '<span><span class="badge ' + esc(p.type) + '">' + esc(p.type) + '</span></span>' +
+      '<span class="commit">' + gitCell + '</span>' +
+      '<span class="num">' + fmtMB(p.sizeMB) + '</span>' +
+      '<span class="c-mod" style="color:var(--muted);font-size:12px">' + relTime(p.rootMTime) + '</span>' +
+      '<span class="c-ops ops"><button class="ibtn" data-cp="' + esc(p.path) + '">复制路径</button></span>' +
+      '</div>';
+  }).join('');
+  document.getElementById('proj-list').innerHTML = head + (rows || '<div class="prow"><span class="empty" style="grid-column:1/-1">无匹配项目</span></div>');
+  document.querySelectorAll('#proj-list [data-cp]').forEach(b => b.onclick = () => copyText(b.dataset.cp));
+}
+document.getElementById('q').oninput = e => { q = e.target.value.trim(); renderProjects(); };
+document.getElementById('sort').onchange = renderProjects;
+renderTypeChips(); renderProjects();
+
+/* ---------- 最近动态 ---------- */
+document.getElementById('recent-list').innerHTML = (DATA.recent || []).map(r =>
+  '<div class="ritem"><span class="t">' + esc(shortTime(r.mtime)) + '</span>' +
+  '<span><a href="' + fileUrl(r.path) + '" target="_blank" title="' + esc(r.path) + '">' + esc(r.name) + '</a></span>' +
+  '<span class="d" title="' + esc(r.dir) + '">' + esc(r.dir) + '</span>' +
+  '<span class="s">' + fmtSize(r.sizeKB) + '</span></div>').join('')
+  || '<div class="empty">无记录</div>';
+
+/* ---------- 常用文件夹 ---------- */
+(function(){
+  const names = { Desktop:'桌面', Documents:'文档', Downloads:'下载' };
+  document.getElementById('uf-cards').innerHTML = Object.keys(names).map(k => {
+    const uf = (DATA.userFolders || {})[k]; if (!uf) return '';
+    const items = (uf.items || []).map(it =>
+      '<div class="uitem"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+      (it.isDir ? '📁 ' : '📄 ') +
+      '<a href="' + fileUrl(it.path) + '" target="_blank" title="' + esc(it.path || '') + '">' + esc(it.name) + '</a></span>' +
+      '<span class="m">' + (it.isDir ? '' : fmtSize(it.sizeKB)) + ' · ' + esc(it.mtime) + '</span></div>');
+    return '<div class="ucard"><h3>' + names[k] + ' <span>' + uf.count + ' 项（前 ' + (uf.items||[]).length + '）</span></h3>' +
+      (items.join('') || '<div class="empty">空</div>') + '</div>';
+  }).join('');
+})();
+
+/* ---------- 工具链 & AI ---------- */
+document.getElementById('tools').innerHTML = (DATA.tools || []).map(t =>
+  '<span class="chip"><b>' + esc(t.name) + '</b> ' + esc((t.version || '').slice(0, 40)) + '</span>').join('')
+  || '<span class="chip">无</span>';
+document.getElementById('ai').innerHTML = (DATA.aiTools || []).map(a =>
+  '<span class="chip">' + esc(a) + '</span>').join('') || '<span class="chip">无</span>';
+
+/* ---------- 快速入口 ---------- */
+document.getElementById('links').innerHTML = (DATA.links || []).map(l =>
+  '<a class="lcard" href="' + fileUrl(l.path) + '"><span>📁 ' + esc(l.name) + '</span><span class="p">' + esc(l.path) + '</span></a>').join('');
+
+/* ---------- 页脚 ---------- */
+document.getElementById('footer').innerHTML =
+  '数据生成于 ' + esc(DATA.meta.scanTime) + ' · 由 scan.ps1 本地扫描生成，数据不出本机 · ' +
+  '刷新方式：双击 <b>refresh.cmd</b>（先重新扫描再打开本页） · 体量统计已排除 node_modules / build / .gradle 等构建产物';
+</script>
+</body>
+</html>

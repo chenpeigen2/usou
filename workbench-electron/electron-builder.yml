@@ -1,0 +1,28 @@
+appId: com.peigen.workbench
+productName: 工作台
+electronVersion: 33.4.11
+electronDist: runtime/electron
+directories:
+  output: out
+  buildResources: build
+files:
+  - main.js
+  - preload.js
+  - run-scan.js
+  - src/**/*
+  - renderer/**/*
+  - package.json
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+artifactName: Workbench-${version}-${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: 工作台
+  artifactName: Workbench-Setup-${version}.${ext}
+publish: null

@@ -54,11 +54,19 @@ function Test-Net([string]$host_, [int]$port, [int]$timeoutMs = 4000) {
 $proxyPort = 7897   # 注册表里的 Clash/Mihomo 混合端口
 $proxyAlive = Test-Net '127.0.0.1' $proxyPort
 
-$sshOk = (Test-Net 'github.com' 22) -and (Test-Net 'ssh.github.com' 443)
+# SSH 必须**真握手**才算可用（TCP 端口通 ≠ SSH 可用：网关可能接受连接后 reset）
+$sshOk = $false
+try {
+  $env:GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=8 -o BatchMode=yes'
+  $probe = & 'C:\Program Files\Git\usr\bin\ssh.exe' -T -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new git@github.com 2>&1
+  $probeTxt = ($probe -join ' ')
+  # GitHub 认证成功会回 "successfully authenticated"（带 -T 时是欢迎语）；连接被拦则是 reset/exchange failure
+  $sshOk = ($probeTxt -match 'successfully authenticated|Welcome to GitHub') -and ($probeTxt -notmatch 'exchange identification|reset by peer|Connection refused|timed out')
+} catch { $sshOk = $false }
+
 $httpsOk = $false
 if (-not $sshOk) {
   try {
-    $tmp = [System.IO.Path]::GetTempFileName()
     $code = (& curl.exe -s -o NUL -w '%{http_code}' --max-time 8 https://github.com 2>$null)
     $httpsOk = ($code -eq '200')
   } catch { $httpsOk = $false }

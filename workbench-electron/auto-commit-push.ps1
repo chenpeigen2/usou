@@ -80,7 +80,6 @@ Write-Host ("  HTTPS(443)   : {0}" -f $(if ($httpsOk) { '可用' } else { '不�
 Write-Host ("  本地代理:{0} : {1}" -f $proxyPort, $(if ($proxyAlive) { '在线' } else { '离线' }))
 
 $ahead = 0
-Write-Host "  待推送 commit: 待计算"
 
 # ---------- 3. 推送 ----------
 # 待推送数量：远程追踪分支可能不存在（从未 push 过），此时全部本地 commit 都是待推送

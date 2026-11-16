@@ -77,11 +77,18 @@ Write-Host ("  SSH(22/443)  : {0}" -f $(if ($sshOk) { '可用' } else { '不可�
 Write-Host ("  HTTPS(443)   : {0}" -f $(if ($httpsOk) { '可用' } else { '不可用' }))
 Write-Host ("  本地代理:{0} : {1}" -f $proxyPort, $(if ($proxyAlive) { '在线' } else { '离线' }))
 
-$ahead = [int]((& $git rev-list --count 'origin/main..main' 2>$null) -as [int])
-if ($null -eq $ahead) { $ahead = 0 }
-Write-Host ("  待推送 commit: {0}" -f $ahead)
+$ahead = 0
+Write-Host "  待推送 commit: 待计算"
 
 # ---------- 3. 推送 ----------
+# 待推送数量：远程追踪分支可能不存在（从未 push 过），此时全部本地 commit 都是待推送
+$localCount = [int]((& $git rev-list --count HEAD 2>$null) -as [int])
+$remoteCount = 0
+$rc = & $git rev-list --count 'origin/main' 2>$null
+if ($LASTEXITCODE -eq 0 -and $rc) { $remoteCount = [int]($rc -as [int]) }
+$ahead = [Math]::Max(0, $localCount - $remoteCount)
+Write-Host ("  待推送 commit: {0}（本地 {1} / 远端 {2}）" -f $ahead, $localCount, $remoteCount)
+
 $env:GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10'
 if ($sshOk) {
   Write-Host "→ 通过 SSH 推送…" -ForegroundColor Cyan
@@ -92,8 +99,14 @@ if ($sshOk) {
 if ($httpsOk -or $proxyAlive) {
   if ($proxyAlive) { $env:HTTPS_PROXY = "http://127.0.0.1:$proxyPort"; $env:HTTP_PROXY = $env:HTTPS_PROXY }
   Write-Host "→ 通过 HTTPS 推送…" -ForegroundColor Cyan
-  $r = Git @('push', '-u', 'origin', 'main')
-  if ($r.code -eq 0) { Write-Host "✔ 推送成功" -ForegroundColor Green; exit 0 }
+  # 强制走 HTTPS（remote 已是 SSH 地址，这里用显式 URL 覆盖）
+  $r = Git @('push', '-u', 'https://github.com/chenpeigen2/usou.git', 'main')
+  if ($r.code -eq 0) {
+    Write-Host "✔ 推送成功（HTTPS）" -ForegroundColor Green
+    # 顺手把 remote 改回 SSH 地址
+    & $git remote set-url origin 'git@github.com:chenpeigen2/usou.git' 2>$null
+    exit 0
+  }
   Write-Host "✘ HTTPS 推送失败:`n$($r.out)" -ForegroundColor Red
 }
 

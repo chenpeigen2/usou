@@ -66,9 +66,11 @@ try {
 
 $httpsOk = $false
 if (-not $sshOk) {
+  # 必须用 git 自己探测（curl 能过 ≠ git 的 schannel 能过：DPI 可能按 SNI/指纹拦截）
   try {
-    $code = (& curl.exe -s -o NUL -w '%{http_code}' --max-time 8 https://github.com 2>$null)
-    $httpsOk = ($code -eq '200')
+    $env:GIT_TERMINAL_PROMPT = '0'
+    $t = & $git -c http.proxy= -c https.proxy= ls-remote https://github.com/chenpeigen2/usou.git 2>&1
+    $httpsOk = ($LASTEXITCODE -eq 0)
   } catch { $httpsOk = $false }
 }
 

@@ -2,6 +2,15 @@
 
 > 由 PM agent 每轮 SOP 第 3/7 步更新。这是「记忆」——让每轮唤醒不用重新认识项目。
 
+
+## Git 版本管理（每轮收尾）
+
+- **仓库**：`git@github.com:chenpeigen2/usou.git` · 分支 `main` · remote 已配置
+- **入库**：`workbench-electron/auto-commit.ps1 -Message "<本轮主题：v<版本> <一句话>"` → 自动 `add -A` + commit（消息含版本号与变更文件数），并报告本地待推送 commit 数
+- **只 commit，不 push**：用户明确要求 push 由自己执行，**流程绝不代推**（仅用户显式指示时才用 `-Push`）
+- **网络实情**：公司网阻断 GitHub（SSH 22/443 reset；HTTPS TLS 被 DPI 拦）；本机注册表有 Clash/Mihomo 混合端口 `127.0.0.1:7897`，代理启动后即可推。不影响本地 commit
+- **`.gitignore` 边界**：排除 Electron 运行时(268MB)、`out\` 产物(465MB)、node_modules、Chromium 缓存、QA 临时探针/截图/隔离 profile —— 只入库源码 + 治理文档 + 可复现构建脚本
+
 ## 当前
 
 - **本轮状态**：DONE · 第二十七轮 / v1.7.17 · **「今日简报的历史对比失真（新提交判定 + 最近改动口径）」** —— READY 池已空 ⇒ 本轮按 PM.md 第一节「待办池枯竭时自己造活」做真实巡检（打包版隔离实例 `--qashot=` 六视图截图 + 审计，**6 视图 failCount 全 0**），**渲染层无缺陷**，但**数据侧独立重算**（Node 直读 `data\scan-cache.json` + `data\history.json`）暴露了 `buildBrief()` 的**两处真实缺陷**（简报每条都在陈述不成立的事实）

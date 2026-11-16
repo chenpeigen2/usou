@@ -2070,3 +2070,53 @@ D:\code\usou\workbench-electron\out\
 - **不动**：`main.js` / `preload.js` / `src/*` / `renderer/index.html` / 任何既有 IPC 名 / 任何既有数据文件结构 / 外部依赖 / 版本号（发版步骤才动）。
 - **QA 取证不写进产品代码**：断言全部用 CDP `Runtime.evaluate` 在运行中的实例上做 ⇒ 产品代码零 QA 残留。
 
+### QA 与发版实测结论（已回填）
+
+**QA 门禁全过**
+
+- **语法 6/6 PASS**：`main.js` / `preload.js` / `run-scan.js` / `src/scanner.js` / `src/store.js` / `renderer/app.js`（`node --check` 零错误）；**内联 onclick = 0**（5 处命中全是既有 `el.onclick = ...` 的 **JS 属性赋值**，非 HTML 内联）；**重名函数 0**；**零外部依赖**；**零新增 IPC**；**零既有数据文件结构改动**。
+- **断言集 22/22 PASS（dev + 打包版 v1.7.16 各一遍）**：RECENT_DEAD = 36｜最近视图 60 行（活 24 / 失效 36）｜**首行是活条目**｜末行是失效条目｜`.deadsep` 存在且**紧邻**首个失效行（sepIdx = 24 / firstDeadIdx = 25）｜**活条目相对顺序不变**｜**失效条目相对顺序不变**｜**存活 24 条一条不少**（防「全体过滤」这种过度修法）｜**失效 36 条未被丢弃**（只是沉底）｜统计行含「已删除 36（已沉底）」｜36 个「已删除」角标仍在｜项目 59 行（活 57 / 失效 2）｜失效项目落在**末尾两位**（idx 57,58）且**未占据前 5 位**｜项目统计行含「已删除 2（已沉底）」｜**总览卡 9 条且失效条目 = 0**。
+- **独立数据侧互证 2/2 PASS**：Node 直接读 `data\scan-cache.json` + `fs.existsSync` 算出 `recent dead = 36` / `projects dead = 2`，与 DOM 断言**完全一致**（不只看 DOM 自说自话）。
+- **几何量测**：`.deadsep` 高度 **32px**（未塌成 0）、font-size 11.5px、color `rgb(123,140,168)`、bg `rgb(24,33,49)`；**分隔行前一行是活条目、后一行是失效条目**（结构正确）。
+- **深浅两套 × 六视图对比度审计 failCount 全 = 0**（**带 hover 态复测的新审计器**，采样量从 123/88/93 提升到 **238/176/190**）：深色 overview 4.73 / projects 4.73 / recent 4.73 / disk 4.73 / system 4.73 / settings 4.73；浅色 overview 4.64 / projects 4.66 / recent 4.64 / disk 5.07 / system 4.89 / settings 4.89。**打包版 v1.7.16 复测同样全 0**。
+- **阴性对照 PASS（证明新审计器不是「空过」）**：临时把浅色 `--green` 注回旧值 `#0b7a55` ⇒ 新审计器**立刻报出 3 处** `项目·类型徽章<.badge>·hover 4.36:1`；还原后回到 failCount = 0。
+- **7 张截图**目检（dev 最近首屏 / dev 分隔行处 / dev 项目视图 / dev 总览 / dev 浅色最近 / dev 浅色项目 / **打包版最近（页脚 v1.7.16）** / **打包版分隔行处**）；dev/打包态新增 `[renderer]` 错误 = **0**、error 行 = **0**。
+
+**本轮自查发现并修复 1 个既有缺陷（非本轮引入）：浅色主题 hover 态对比度不达标**
+
+- 现象：浅色主题 `.badge.Android`（项目类型徽章）在**行被 hover**（行底 `--panel` → `--panel2`）时，实测对比度 **4.36:1 < WCAG AA 4.5:1**；不 hover 时 4.67:1（通过）。
+- 根因：浅色 `--green:#0b7a55` + `--soft-green:rgba(11,122,85,.10)` 压在 `--panel2`（hover 底）上合成出 `rgb(220,235,235)` ⇒ 比白底时更暗 ⇒ 绿字更吃力。
+- 修法：浅色 `--green` `#0b7a55` → **`#0a6f4d`**、`--soft-green` 同步改为 `rgba(10,111,77,.10)` ⇒ hover 态 **4.98:1** / 常态 5.36:1 / 对白 6.19:1，**全部过 AA**；深色主题 `--green` 未动（深色实测全部通过）。
+
+**发版实测**
+
+- `package.json` 1.7.15 → **1.7.16**；构建前 `remaining app instances after kill = 0`（dev 4 个 electron + 交付态 4 个工作台 + QA 实例**全杀净**）；`Remove-Item Env:ELECTRON_RUN_AS_NODE` 后核验 `present = False`；镜像 `ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/`。
+- `npx electron-builder --win --publish never` **exit 0**（electron-builder 26.18.0 / electron 33.4.11 / electronDist=runtime\electron；产物名 ASCII、应用名中文）。
+- `Compress-Archive -CompressionLevel Optimal -Path "out\win-unpacked\*"` → `out\Workbench-1.7.16-portable.zip`（118,704,147 B / 113.16 MB）。
+- 旧版本产物清理：1.7.15 的 Setup / zip / blockmap 按绝对路径核验 `underOut=True` 后删除 ⇒ `out\` **旧版本残留计数 = 0**（现仅 1.7.16 三件套 + `builder-debug.yml` + `win-unpacked`）。
+- 数据预置：`data\scan-cache.json` + `data\history.json` → `%APPDATA%\工作台\`（首启秒开）。
+- **打包版 QA**（隔离 `--user-data-dir=pm\_qa_pack` + 预置缓存 + `--remote-debugging-port=9382`）→ **断言 22/22 PASS + 数据侧 2/2 PASS + 深浅六视图审计 12/12 failCount=0**；CDP 握手拿到 `User-Agent: .../1.7.16 ...`、侧栏页脚 **v1.7.16** ⇒ **证明修复在真实交付产物中生效**。
+- 交付态恢复：QA 实例 kill 净后**无 QA 参数干净启动** `out\win-unpacked\工作台.exe`，等 11 秒 → **4 进程**（ProductVersion = **1.7.16.0**）、日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、新增 `[renderer]` 行 = **0** / error 行 = **0** ⇒ **运行态已保留**。
+
+**本轮沉淀的 3 条 QA 方法论**
+
+1. **对比度审计器必须量 hover 态** —— 此前审计器只量「当前鼠标位置」下的状态 ⇒ 浅色主题的徽章**鼠标移开就全过**、一 hover 就跌到 4.36:1 ⇒ 缺陷被系统性掩盖。现在 `auditContrast()` 给每个采样元素的祖言行强制加 `.waudit-hover`（底色与真实 `:hover` 一致：`--panel2` / `--hover-veil`）再量一次 ⇒ 采样量翻倍（123→238），**hover 态缺陷从此进不了审计**。**配套必须做阴性对照**（临时注入坏值，验证审计器确实会报），否则「全过」可能只是审计器坏了。
+2. **「排序」与「标注」是两件事** —— v1.7.13 标了「最近动态」的失效条目、v1.7.15 标了「项目雷达」的失效条目，但**两个列表仍按快照里的 mtime 排序** ⇒ 失效条目（保留删除前的 mtime，往往比活文件新）**霸占首屏**。教训：**任何「这批数据已经过时」的提示，都必须同时回答「它们还排在前面吗」** —— 标注解决「看不出来」，排序解决「挡在前面」，**两者都要做**。
+3. **总览卡与明细视图必须共用同一套顺序** —— 总览「最近动态」卡取 `slice(0,9)`，若只改明细视图的排序，卡片会**长期显示 9 条全是死条目**，与明细视图**自相矛盾** ⇒ 抽出**同一个**纯函数 `partitionDead()` 供两处共用（而不是各写一遍）。
+
+**遗留风险**
+
+1. **失效标注与沉底都是「检查那一刻」的快照** —— 文件可能在检查之后被删 ⇒ 沉底位置短暂失真；但点击时主进程**仍会再判一次存在性**（v1.7.13/v1.7.14 的保护在主进程侧，不依赖渲染层）⇒ 最坏情况只是「位置不对但点击报错」，**不会**误开或误 spawn。
+2. **`existsSync` 对「无权限访问的路径」返回 false** ⇒ 受保护目录可能被误标「已删除」并被沉底。**判定为可接受的误报**（沿用第二十四/二十五轮同一判断），用户仍可从资源管理器打开。
+3. **失效条目要等下一次真实扫描才会从缓存里消失** —— 本机 autoScan = 0 ⇒ 可能长期留在缓存里；本轮的沉底让它们**不再挡路**，但仍占列表长度（60 条里 36 条）。
+4. **审计器的 hover 复测覆盖的是「行级 hover 底色」** —— 元素自身 hover（如 `.ibtn:hover`、`.fav-btn:hover`）仍未被逐个复测（`.ibtn` 是图标按钮，`.fav-btn` 已有独立颜色），**已知盲区**，暂不扩大改动面。
+5. **本轮零新增 IPC、零外部依赖、零数据文件结构改动** —— 改动面小（2 文件：`renderer/app.js` + `renderer/style.css`）⇒ 回滚成本极低。
+
+### 本轮收尾（第二十六轮完成）
+
+- BACKLOG：「失效条目沉底」→ **DONE**（附 v1.7.16 与验证结论）；**新立项 1 条**（P2 · 浅色主题 hover 态对比度不达标 —— **本轮已修**）+ 3 条 QA 方法论沉淀 ⇒ **剩余 READY = 0 项**。
+- STATE / README 已更新；**本轮全部临时探针（CDP 工具 1 个 + 断言/审计/探针脚本 11 个）、QA 截图（11 张）、隔离 profile（3 个：dev + 打包版 + 打包版 QA）、日志基线文件已删除**（`pm\` 目录恢复为只含 4 个治理文件）。
+- Git：本轮改动已随 `187db9d` / `63e393c` 入库（由另一并行 agent 提交，含 renderer 改动）；版本号 commit 由本轮收尾统一提交（**只 commit 不 push**，按 AGENTS.md 最新约定）。
+- 按 PM.md 第五节「批次到顶不再停」：本轮收尾后由编排器立即拉起下一轮（版本 1.7.16 → 1.7.17，指针 = READY 池为空 ⇒ 先做真实巡检找问题，否则从 IDEA 池升级「每周开发节奏周报」），本轮不自起、不等定时器。
+
+

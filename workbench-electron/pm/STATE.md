@@ -4,9 +4,28 @@
 
 ## 当前
 
-- **本轮状态**：DOING · 第二十六轮 / v1.7.16 · **「失效条目沉底（最近动态 / 项目雷达）」** —— READY 池已空 ⇒ 本轮按 PM.md 第一节「待办池枯竭时自己造活」做真实巡检（打包版隔离实例 `--qashot=` 六视图截图 + 审计），**巡检发现 1 个真实缺陷并当场立项**（P2）：60 条「最近动态」里 **36 条已失效**且**占据列表前 37 位** ⇒ 活条目全被挤出首屏
+- **本轮状态**：DONE · 第二十六轮 / v1.7.16 · **「失效条目沉底（最近动态 / 项目雷达）」** —— READY 池已空 ⇒ 本轮按 PM.md 第一节「待办池枯竭时自己造活」做真实巡检（打包版隔离实例 `--qashot=` 六视图截图 + 审计），**巡检发现 1 个真实缺陷并当场立项**（P2）：60 条「最近动态」里 **36 条已失效**且**占据列表前 37 位** ⇒ 24 条真实文件全被挤出首屏
 - **本轮主题一句话**：失效条目（磁盘上已不存在）按过期快照的 mtime 排在最前 ⇒ 沉底（收藏 > 存活 > 失效），保留「已删除」角标不丢信息
-- **版本**：v1.7.15 → **1.7.16**（发版步骤才动）
+- **版本**：v1.7.16
+- **交付态**：`out\Workbench-Setup-1.7.16.exe` + `out\Workbench-1.7.16-portable.zip` + blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.16.0**）
+- **运行时数据**：`%APPDATA%\工作台\`（scan-cache.json / history.json / settings.json / main.log；交付态干净，settings theme=dark · autoScanHours=0 默认）
+- **最后巡检**：2026-11-16 19:15 —— 打包版 **4 进程**（`out\win-unpacked\工作台.exe`，ProductVersion = 1.7.16.0）、启动日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、新增 `[renderer]` 行 = **0** / error 行 = **0**、托盘在位（菜单含「上次扫描：5 小时前（13:47）」「未提交：5 个仓库 / 8 个文件」）
+- **已知遗留（非本轮缺陷）**：缓存里的已删除条目（60 条中 36 条）要等下一次**真实扫描**才会从缓存里消失（本机 autoScan=0 ⇒ 可能长期在缓存里）—— 但本轮的**沉底**让它们不再挡路；`D:\wt-demo` / `D:\wt-prev` 同理（真实用户数据，非 QA 临时文件）
+- **下一轮指针**：READY 池**为空** ⇒ 下一轮先做真实巡检找问题；若无新问题，从 IDEA 池升级「**每周开发节奏周报**」（activity + history 自动生成 Markdown）—— 评估改动面（要新增聚合 + 导出 + UI），建议拆成「纯聚合函数 + 一处入口」两步走
+
+## 最近一轮（第二十六轮 / v1.7.16 · 链式续批 · 编排侧第 71 轮）
+
+- 主题：**「失效条目沉底（最近动态 / 项目雷达）」** —— READY 池已空 ⇒ 本轮**造活**（真实巡检发现并立项）
+- 决策：`D:\code\usou\workbench\DECISIONS.md` 第二十六轮（自问自答 7 问 + QA/发版实测回填）
+- **根因/机会**：v1.7.13 只给「最近动态」加了「已删除」角标、v1.7.15 只给「项目雷达」加了 —— 两处都**只解决「标出来」，没解决「排序」**。两个列表都按**快照里的 mtime** 排序，而失效条目保留了「删除前」的 mtime（往往比活文件新）⇒ 实测「最近动态」60 条里 **36 条失效**且**占据前 37 位**（下标 0..33,35,36），**24 条真实文件全被挤出首屏**；项目雷达 59 条里 2 条失效插在**第 3、4 位**；总览「最近动态」卡（取前 9 条）**长期显示 9 条全是死条目**
+- 实现（改动面 = **仅 2 文件**）：`renderer/app.js` 新增纯函数 `partitionDead(list, deadSet)`（保持各自原序）+ `recentOrdered()`；`renderRecentList()` 分区渲染（活 → `.deadsep` 分隔行 → 失效）+ 统计行「· 已删除 N（已沉底）」；`renderProjectList()` 比较器加第三级（**收藏 > 存活 > 失效**，收藏是用户显式意图优先）+ 统计行同款文案；总览卡改用 `recentOrdered()`（**与明细视图共用同一套顺序** ⇒ 同一概念两处答案一致）；`checkRecentExistence()` 失效集合变化时**最近视图只重绘 `#recent-list`**（保住搜索框焦点，v1.7.12 同款考量）、其他视图整页重绘；`renderer/style.css` 新增 `.deadsep`（**复用** `--muted2`/`--panel2`/`--hairline`，零新增 CSS 变量）；`CONTRAST_TARGETS` 增 `.deadsep`（新样式**本身**进审计）；**零新增 IPC、main.js/preload.js/src 零改动**
+- **本轮自查发现并修复 1 个既有缺陷（非本轮引入）**：浅色主题 `.badge.Android` 在**行被 hover** 时对比度 **4.36:1 < AA**（不 hover 4.67:1 通过）—— 根因是**审计器只量「当前鼠标位置」下的状态** ⇒ 鼠标移开就全过，把缺陷系统性掩盖了。修法：① 浅色 `--green` `#0b7a55` → **`#0a6f4d`**、`--soft-green` 同步 `rgba(10,111,77,.10)`（hover **4.98:1** / 常态 5.36:1 / 对白 6.19:1）；② **审计器增加 hover 态复测**（`.waudit-hover` 强制底色与真实 `:hover` 一致）⇒ 采样量翻倍 **123→238**
+- 验证：语法 6/6、重名函数 0、内联 onclick 0（5 处全是既有 JS 属性赋值）、零外部依赖、**零新增 IPC**、零既有数据文件结构改动；**断言 22/22 PASS（dev + 打包版 v1.7.16 各一遍）** + **独立数据侧互证 2/2 PASS**（Node 直接读缓存 + `existsSync` 算出的 36 / 2 与 DOM 完全一致）；**几何量测** `.deadsep` h=32px、fs=11.5px、前一行=活 / 后一行=失效；**深浅两套六视图审计 failCount 全 = 0**（采样量翻倍后：深色全 4.73 / 浅色 4.64~5.07），**打包版 v1.7.16 复测同样 12/12 全 0**；**阴性对照 PASS**（临时注入旧绿 ⇒ 审计器立刻报 3 处 `4.36:1`，还原后归零 ⇒ 证明「全过」不是审计器坏了）；**8 张截图**目检（dev 最近首屏=全活文件 / dev 分隔行 / dev 项目 / dev 总览 / dev 浅色两视图 / **打包版最近（页脚 v1.7.16）** / **打包版分隔行**）；dev/打包态新增 `[renderer]` 错误 = 0、error 行 = 0
+- 发版：`package.json` 1.7.15 → **1.7.16**；构建前 `remaining app instances after kill = 0`、清 `ELECTRON_RUN_AS_NODE`（核验 `present=False`）、镜像 npmmirror；`npx electron-builder --win --publish never` **exit 0**；`Compress-Archive -CompressionLevel Optimal` 出 zip；1.7.15 的 Setup/zip/blockmap 按绝对路径核验 `underOut=True` 后删除（**旧版本残留计数 = 0**）；`data\scan-cache.json` + `history.json` 复制 `%APPDATA%\工作台\`；打包版 `Start-Process` 等 11 秒 → **4 进程**（1.7.16.0）、`app ready/window created/tray created/pulse started` **四项全 True**、新增 `[renderer]`/error 行 = 0，**运行态已保留**
+- 产物：`out\Workbench-Setup-1.7.16.exe`（87,610,358 B / 83.56 MB）、`out\Workbench-1.7.16-portable.zip`（118,704,147 B / 113.16 MB）、blockmap（91,811 B）、`out\win-unpacked\工作台.exe`（当前运行中，ProductVersion = 1.7.16.0）
+- **巡检发现（本轮）**：交付态健康、**无新应用缺陷**；本轮修掉 **2 个既有缺陷**（浅色 hover 态对比度 4.36:1 + 审计器的 hover 盲区）
+- **QA 方法论沉淀（本轮，3 条）**：① **对比度审计器必须量 hover 态** —— 此前只量「当前鼠标位置」⇒ 缺陷被系统性掩盖；现在强制复测 + 采样量翻倍，**且必须配阴性对照**（否则「全过」可能只是审计器坏了）；② **「排序」与「标注」是两件事** —— 标注解决「看不出来」，排序解决「挡在前面」，**两者都要做**；③ **总览卡与明细视图必须共用同一套顺序**（同一个 `partitionDead()` 纯函数），否则同一概念在两处给出两种答案
+- 规则：批次到顶不再停（PM.md 第五节）；本轮收尾后由编排器立即拉起下一轮，本轮不自起
 
 - **版本**：v1.7.15
 - **交付态**：`out\Workbench-Setup-1.7.15.exe` + `out\Workbench-1.7.15-portable.zip` + blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.15.0**）

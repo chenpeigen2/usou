@@ -63,12 +63,12 @@ Check '工作区根目录无临时文件' ($stray.Count -eq 0) ("残留: " + (($
 
 Write-Host "`n== 5. 源码一致性 ==" -ForegroundColor Cyan
 $syn = 0
-foreach ($f in 'main.js','preload.js','src\scanner.js','src\store.js','renderer\contrast.js','renderer\format.js','renderer\search.js','renderer\qa.js','renderer\app.js','run-scan.js') {
+foreach ($f in 'main.js','preload.js','src\scanner.js','src\store.js','renderer\contrast.js','renderer\format.js','renderer\history.js','renderer\search.js','renderer\qa.js','renderer\app.js','run-scan.js') {
   node --check (Join-Path $APP $f) 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) { $syn++ }
 }
 Check '全部 JS 语法正确' ($syn -eq 0) "$syn 个文件有错"
-$srcFiles = @('main.js','preload.js','src\scanner.js','src\store.js','renderer\contrast.js','renderer\format.js','renderer\search.js','renderer\qa.js','renderer\app.js','renderer\style.css','renderer\index.html','run-scan.js','package.json') |
+$srcFiles = @('main.js','preload.js','src\scanner.js','src\store.js','renderer\contrast.js','renderer\format.js','renderer\history.js','renderer\search.js','renderer\qa.js','renderer\app.js','renderer\style.css','renderer\index.html','run-scan.js','package.json') |
   ForEach-Object { Join-Path $APP $_ } | Where-Object { Test-Path $_ }
 $newest = ($srcFiles | Get-Item | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
 $built = (Get-Item $exe -EA SilentlyContinue).LastWriteTime

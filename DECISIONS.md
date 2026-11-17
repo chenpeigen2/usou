@@ -3140,3 +3140,12 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：5 脚本顺序加载；triggerWeekQa/triggerPalQa/triggerCompareQa/triggerFavDeadQa/pollQa/qaNote 全局可见（证明时序正确、init 派发未报错）；weekqa/palqa/compareqa 三钩子取证全 PASS 且内容与抽取前逐字一致；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建（产物含 qa.js）、4 进程、verify-delivery.ps1 12 项全 PASS。
  > **守护约定**：只 commit 不 push（本地 63 → 64，远端 59 不动）。
+
+ # 第七十七轮：抽出历史快照纯函数为平铺 history.js（app.js 降至 1983 行）
+
+ > **选题依据**：用户要求继续迭代、代码组织是重点；app.js 里历史快照段（normHistoryProjects/historyStatsFor/historyStats/historyDiffItems + legacy 常量，约 100 行）是纯数据函数、无 DOM 依赖，被简报/系统视图/QA 钩子共用，适合抽出。
+ > **做法**：抽到平铺文件 `renderer/history.js`（不建子目录/package），在 app.js 前加载。时序论证：只依赖 HISTORY（app.js 的全局 let，延迟访问）与 esc（调用时已定义），函数定义时不访问，安全。index.html 加载顺序：contrast/format/history/search/qa/app。verify-delivery 清单同步。
+ > **规模**：app.js 2085 → **1983 行**；renderer/ 现有 6 个平铺 JS：contrast 135 / format 35 / history 102 / search 115 / qa 979 / app 1983。
+ > **实证（CDP）**：6 脚本顺序加载、history 函数全局可见、historyStats 返回 6 快照、HISTQA PASS（旧命中 0/新命中 1/归因正确）、HISTLEGACYQA PASS（6/6）、六视图审计 failCount 0 / min 4.64。
+ > **数据污染处理（教训复用）**：首测 HISTLEGACYQA FAIL（6/7）—— dev 缓存混入第 52 轮快速扫描的新格式快照，非代码问题；从交付态健康数据恢复后**立即验证** 6/6 PASS（遵循第 57 轮「恢复后必须验证」教训）。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push（本地 64 → 65，远端 59 不动）。

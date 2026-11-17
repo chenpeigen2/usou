@@ -3068,3 +3068,10 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：真实用户路径 `setTheme('dark')` ⇒ DOM data-theme=dark、SETTINGS.theme=dark、落盘 settings.json.theme=dark，三者一致；重启后启动主题亦为 dark（前次 saveSettings 落盘生效）。
  > **测试陷阱澄清**：初测直接调 `saveSettings({theme:'dark'})` 出现「落盘 dark 但 DOM 仍 light」的疑似缺陷 —— 实为**绕过 UI 的测试方式问题**：saveSettings() 的 patch 只含 extraRoots/trayMinimize/autoScanHours，不含 theme；主题切换走专门的 setTheme()（applyTheme 立即生效 + saveSettings 落盘）和设置页 chip 的 data-act=theme:set。非产品缺陷。
  > **纪律**：又一条「看起来像 bug 先核对真实调用路径」的教训（同第 51 轮 pathExists 探针、第 64 轮 extraRoots 探针）。测试须走用户真实路径，不能想当然调底层 bridge。
+
+ # 第六十八轮：KPI 数字交叉一致性审计（证伪一轮）
+
+ > **选题依据**：总览 KPI 是用户第一眼看到的数字，用 DECISIONS 核心方法「数据侧独立重算」逐项比对 UI 显示值。
+ > **实证（CDP）**：从 DATA.projects 独立重算 projects=59 / git=46 / 未提交仓库=3（剔除 PROJ_DEAD）/ 最近=60；与 `ms-projects`/`ms-git`/`ms-dirty`/`ms-recent` 四个 DOM 元素文本逐项比对 ⇒ **全部匹配（match=true）**。
+ > **测试陷阱**：首轮探针用 `parentElement.textContent.replace(/[^0-9]/g,'')` 抓取，得到 47/36/2/48 的错值 —— 实为取到了非 KPI 元素（或 render 未完成的中间态）；改为直接读 `#ms-*` 元素 textContent 后正确。又一条「先核对探针本身」的教训（同第 51/64/67 轮）。
+ > **结论**：KPI 数字口径自洽，本轮无产品缺陷。

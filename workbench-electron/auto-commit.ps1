@@ -1,5 +1,6 @@
 # 迭代提交（PM agent 每轮收尾调用）—— 默认只 commit，不 push
-# 用法: pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit.ps1" -Message "<本轮摘要>"
+# 用法: pwsh -NoProfile -File <仓库>/workbench-electron/auto-commit.ps1 -Message "<本轮摘要>"
+# 路径从脚本自身位置推导（$PSScriptRoot = workbench-electron），不写死任何本机目录。
 # 行为:
 #   1. 若工作区有变更 → 自动 add -A + commit（消息含版本号与变更文件数）
 #   2. 报告本地待推送 commit 数；**默认不推送**（用户自行 push）
@@ -10,14 +11,15 @@ param(
   [switch]$Push
 )
 $ErrorActionPreference = 'Stop'
-$git = 'C:\Program Files\Git\cmd\git.exe'
-$ROOT = 'D:\code\usou'
+# git 走 PATH（也可设 GIT_EXE 覆盖，便于非标准安装位置）
+$git = if ($env:GIT_EXE) { $env:GIT_EXE } else { 'git' }
+$ROOT = Split-Path -Parent $PSScriptRoot   # 脚本在 workbench-electron\ 下，仓库根是其父目录
 Set-Location $ROOT
 
-function Git([string[]]$a) { $out = & $git @a 2>&1; return @{ out = ($out -join "`n"); code = $LASTEXITCODE } }
+function RunGit([string[]]$a) { $out = & $git @a 2>&1; return @{ out = ($out -join "`n"); code = $LASTEXITCODE } }
 
 # ---------- 1. 有变更则提交 ----------
-$st = Git @('status', '--porcelain')
+$st = RunGit @('status', '--porcelain')
 $changed = @($st.out -split "`n" | Where-Object { $_.Trim() })
 $pkgVer = '?'
 try { $pkgVer = (Get-Content (Join-Path $ROOT 'workbench-electron\package.json') -Raw | ConvertFrom-Json).version } catch {}
@@ -45,9 +47,9 @@ $msg
 - 变更文件: $($changed.Count) 个
 - 自动提交: workbench-electron/auto-commit.ps1（只 commit，push 由用户自行执行）
 "@
-  $r = Git @('add', '-A')
+  $r = RunGit @('add', '-A')
   if ($r.code -ne 0) { Write-Host "✘ git add 失败:`n$($r.out)" -ForegroundColor Red; exit 1 }
-  $r = Git @('commit', '-q', '-m', $body)
+  $r = RunGit @('commit', '-q', '-m', $body)
   if ($r.code -ne 0) { Write-Host "✘ git commit 失败:`n$($r.out)" -ForegroundColor Red; exit 1 }
   Write-Host "✔ 已提交: $(& $git log --oneline -1)" -ForegroundColor Green
 } else {
@@ -63,7 +65,7 @@ $ahead = [Math]::Max(0, $localCount - $remoteCount)
 
 if (-not $Push) {
   Write-Host ("· 按策略只提交不推送 —— 本地待推送 commit: {0}（本地 {1} / 远端 {2}）" -f $ahead, $localCount, $remoteCount) -ForegroundColor Yellow
-  Write-Host "  需要推送时由你自行执行： cd D:\code\usou; git push -u origin main" -ForegroundColor DarkGray
+  Write-Host ("  需要推送时由你自行执行： cd {0}; git push -u origin main" -f $ROOT) -ForegroundColor DarkGray
   exit 0
 }
 
@@ -82,7 +84,8 @@ $proxyAlive = Test-Net '127.0.0.1' $proxyPort
 
 $sshOk = $false
 try {
-  $probe = & 'C:\Program Files\Git\usr\bin\ssh.exe' -T -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new git@github.com 2>&1
+  $sshExe = if ($env:SSH_EXE) { $env:SSH_EXE } else { 'ssh' }   # 走 PATH，可设 SSH_EXE 覆盖
+  $probe = & $sshExe -T -o BatchMode=yes -o ConnectTimeout=8 -o StrictHostKeyChecking=accept-new git@github.com 2>&1
   $probeTxt = ($probe -join ' ')
   $sshOk = ($probeTxt -match 'successfully authenticated|Welcome to GitHub') -and ($probeTxt -notmatch 'exchange identification|reset by peer|Connection refused|timed out')
 } catch { $sshOk = $false }
@@ -104,14 +107,14 @@ Write-Host ("  本地代理:{0} : {1}" -f $proxyPort, $(if ($proxyAlive) { '在�
 $env:GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o ConnectTimeout=10'
 if ($sshOk) {
   Write-Host "→ 通过 SSH 推送…" -ForegroundColor Cyan
-  $r = Git @('push', '-u', 'origin', 'main')
+  $r = RunGit @('push', '-u', 'origin', 'main')
   if ($r.code -eq 0) { Write-Host "✔ 推送成功" -ForegroundColor Green; exit 0 }
   Write-Host "✘ SSH 推送失败:`n$($r.out)" -ForegroundColor Red
 }
 if ($httpsOk -or $proxyAlive) {
   if ($proxyAlive) { $env:HTTPS_PROXY = "http://127.0.0.1:$proxyPort"; $env:HTTP_PROXY = $env:HTTPS_PROXY }
   Write-Host "→ 通过 HTTPS 推送…" -ForegroundColor Cyan
-  $r = Git @('push', '-u', 'https://github.com/chenpeigen2/usou.git', 'main')
+  $r = RunGit @('push', '-u', 'https://github.com/chenpeigen2/usou.git', 'main')
   if ($r.code -eq 0) { Write-Host "✔ 推送成功（HTTPS）" -ForegroundColor Green; & $git remote set-url origin 'git@github.com:chenpeigen2/usou.git' 2>$null; exit 0 }
   Write-Host "✘ HTTPS 推送失败:`n$($r.out)" -ForegroundColor Red
 }

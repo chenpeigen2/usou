@@ -3095,3 +3095,13 @@ D:\code\usou\workbench-electron\out\
  > **改动**：DELIVERY.md 新增「三·五、验证覆盖矩阵」13 行表格（门禁/对比度/QA 基建/搜索/IPC/关窗/收藏/磁盘/extraRoots/主题/KPI/托盘/转义），每项带轮次索引；并指向 AGENTS.md 的 QA 探针范式 7 条。
  > **价值**：把「已验证事实」从决策流水里提炼成速查表，避免重复劳动 —— 与去时点化（第 56 轮）同属「文档抗腐化」治理。
  > **无代码改动、无需发版**。
+
+ # 第七十二轮：按 GitHub 最佳实践抽离搜索内核 + 消除本机路径硬编码（P2 · 代码组织 · v1.7.40）
+
+ > **选题依据**：用户指出代码组织不好，要求参考 GitHub 权威实践；并明确要求「代码直接平铺，不要搞成两个 package」。
+ > **参考来源**：[goldbergyoni/nodebestpractices](https://github.com/goldbergyoni/nodebestpractices) 的 1.1 按组件组织 / 1.2 分层 / 1.3 公共工具抽包（外部内容，仅作方法论参考）。
+ > **做法（遵循用户「平铺」要求）**：把 `app.js`（3236 行）里最自包含的搜索内核（PY_TABLE + 9 个纯函数，L64-196）抽到平铺文件 `renderer/search.js`，**不建子目录、不建 package.json / 不搞 window.WBSearch 接口包装** —— 两个文件同为普通 `<script>` 顺序加载，函数在同一全局作用域直接可见，app.js 调用点与 `--searchqa` 钩子零改动；index.html 在 app.js 前加载 search.js。app.js 减 129 行。
+ > **路径可移植性**：用户要求「不要出现我电脑上的文件夹」⇒ `auto-commit.ps1` / `verify-delivery.ps1` 从硬编码 `D:\code\usou`、`C:\Program Files\Git\cmd\git.exe` 改为 `$PSScriptRoot` 推导 + PATH 查找（可设 `GIT_EXE`/`SSH_EXE` 覆盖）。
+ > **阴性对照（证明抽取正确）**：CDP 实测函数全局可见；`tcl launcher`=14 / `tcllnch`=8 / `3dww`=1 与重构前逐项一致；`--searchqa` 5/5 断言全 ✔、拼音表未收录=0；六视图审计 failCount 全 0 / min 4.64；日志 0 renderer 错误。
+ > **门禁同步**：verify-delivery.ps1 的 JS 语法检查与源码时序清单补入 `renderer/search.js`（否则新文件语法错发现不了）。
+ > **发版**：v1.7.40 本地构建成功（Setup 83.57MB / zip 113.23MB）、4 进程运行、12 项全 PASS ⇒ ✔ 交付态验收全过。

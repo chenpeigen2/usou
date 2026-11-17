@@ -3131,3 +3131,12 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：4 脚本顺序加载（contrast/format/search/app）；`_contrast`/`auditContrast`/`avatarInk`/`CONTRAST_TARGETS` 全局可见；auditContrast 实算 34 元素 / min 5.07 / fail 0；avatarInk(60) 返回深墨 #0b1220（v1.7.9 修复逻辑生效）；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建（产物含 contrast.js）、4 进程、verify-delivery.ps1 12 项全 PASS。
  > **守护约定**：只 commit 不 push（本地 62 → 63，远端 59 不动）。
+
+ # 第七十六轮：抽出全部 22 个 QA 钩子为平铺 qa.js（代码组织 · app.js 降至 2085 行）
+
+ > **选题依据**：用户要求继续迭代、代码组织是重点；app.js 里 22 个 triggerXxxQa（约 1034 行）是最大的自包含块 —— 只在 URL 带参数时触发、不参与业务逻辑，适合整块抽出。
+ > **做法**：把 22 个 trigger + pollQa/qaNote 辅助抽到平铺文件 `renderer/qa.js`（不建子目录/package），在 app.js **之前**加载。关键时序论证：QA 文件只定义函数、不立即调用业务；所有 trigger 的业务引用都在 setTimeout 回调里（延迟 ≥1200ms），执行时 app.js 已加载完毕 ⇒ init() 里的派发调用在 app.js 末尾执行时，QA 函数已全局可见、调用点零改动。
+ > **规模**：app.js 从 3119 → **2085 行**（累计从最初 3249 行降 1164 行 ≈ 36%）；renderer/ 现有 5 个平铺 JS：contrast 139 / format 27 / search 120 / qa 1035 / app 2085。
+ > **实证（CDP）**：5 脚本顺序加载；triggerWeekQa/triggerPalQa/triggerCompareQa/triggerFavDeadQa/pollQa/qaNote 全局可见（证明时序正确、init 派发未报错）；weekqa/palqa/compareqa 三钩子取证全 PASS 且内容与抽取前逐字一致；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建（产物含 qa.js）、4 进程、verify-delivery.ps1 12 项全 PASS。
+ > **守护约定**：只 commit 不 push（本地 63 → 64，远端 59 不动）。

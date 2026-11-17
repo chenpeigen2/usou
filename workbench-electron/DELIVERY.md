@@ -91,6 +91,24 @@ workbench-electron/
 
 > 详细决策与自问自答见 `workbench\DECISIONS.md`。
 
+## 五·五、CI 自动发版（GitHub Actions）
+
+仓库已配置 `.github/workflows/release.yml`，两种触发方式：
+
+1. **打 tag 自动发版**（推荐）：
+   ```
+   cd D:\code\usou
+   git tag v1.7.39        # 须与 package.json 的 version 一致，否则 workflow 主动报错
+   git push origin v1.7.39
+   ```
+2. **手动触发**：GitHub 仓库 → Actions → 「发布工作台」→ Run workflow → 可填版本号。
+
+流程：校验版本一致 → `npm ci`（按 lockfile）→ electron-builder 构建 NSIS → `Compress-Archive` 出便携 zip → 校验 exe ProductVersion → 创建 GitHub Release 并上传两个产物。
+
+**关键设计**：本地打包配置 `electron-builder.yml` 里的 `electronDist: runtime/electron` 指向被 gitignore 的 268MB 本地运行时（CI 上没有）；故 CI 用 `electron-builder.ci.yml` —— 与本地配置**唯一差异是去掉该行**，让 electron-builder 按 `electronVersion=33.4.11` 从 npmmirror 镜像下载，产物行为与本地一致。CI 用 `windows-latest` runner。
+
+> 本地仍用 `npm run dist`（复用 vendored runtime，零下载）；CI 走标准下载路径。两条路产物命名/结构相同。
+
 ## 六、开发与验收约定（必读）
 
 1. **先杀净所有实例再构建**（否则 EBUSY），构建前清 `ELECTRON_RUN_AS_NODE`。

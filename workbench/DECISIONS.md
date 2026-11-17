@@ -2923,3 +2923,10 @@ D:\code\usou\workbench-electron\out\
 > **静态审计**：app.js 共 22 个 `qs.get` 钩子派发，main.js 全部注册透传（含早期 `--brief`/`--detail`/`--view` 的不同写法）；无重名函数、无新增内联 onclick（5 处均为标题栏静态绑定，既有）。
 > **动态冒烟（8 个关键钩子逐个启动实测 evidence）**：全部 PASS —— weekqa / compareqa / histlegacyqa / deadbriefqa / palqa / briefsync / histqa / histdiffqa。证明多轮改动后治理工具链未腐化、阴性对照仍成立。
 > **结论**：本轮及第 49 轮均**无真实缺陷**，不强行立项。里程碑：第 28→50 轮共 23 轮，修 15 项遗留 + 3 个功能增量 + 2 轮证伪巡检 + QA 基建审计；每轮全门禁发版、只 commit 不 push，本地累计 33+ commit 待用户自行推送。
+
+# 第五十一轮：打包版 IPC 契约冒烟（无真实缺陷）
+
+> **选题依据**：前 50 轮 QA 多在 dev 态（asar 外），而真实交付是打包版（asar 内）⇒ 本轮在打包产物上带 CDP 端口实测关键 IPC 契约，验证 asar 环境影响。
+> **实证（打包版 v1.7.36 + CDP）**：`VERSION=1.7.36`；`getState()` 返回 8 字段（autoCheck/cache/caps/history/loginItem/scanErrors/settings/version）；`caps={vscode:true,wt:true}`；`path:exists` 批量契约正确（数组入参 → `{path:bool}` 映射，存在 true / 缺失 false）；`showInFolder(缺失)` → `{ok:false,reason}`；`openIn(缺失,vscode)` → `{ok:false,msg}` 且零外部进程；`projectDetail(真实项目)` → `{git,readme,branch:main}`；bridge 22 方法齐全；日志 `[renderer]`=0 / error=0。
+> **注**：单字符串传给批量 `path:exists` 返回 `{}` 是正确的（无匹配键），非缺陷 —— 渲染层始终传数组，PROJ_DEAD 正确算出 2 条。
+> **结论**：打包版 IPC 契约全部正确、asar 环境零差异，本轮**无真实缺陷**。

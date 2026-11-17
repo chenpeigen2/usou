@@ -3047,3 +3047,10 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP + 落盘）**：通过 `saveSettings({extraRoots:['D:\code\Poker']})` 写入 ⇒ 落盘 `settings.json` extraRoots = 正确数组；`getState()` 与渲染层 `SETTINGS.extraRoots` 均读出 `len=1 v0=D:\code\Poker` ⇒ 保存/读取/渲染三方同步正确。触发快速扫描（skipSizes + extraRoots）正常完成（57 项目 / 64s）。选 D:\code\Poker 本身在常规扫描范围内，项目数未变 ⇒ 与 discoverRoots 的 `roots.includes(p)` 去重一致（正确行为，非缺陷）。
  > **过程纪律**：本轮又触发了快速扫描覆盖 dev 缓存 —— 按第 57 轮教训，从变更前的备份恢复后**立即验证**（extraRoots=[] / scanTime=11-16 / 有体量=58 / fast=false），确认恢复成功才记录。
  > **结论**：本轮无产品缺陷。
+
+ # 第六十五轮：治理状态同步 + 长迭代周期最终验收
+
+ > **选题依据**：STATE.md 停在第 62 轮（63/64 证伪轮未同步）⇒ 补记并同步到真实状态。
+ > **整体核对**：HEAD=6c9078e、工作区干净、v1.7.38、本地 49 commit（只 commit 不 push）、4 进程交付、READY 空、pm 仅 4 治理文件、README 37 个版本段、DECISIONS 2404 行。
+ > **最终验收**：verify-delivery.ps1 12 项全 PASS —— exe 版本一致 / 无旧产物 / Setup 83.6MB / zip 113.2MB / 日志 0 错误 / 三标志齐 / pm 洁净 / 语法 0 错 / 源码不新于产物 ⇒ ✔ 交付态验收全过（v1.7.38）。
+ > **累计（第 28→65 轮，38 轮）**：修真实缺陷 16 项 + 新增功能 3 个（周报 / 项目对比 / 导出前缀）+ 元审计 3 项（QA 基建 / 门禁假阳性 / 入库脚本）+ 证伪巡检 10+ 轮。

@@ -3040,3 +3040,10 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：第 62 轮修了周报 scanTime 转义遗漏后，本轮检查另一个 Markdown 生成器 briefMarkdown() 是否有同类问题。
  > **实证（源码逐行）**：L1850 主机=mdEsc / 扫描时间=mdEsc / 导出时间=函数内 Date 生成（安全）；L1851 条目数=数字；L1854 条目文本=mdEsc；L1856 路径=mdPath（反引号包裹+转义）⇒ 全部动态文本均已转义，周报遗漏是个案、非系统性缺陷。
  > **结论**：无需修改，本轮无产品缺陷。
+
+ # 第六十四轮：extraRoots（额外根目录）契约审计（证伪一轮）
+
+ > **选题依据**：设置页的 extraRoots 是从未系统验证过的功能 —— 用户添加额外根目录后，扫描是否真的纳入。
+ > **实证（CDP + 落盘）**：通过 `saveSettings({extraRoots:['D:\code\Poker']})` 写入 ⇒ 落盘 `settings.json` extraRoots = 正确数组；`getState()` 与渲染层 `SETTINGS.extraRoots` 均读出 `len=1 v0=D:\code\Poker` ⇒ 保存/读取/渲染三方同步正确。触发快速扫描（skipSizes + extraRoots）正常完成（57 项目 / 64s）。选 D:\code\Poker 本身在常规扫描范围内，项目数未变 ⇒ 与 discoverRoots 的 `roots.includes(p)` 去重一致（正确行为，非缺陷）。
+ > **过程纪律**：本轮又触发了快速扫描覆盖 dev 缓存 —— 按第 57 轮教训，从变更前的备份恢复后**立即验证**（extraRoots=[] / scanTime=11-16 / 有体量=58 / fast=false），确认恢复成功才记录。
+ > **结论**：本轮无产品缺陷。

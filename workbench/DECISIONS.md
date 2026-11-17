@@ -2902,3 +2902,10 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项从 IDEA 升级 → DONE（v1.7.36）；**STATE / README 已更新**；临时物（`%TEMP%\r46shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 空 ⇒ 第四十七轮从 IDEA 池升级（多机器数据合并等）或再巡检；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第四十七轮：搜索召回巡检（无真实缺陷 · 证伪一轮）
+
+> **巡检方法**：第 46 轮收尾 READY 空、IDEA 池仅剩高改动面/碰红线的项 ⇒ 按 PM.md 做真实巡检造活。用 CDP 对当前真实数据（57 项目 + 60 最近文件 + links）跑 12+ 组固定查询，做数据侧独立重算。
+> **怀疑与证伪**：初见 `scanner`/`STATE`/`DECISIONS` 查询 0 命中，怀疑「第 42 轮加深 recent 后新源码文件进命令面板、拼音表未覆盖」；核实 dev 缓存 `recent` 仍是旧 60 条（第 42 轮用只读探针验证、未写盘）⇒ **0 命中是数据未刷新的预期行为，非缺陷**。
+> **搜索内核实证**：12 组查询全部合理命中 —— 分词 AND `tcl launcher`=14、拼音首字母 `tcllnch`=8 / `3dww`=1、中文 `娃娃`=1、英文 `fcm`=3 / `helper`=1 / `launcher`=14 / `poker`=11 / `paper`=2、单字母 `A`=14；`PY_TABLE` 23 项 + `pyInitials` 动态机制协同工作（「娃」不在表中但 3dww 仍命中）。数值字段无 NaN、同名项目 4 个 TclLauncher path 唯一。
+> **结论**：本轮**无真实缺陷**，不强立项（遵循「看起来像 bug 的现象先量化证伪，避免 BACKLOG 攒假线索」的既有教训）。READY 仍空 ⇒ 下一轮换角度巡检或直接处理 IDEA 剩余项。

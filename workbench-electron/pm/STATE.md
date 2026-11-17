@@ -13,15 +13,16 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十三轮 / v1.7.23 · **「新旧 history 格式过渡轮丢掉全部『与上次扫描相比』条目（自引入回归）」**
-- **本轮主题一句话**：v1.7.19 写侧改 path-key 后，旧快照归一化 key=`name:X`、新快照=`D:\…\X` 零交集 ⇒ 下一轮扫描后「有新提交 / 未提交 +N」两条全消失 ⇒ 修：读侧 `historyDiffItems()` 加纯身份解析（唯一同名的旧条目桥接为当前 path、同名多义保留 `name:` 防误归因）
-- **版本**：v1.7.23
-- **交付态**：`out\Workbench-Setup-1.7.23.exe`（83.56 MB）+ `out\Workbench-1.7.23-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.23.0**）；1.7.22 产物已清除
-- **最后巡检**：2026-11-17 12:45 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.23）`
-- **核心实证**：`HISTDIFFQA 混合命中=1 旧逻辑交集=0 纯旧命中=1 归因=D:\fcm-helper | PASS`；真实旧56键+新59键快照原始交集=0、新逻辑产出 1 条且归因正确
-- **本轮改动面**：2 文件 —— `renderer/app.js`（纯身份解析 + `--histdiffqa=` 钩子）、`main.js`（CLI 透传 2 行）；**写侧 store.js / normHistoryProjects / historyStatsFor 一行不动、零新增 IPC、零外部依赖、零数据改动**
-- **已知遗留（其余审计发现）**：brief「未提交」条目未剔除 `PROJ_DEAD`（第 5 例假陈述）/ 活动条目说「D:\code 下」但合并了 `E:\workspace` / 屏幕简报标签不随时间刷新而复制导出会重算 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步
-- **下一轮指针**：READY 仍空 ⇒ 第三十四轮按遗留清单造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
+- **本轮状态**：DONE · 第三十四轮 / v1.7.24 · **「简报『未提交』条目仍把已删除项目当成活跃事实（第 5 例假陈述）」**
+- **本轮主题一句话**：`buildBrief()` 未提交过滤无 `PROJ_DEAD` 检查（v1.7.18 统一口径时漏掉简报这条旁路数据，且它被复制/导出带出应用）⇒ 合成失效 d=9 后简报播报「「wt-demo」还有 9 个文件未提交」⇒ 修：过滤加 `!PROJ_DEAD.has(p.path)`，双侧断言防过度剔除
+- **版本**：v1.7.24
+- **交付态**：`out\Workbench-Setup-1.7.24.exe`（83.56 MB）+ `out\Workbench-1.7.24-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.24.0**）；1.7.23 产物已清除
+- **最后巡检**：2026-11-17 12:53 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.24）`
+- **核心实证**：`DEADBRIEFQA 新条目=1 含失效=false 含存活=true 旧逻辑含失效=true | PASS`；真实简报未提交条目均为存活项目（TclLauncher 归因 `D:\CLAUNCER2\TclLauncher`、AsyncAnimator）；`DATA.projects` 无泄漏；简报仍 9 条
+- **本轮改动面**：2 文件 —— `renderer/app.js`（过滤 1 行 + `--deadbriefqa=` 钩子）、`main.js`（CLI 透传 2 行）；**简报其他条目一行不动、零新增 IPC、零外部依赖、零数据改动**
+- **教训沉淀**：**简报是旁路数据**（`buildBrief()` 独立生成 + `briefMarkdown()` 复制/导出带出应用）⇒ 以后任何「同一口径」变更必须把简报及其复制/导出通道列入清点清单（本轮为第 5 例假陈述）
+- **已知遗留（其余审计发现）**：活动条目说「D:\code 下」但 `buildActivity` 合并了 `E:\workspace` / 屏幕简报标签不随时间刷新而复制导出会重算 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步
+- **下一轮指针**：READY 仍空 ⇒ 第三十五轮按遗留清单造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

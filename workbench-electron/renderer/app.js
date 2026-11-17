@@ -567,6 +567,7 @@ async function init() {
   if (qs.get('timeqa')) triggerTimeQa();
   if (qs.get('palqa')) triggerPalQa(); // v1.7.22：命令面板点击索引修复的零副作用取证
   if (qs.get('histdiffqa')) triggerHistDiffQa(); // v1.7.23：name-key→path-key 混合快照 diff 匹配修复取证
+  if (qs.get('deadbriefqa')) triggerDeadBriefQa(); // v1.7.24：buildBrief 未提交条目剔除失效项目取证
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1018,6 +1019,70 @@ function triggerHistDiffQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.24）：--deadbriefqa=1 → 证明 buildBrief() 的「未提交」条目已剔除失效项目（磁盘上已删除）。
+   合成：失效项目 dirty=9、首个存活项目 dirty=2、其余存活 dirty=0 ⇒ 旧 filter 必播失效项目，新逻辑只播存活项目。
+   双向断言：(a) 新条目无失效路径、文本也不提失效项目名；(b) 至少一条指向存活项目（证明没有过度过滤）。
+   负对照：忠实复现旧 uncommitted filter（无 PROJ_DEAD 检查）在同批合成数据上必含失效项目 ⇒ 旧逻辑不可能通过。
+   全程无 IPC、无路径操作；DATA.projects 在 finally 中精确还原（含抛错）；取证行注入 #view 顶部
+   （createElement + textContent，id=deadbriefqa-evidence，无 innerHTML、无内联 onclick）。 */
+function triggerDeadBriefQa() {
+  setTimeout(() => {
+    if (!DATA) return;
+    const origProjects = DATA.projects;
+    // 克隆每个项目对象（只改 dirty，绝不触碰原始数据）
+    const cloned = (origProjects || []).map(p => Object.assign({}, p));
+    const dead = cloned.filter(p => PROJ_DEAD.has(p.path));
+    const live = cloned.filter(p => !PROJ_DEAD.has(p.path));
+    const firstLive = live[0] || null;
+    // 合成 dirty：失效=9、首个存活=2、其余存活=0
+    dead.forEach(p => { p.dirty = 9; });
+    live.forEach((p, i) => { p.dirty = i === 0 ? 2 : 0; });
+
+    // 负对照：忠实复现旧 filter（无 PROJ_DEAD 检查）+ 同款排序/截取，证明旧逻辑必含失效项目
+    const oldItems = cloned.filter(p => p.isGit && p.dirty > 0)
+      .sort((a, b) => b.dirty - a.dirty).slice(0, 2);
+    const oldHasDead = oldItems.some(p => PROJ_DEAD.has(p.path));
+
+    // 失效项目名集合（用于文本断言）；首个存活项目的路径/名（用于「含存活」断言）
+    const deadNames = dead.map(p => String(p.name || '')).filter(Boolean);
+    const firstLivePath = firstLive ? firstLive.path : null;
+    const firstLiveName = firstLive ? String(firstLive.name || '') : '';
+
+    let items = [];
+    try {
+      DATA.projects = cloned;
+      items = buildBrief();
+    } finally {
+      DATA.projects = origProjects; // 精确还原原引用（含 undefined），抛错也不泄漏
+    }
+
+    // 只认「未提交」条目；排除 out-of-scope 的历史 diff 项（"与上次扫描相比…未提交 +N"）
+    const uncommitted = items.filter(it => it && it.text &&
+      String(it.text).indexOf('未提交') >= 0 &&
+      String(it.text).indexOf('与上次扫描相比') < 0);
+    const n = uncommitted.length;
+    // (a) 无失效：路径不在 PROJ_DEAD，文本不含任何失效项目名
+    const hasDead = uncommitted.some(it =>
+      PROJ_DEAD.has(it.p) || deadNames.some(nm => String(it.text).indexOf(nm) >= 0));
+    // (b) 含存活：至少一条指向首个存活项目（未被过度过滤）
+    const hasLive = !!firstLive && uncommitted.some(it =>
+      it.p === firstLivePath || (!!firstLiveName && String(it.text).indexOf(firstLiveName) >= 0));
+    const pass = !hasDead && hasLive && oldHasDead && n >= 1;
+
+    const el = document.createElement('div');
+    el.id = 'deadbriefqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'DEADBRIEFQA 新条目=' + n +
+      ' 含失效=' + String(hasDead) +
+      ' 含存活=' + String(hasLive) +
+      ' 旧逻辑含失效=' + String(oldHasDead) +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
 /* QA 钩子（v1.7.20）：--dayqa=1 → 证明「今天」硬编码在真实数据（桶属于前一天）下必然陈述假事实。
    先于任何变更抓取真实数据标签，再用 4 个合成日期经 buildBrief 取真实渲染标签，
    并忠实复现旧逻辑（恒「今天」）作负对照；最后精确恢复 DATA.activity，注入持久取证行。 */
@@ -1451,7 +1516,7 @@ function buildBrief() {
   // v1.7.7：同时携带纯文本 text —— 复制/导出用 text，不再从 html 反推（HTML 反推会漏标签语义）
   const push = (color, html, text, act, p, tip) => out.push({ color, html, text, act, p, tip });
 
-  projects.filter(p => p.isGit && p.dirty > 0).sort((a, b) => b.dirty - a.dirty).slice(0, 2)
+  projects.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).sort((a, b) => b.dirty - a.dirty).slice(0, 2)
     .forEach(p => push('var(--amber)', '「<b>' + esc(p.name) + '</b>」还有 <span class="warn">' + p.dirty + '</span> 个文件未提交，停在 <b>' + esc(p.branch) + '</b> 分支',
       '「' + p.name + '」还有 ' + p.dirty + ' 个文件未提交，停在 ' + p.branch + ' 分支', 'detail', p.path, '查看「' + p.name + '」项目详情'));
 

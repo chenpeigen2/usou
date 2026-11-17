@@ -1,0 +1,32 @@
+# CI 专用打包配置 —— 与本地 electron-builder.yml 的唯一差异：
+#   去掉 `electronDist: runtime/electron`（该目录被 .gitignore，CI 上不存在）。
+#   去掉后 electron-builder 按 electronVersion 从 npm 镜像下载 Electron 33.4.11，
+#   与本地 vendored 运行时版本完全一致，产物行为相同。
+# 其余字段（appId / productName / files / NSIS / artifactName）与本地配置逐字一致。
+appId: com.peigen.workbench
+productName: 工作台
+electronVersion: 33.4.11
+directories:
+  output: out
+  buildResources: build
+files:
+  - main.js
+  - preload.js
+  - run-scan.js
+  - src/**/*
+  - renderer/**/*
+  - package.json
+win:
+  icon: build/icon.ico
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: Workbench-${version}-${ext}
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  shortcutName: 工作台
+  artifactName: Workbench-Setup-${version}.${ext}
+publish: null

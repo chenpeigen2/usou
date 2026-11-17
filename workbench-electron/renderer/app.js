@@ -31,6 +31,7 @@ let recentCheckToken = 0;     // 竞态令牌：只采纳最后一次检查的�
 let PROJ_DEAD = new Set();     // 已确认磁盘上不存在的项目路径
 let projCheckKey = '';         // 已检查过的项目路径集合（同一批不重复发 IPC）
 let projCheckToken = 0;        // 竞态令牌：只采纳最后一次检查的结果
+let winStateBootstrapped = false; // v1.7.28：标题栏最大化图标启动兜底一次性标记（仅首次 refreshState 消费 SETTINGS.winMaximized）
 
 const PHASES = { drives: '磁盘', projects: '项目', activity: '活动统计', recent: '最近动态', folders: '常用文件夹', tools: '工具链' };
 const WD = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
@@ -535,6 +536,17 @@ async function refreshState() {
   $('#tb-host').textContent = (DATA && DATA.meta) ? DATA.meta.host : '';
   // v1.7.8：主题随 settings.theme 恢复（深色为默认；旧配置无该键即回落深色）
   applyTheme(SETTINGS.theme, { silent: true });
+  // v1.7.28：修复启动期标题栏最大化图标失同步 —— main.js createWindow() 在渲染层订阅 'win:state'
+  // 之前就 win.maximize()，导致 maximize 的 IPC 丢失。此处一次性从 SETTINGS.winMaximized 兜底图标；
+  // 该值仅在关窗时持久化，会话内用户手动最大化/还原后会过期，故必须只跑一次 ——
+  // 后续 refreshState()（如 scan:done 触发）绝不覆盖 onWinState 的 live 结果。
+  if (!winStateBootstrapped) {
+    try {
+      const maxEl = document.getElementById('win-max');
+      if (maxEl) maxEl.textContent = SETTINGS.winMaximized ? '❐' : '☐';
+      winStateBootstrapped = true;
+    } catch (_e) { /* 缺失 DOM 节点不能打断 refreshState */ }
+  }
 }
 
 async function init() {

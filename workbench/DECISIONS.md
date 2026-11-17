@@ -2594,3 +2594,38 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项（深度巡检遗留之一）已实证并修复；**STATE / README 已更新**；临时物（`%TEMP%\r37shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第三十八轮按最后遗留造活（候选：最大化窗重启后标题栏图标不同步；若巡检无新缺陷则从 IDEA 池升级）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第三十八轮：最大化窗重启后标题栏按钮图标不同步（P2 · 深度巡检最后一项 · 编排侧第 83 轮 · v1.7.28）
+
+> **选题依据**：第三十二轮后端审计员发现（「两个代码路径对同一事实给出两个答案」）；lead CDP 实证：dev 设置里 `winMaximized=true`、窗口 1600×860（已最大化），而 `#win-max` 文本 = `☐`（normal 图标），期望 `❐`。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 事件为什么会丢？**
+    - 定位：`createWindow()` 里 `win.loadFile()` 后按 `st.winMaximized` 调 `win.maximize()`（main.js L359）⇒ 立即触发 `maximize` 事件 → `send('win:state','max')`；而渲染层唯一的订阅者 `bindWinControls()` 在 `init()` 里 `await refreshState()` **之后**才执行（`app.js`）⇒ IPC 事件发出时还没有监听方，且没有任何重发机制。
+    - 结论：渲染层启动首次 `refreshState()` 后直接用 `SETTINGS.winMaximized` 初始化图标。
+    - 理由：① `state:get` 已经把 settings（含 `winMaximized`）交给渲染层 —— 数据本就在手边，不需要新增 IPC；② 该字段在 `saveWinState()` 于窗口 close 时写入 ⇒ **启动时它准确反映被恢复的状态**；③ 备选「主进程延迟重发」依赖猜时间、仍可能过早或过晚；备选「新增 win:state 请求通道」违背「能不增就不增」的 IPC 原则。
+
+  - **Q2 为什么只在首次初始化，不能每次 refreshState 都设？**
+    - 结论：用一次性 flag 门控，之后完全交给 `win:state` 事件。
+    - 理由：① `refreshState()` 在 `scan:done`（一次全量扫描数分钟）后也会调用，那时 `SETTINGS.winMaximized` 仍是**上次关闭时写的值**；若用户在本次会话中手动还原/最大化过窗口，每次 refreshState 都用陈旧值覆盖图标 ⇒ 制造新的不同步；② `bindWinControls()` 的 `onWinState` 订阅在会话内是实时、正确的，不该被覆盖；③ 一次性 flag 把「启动兜底」和「会话内实时」两条路径的职责切干净。
+
+  - **Q3 阴性对照怎么设计？**
+    - 结论：不改代码前先实证 —— 同一份 `winMaximized=true` 设置下图标 = `☐`（已做，见上）。
+    - 理由：① 这是**真实数据、真实启动路径**的实证，不是合成推演；② 修复后同样条件应得 `❐`；③ 另外验证会话内点标题栏按钮最大化/还原时图标仍双向正确（事件路径未被一次性 flag 破坏）。
+
+  - **Q4 改动面与风险边界？**
+    - 结论：仅 **1 文件** `renderer/app.js`（模块级一次性 flag + `refreshState()` 末尾 2~3 行）；**零新增 IPC、零外部依赖、零数据改动、主进程一行不动**。
+    - 理由：① 根因是渲染层漏了初始状态兜底，不是主进程发错；② 不动 `bindWinControls()` 的现有订阅与 `saveWinState()` 的持久化；③ 与 v1.7.19~v1.7.27 同样的门禁。
+
+### 本轮收尾（第三十八轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.28.exe`（83.56 MB）+ `Workbench-1.7.28-portable.zip`（113.22 MB）+ blockmap；1.7.27 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.28.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.28）`。
+- **核心实证（CDP）**：修复前 `winMaximized=true` + 窗口 1600×860 但 `#win-max` = `☐`；修复后同样条件启动 = **`❐`**、`winStateBootstrapped=true`；真实鼠标点击标题栏按钮后图标 = `☐`（live 事件生效），随后手动调用 `refreshState()` 仍 = `☐`（**陈旧 settings 未覆盖 live 状态**）。测试用 dev settings 已精确恢复（`winMaximized=false`）。
+- **根因**：`main.js` 在渲染层订阅 `win:state` 之前 `win.maximize()` ⇒ 事件丢失且无人重发；修在渲染层首次 `refreshState()` 用 `SETTINGS.winMaximized` 一次性兜底，之后完全交给 `onWinState` 实时事件。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.27 基线一致）。
+- **改动面**：仅 `renderer/app.js`（模块级一次性 flag + `refreshState()` 末尾 try/catch 兜底）；**主进程一行不动、零新增 IPC、零外部依赖、零数据改动**。
+- **BACKLOG**：本项（深度巡检最后一项）已实证并修复；**STATE / README 已更新**；临时物（`%TEMP%\r38shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **第三十二轮深度巡检的 9 项发现至此全部结清**（本系列轮次 28→38 共修 11 个真实缺陷）。
+- **下一轮**：READY 空、遗留清空 ⇒ 第三十九轮从 IDEA 池升级或再巡检造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

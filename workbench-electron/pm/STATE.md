@@ -13,15 +13,16 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十七轮 / v1.7.27 · **「`disk:analyze` 缓存命中误清全局互斥锁（可并发分析同一缓存）」**
-- **本轮主题一句话**：缓存命中分支无条件 `analyzing=false`，清掉属于另一次在途分析的锁 ⇒ 「A 分析中 → 命中缓存 B → 启动 C」时 A/C 并发写 `dirsCache` ⇒ 删除该行，互斥锁只由真正启动的分析在终态清除
-- **版本**：v1.7.27
-- **交付态**：`out\Workbench-Setup-1.7.27.exe`（83.56 MB）+ `out\Workbench-1.7.27-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.27.0**）；1.7.26 产物已清除
-- **最后巡检**：2026-11-17 13:19 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.27）`
-- **核心实证**：CDP 真实 IPC 三连 `r1 started=true → r2 cached=true → r3 started=false/reason=分析已在进行中`（旧逻辑 r3 必然放行 ⇒ 不可能通过）；测试缓存已精确清理
-- **本轮改动面**：仅 `main.js` 1 行删除 + 注释与 `package.json` 版本号；**零新增 IPC、零外部依赖、零数据改动、`project:dirs` 未动**
-- **已知遗留**：最大化窗重启后标题栏图标不同步（深度巡检最后一项）；IDEA 池：项目对比视图 / 每周节奏周报 / 多机器数据合并
-- **下一轮指针**：READY 仍空 ⇒ 第三十八轮按最后遗留或 IDEA 池造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
+- **本轮状态**：DONE · 第三十八轮 / v1.7.28 · **「最大化窗重启后标题栏按钮图标不同步」**
+- **本轮主题一句话**：`win.maximize()` 在渲染层订阅 `win:state` 之前触发 ⇒ 事件丢失 ⇒ settings=true、窗口已最大化但图标仍 `☐` ⇒ 渲染层首次 `refreshState()` 用 `SETTINGS.winMaximized` 一次性兜底，之后交回 live 事件
+- **版本**：v1.7.28
+- **交付态**：`out\Workbench-Setup-1.7.28.exe`（83.56 MB）+ `out\Workbench-1.7.28-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.28.0**）；1.7.27 产物已清除
+- **最后巡检**：2026-11-17 13:25 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.28）`
+- **核心实证**：CDP 修复前 `☐` → 修复后 `❐`，真实点击切换 → `☐` 且 `refreshState()` 不覆盖；测试设置已恢复
+- **本轮改动面**：仅 `renderer/app.js`（一次性 flag + `refreshState()` try/catch 兜底）；**主进程一行不动、零新增 IPC、零外部依赖、零数据改动**
+- **里程碑**：第三十二轮深度巡检的 9 项发现**全部结清**；本系列轮次 28→38 共修 **11 个真实缺陷**
+- **已知遗留**：READY 空、审计遗留清空；IDEA 池：项目对比视图 / 每周节奏周报 / 多机器数据合并
+- **下一轮指针**：第三十九轮从 IDEA 池升级或再巡检造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

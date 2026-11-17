@@ -585,6 +585,7 @@ async function init() {
   if (qs.get('histlegacyqa')) triggerHistLegacyQa(); // v1.7.29：旧格式快照标注取证（纯只读）
   if (qs.get('weekqa')) triggerWeekQa(); // v1.7.35：周报纯生成器取证（零副作用）
   if (qs.get('compareqa')) triggerCompareQa(); // v1.7.36：项目对比纯生成器取证（零副作用）
+  if (qs.get('favdeadqa')) triggerFavDeadQa(); // v1.7.37：失效项目不占收藏置顶取证（纯只读）
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -2073,7 +2074,12 @@ let PAL = [], palActive = 0, palVisible = false;
 function palIndex() {
   const items = [];
   const projects = (DATA && DATA.projects || []).slice()
-    .sort((a, b) => (isFav(b.path) ? 1 : 0) - (isFav(a.path) ? 1 : 0)); // 收藏优先（稳定排序）
+    // v1.7.37：失效项目不参与收藏置顶（否则收藏的已删除项目挤掉真实项目首屏）⇒ 失效恒沉底、层内收藏优先
+    .sort((a, b) => {
+      const da = PROJ_DEAD.has(a.path) ? 1 : 0, db = PROJ_DEAD.has(b.path) ? 1 : 0;
+      if (da !== db) return da - db;
+      return (isFav(b.path) ? 1 : 0) - (isFav(a.path) ? 1 : 0);
+    }); // 收藏优先（稳定排序）⇒ v1.7.1 立的「收藏恒置顶」约定在存活层内不受破坏
   projects.forEach(p => {
     const fav = isFav(p.path);
     const hue = hueOf(p.name);
@@ -2571,12 +2577,13 @@ function renderProjectList() {
     return hitSet.has(p);
   });
   list.sort((a, b) => {
-    const fa = isFav(a.path) ? 1 : 0, fb = isFav(b.path) ? 1 : 0;
-    if (fa !== fb) return fb - fa; // 收藏恒置顶；收藏项之间仍按当前排序
-    // v1.7.16：失效项目**沉底** —— 它按快照里的 mtime 排在前列（实测插在第 3、4 位），
-    // 但目录都没了，它不该占据「可操作项目」的首屏。收藏仍恒置顶（用户显式意图优先）。
+    // v1.7.37：失效分层优先于收藏 —— 此前收藏判断在前，导致已删除项目（PROJ_DEAD）
+    //   被收藏后仍置顶第一位、挤掉真实项目，而失效行置灰后星标不显示、用户不知为何。
+    //   新序：存活收藏 > 存活 > 失效收藏 > 失效（失效项仍在失效区沉底，收藏语义在层内保留）。
     const da = PROJ_DEAD.has(a.path) ? 1 : 0, db = PROJ_DEAD.has(b.path) ? 1 : 0;
     if (da !== db) return da - db;
+    const fa = isFav(a.path) ? 1 : 0, fb = isFav(b.path) ? 1 : 0;
+    if (fa !== fb) return fb - fa; // 层内收藏优先（存活层收藏置顶 / 失效层收藏排在失效项顶部）
     if (sortBy === 'name') return a.name.localeCompare(b.name, 'zh-Hans-CN');
     if (sortBy === 'size') return (b.sizeMB || 0) - (a.sizeMB || 0);
     if (sortBy === 'commit') return (b.lastCommitTime || '').localeCompare(a.lastCommitTime || '');
@@ -3182,6 +3189,49 @@ function triggerCompareQa() {
     }
     const el = document.createElement('div');
     el.id = 'compareqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = line;
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
+/* v1.7.37：--favdeadqa=1 —— 失效项目被收藏后不得占据置顶位（零副作用：只跑纯排序谓词，不写 FAVS 落盘） */
+function triggerFavDeadQa() {
+  setTimeout(() => {
+    let line = 'FAVDEADQA 失效收藏置顶=<bool> 存活收藏置顶=<bool> 失效沉底=<bool> | FAIL';
+    try {
+      const dead = Array.from(PROJ_DEAD);
+      const all = (DATA && DATA.projects) || [];
+      const deadP = all.find(p => dead.includes(p.path));
+      const liveP = all.find(p => !dead.includes(p.path) && p.isGit);
+      if (!deadP || !liveP) throw new Error('缺少失效或存活样本');
+      const origFavs = FAVS;
+      // 与 renderProjects 同构的排序谓词（v1.7.37：失效分层优先于收藏）
+      const sorter = (a, b) => {
+        const da = PROJ_DEAD.has(a.path) ? 1 : 0, db = PROJ_DEAD.has(b.path) ? 1 : 0;
+        if (da !== db) return da - db;
+        return (isFav(b.path) ? 1 : 0) - (isFav(a.path) ? 1 : 0);
+      };
+      FAVS = [deadP.path, liveP.path]; // 内存态投影：失效+存活都收藏
+      const ordered = [deadP, liveP].slice().sort(sorter);
+      const liveFirst = ordered[0].path === liveP.path;
+      const deadAtBottom = ordered[ordered.length - 1].path === deadP.path;
+      // 阴性对照：旧谓词（收藏优先、不看失效）必然把失效项排第一 ⇒ 不可能通过
+      const oldSorter = (a, b) => (isFav(b.path) ? 1 : 0) - (isFav(a.path) ? 1 : 0);
+      const oldOrdered = [deadP, liveP].slice().sort(oldSorter);
+      const oldPutsDeadTop = oldOrdered[0].path === deadP.path;
+      FAVS = origFavs; // 精确恢复，绝不留下状态污染
+      const pass = liveFirst && deadAtBottom && oldPutsDeadTop;
+      line = 'FAVDEADQA 失效收藏置顶=' + String(!deadAtBottom) +
+        ' 存活收藏置顶=' + String(liveFirst) + ' 失效沉底=' + String(deadAtBottom) +
+        ' 旧逻辑置顶失效=' + String(oldPutsDeadTop) + ' | ' + (pass ? 'PASS' : 'FAIL');
+    } catch (_e) {
+      line = 'FAVDEADQA 样本不足，跳过 | FAIL';
+    }
+    const el = document.createElement('div');
+    el.id = 'favdeadqa-evidence';
     el.className = 'hint';
     el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
     el.textContent = line;

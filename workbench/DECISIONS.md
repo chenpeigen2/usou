@@ -3026,3 +3026,11 @@ D:\code\usou\workbench-electron\out\
 > **实证（CDP）**：收藏失效项 `D:\wt-demo` 后，总览 KPI「ms-fav」显示「1个收藏项目」（统计 `FAVS.length`），而项目视图因第 59 轮修复把它沉底、首屏看不到置顶效果。
 > **判定**：不构成明确缺陷 —— KPI 的语义是「用户收藏的**总数**」（收藏是显式意图，目录可能临时移动后恢复、收藏仍有效），项目视图的语义是「存活项目**可见置顶**」；两者语义不同，强行让 KPI 排除失效会改变「收藏总数」的含义并与设置页持久化值不一致 ⇒ 遵循「看起来像 bug 先量化证伪、不攒假线索」原则，本轮**不立项**。
 > **保留观察**：若未来用户反馈「KPI 说有收藏却看不到」，可考虑 KPI 文案改为「收藏（含 N 失效）」而非改数字。
+ 
+ ### 本轮收尾（第六十二轮完成）
+ 
+ - **交付态**：Workbench-Setup-1.7.38.exe（83.57 MB）+ Workbench-1.7.38-portable.zip（113.23 MB）+ blockmap；1.7.37 旧产物全清；打包版 4 进程 v1.7.38.0、error=0；verify-delivery.ps1 12 项全 PASS ⇒ ✔ 交付态验收全过（v1.7.38）。
+ - **核心实证（CDP 注入测试）**：正常 scanTime 周报首行仍是「统计区间…」；注入 scanTime='2026*11_16 [x] 13:47:54' 后 mdEsc 正确转义（escaped=true、无裸 *），DATA.meta.scanTime 立即恢复为原始值（零泄漏）。
+ - **六视图审计**：failCount 全 0 / min 4.64:1。
+ - **改动面**：仅 renderer/app.js 1 行（mdEsc(String(m.scanTime||''))）；零新增 IPC、零外部依赖、零数据改动。
+ - **Git**：auto-commit.ps1 入库（只 commit 不 push）。

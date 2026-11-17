@@ -7,6 +7,7 @@
 
 | 优先级 | 主题 | 验收标准 | 状态 |
 |---|---|---|---|
+| P3 | **周报「数据截至」未走 mdEsc（动态文本转义遗漏）**：`weeklyMarkdown()` 的 `scanTime` 直接拼接进 Markdown，其余动态文本均经 `mdEsc()` ⇒ 若 scanTime 含 Markdown 特殊字符会破坏周报格式（正常扫描时间安全，但违反「所有动态文本转义」红线） | L1923 改为 `mdEsc(String(m.scanTime\|\|''))`；注入含特殊字符的 scanTime 断言周报格式不被破坏；零新增 IPC、零数据改动 | DONE（v1.7.38） |
 | P1 | **收藏的失效项目仍占据置顶位（第 6 类「失效项混入口径」）**（lead 第 59 轮真实巡检实证）：`renderProjects()` 排序 `(isFav(b.path)?1:0)-(isFav(a.path)?1:0)` 只看收藏、未排除 `PROJ_DEAD` ⇒ 已删除的 `D:\wt-demo`（在 PROJ_DEAD 中）被收藏后排到**第一位**、挤掉真实项目，而失效行置灰后**星标不显示**（实测 `FIRST_PINNED=wt-demo` / `DEAD_ROW_HAS_STAR=0`）⇒ 用户对着一个灰色置顶行不知为何 | 排序谓词改为「存活收藏 > 存活 > 失效收藏 > 失效」，失效收藏沉到失效区顶部、不占存活置顶位；Ctrl+K 同样排除失效收藏置顶；`--favdeadqa=` 合成失效收藏 + 存活项目，断言失效收藏不进第一位、星标语义一致（旧逻辑必然置顶失效项⇒不可能通过） | DONE（v1.7.37） |
 | P2 | **交付门禁对 `[renderer]` 日志行假阳性（元审计）**：`verify-delivery.ps1:43` 把任何 `[renderer]` 行当错误行，但 `main.js:298-300` 的 `console-message` 事件**不区分 level**、把所有渲染层 console 消息（含 `[pal] open` 等正常调试 log）都记成 `[renderer]` ⇒ 用户触发过命令面板后日志出现 `[renderer]` 行，健康交付态却被门禁误判 FAIL；反之日志被清空会误 PASS | 门禁改为按内容判错：仅当 `[renderer]` 行含明确错误信号（error/Error/Uncaught/TypeError/ReferenceError）才算错误，普通 console.log 不算；并改用「仅本次启动的日志段」避免历史误判；改后做阴性对照（注入一条 `[renderer] hello` 应 PASS、注入 `[renderer] TypeError` 应 FAIL） | DONE（v1.7.36 门禁修复 · 脚本改动无需发版） |
 | P2 | **项目对比视图（IDEA 升级）**：两个 git 仓库的分支/提交/未提交并排对比，用户要对比两个项目现状只能开两个详情弹窗来回切 | 项目视图工具栏加「⚖ 对比」按钮 → 弹窗含两个 `<select>`（从 DATA.projects 选）+「对比」按钮；并发调 2 次既有 `projectDetail`（零新增 IPC）并排展示分支/未提交数/最近提交/体量/类型；`--compareqa=1` 用两个已知项目断言对比面板数据与各自详情一致、零新增 IPC、无 XSS | DONE（v1.7.36） |

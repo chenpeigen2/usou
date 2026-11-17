@@ -1920,7 +1920,7 @@ function weeklyMarkdown() {
   lines.push('# 每周开发节奏周报');
   lines.push('');
   lines.push('- 统计区间：' + mdEsc(weekStart) + ' ~ ' + mdEsc(weekEnd) + '（近 7 天）');
-  lines.push('- 数据截至：' + (m.scanTime || '') + '（本机扫描快照）');
+  lines.push('- 数据截至：' + mdEsc(String(m.scanTime || '')) + '（本机扫描快照）');
   lines.push('- 活跃天数：' + activeDays + '/7 · 变动文件合计：' + totalFiles);
   lines.push('- 峰值日：' + (peak ? mdEsc(String(peak.date)) + '（' + mdEsc(String(peak.count)) + ' 个文件）' : '无'));
   lines.push('- 本周快照：' + snapCount + ' 次' + (projectDelta != null ? ' · 收录项目数变化：' + (projectDelta >= 0 ? '+' : '') + projectDelta : ''));

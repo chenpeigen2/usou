@@ -582,6 +582,7 @@ async function init() {
   if (qs.get('deadbriefqa')) triggerDeadBriefQa(); // v1.7.24：buildBrief 未提交条目剔除失效项目取证
   if (qs.get('actrootqa')) triggerActRootQa(); // v1.7.25：简报活动条目两根目录归属修复取证
   if (qs.get('briefsync')) triggerBriefSyncQa(); // v1.7.26：长开窗口简报文案漂移修复取证
+  if (qs.get('histlegacyqa')) triggerHistLegacyQa(); // v1.7.29：旧格式快照标注取证（纯只读）
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1027,6 +1028,44 @@ function triggerHistDiffQa() {
       ' 旧逻辑交集=' + inter.length +
       ' 纯旧命中=' + oldItems.length +
       ' 归因=' + (first.p || '') +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
+/* QA 钩子（v1.7.29）：--histlegacyqa=1 → 证明 System 趋势表不再把旧格式（按项目名存储）快照当精确事实。
+   纯只读：仅调用 historyStatsFor / historyTrendHtml（无 IPC、无路径操作、不改 DATA / HISTORY）。
+   断言：(a) 真实 HISTORY >=1 且每条 legacy===true；(b) 合成新格式（路径键）快照 legacy===false；
+   (c) 真实数据下 historyTrendHtml() 同时含说明常量与角标常量。
+   取证行注入 #view 顶部（createElement + textContent，id=histlegacyqa-evidence，无 innerHTML、无内联 onclick）。 */
+function triggerHistLegacyQa() {
+  setTimeout(() => {
+    // (a) 真实快照：全部为旧格式名称键
+    const stats = historyStatsFor(HISTORY);
+    const legacyCount = stats.filter(s => s && s.legacy === true).length;
+    const legacyAll = stats.length >= 1 && legacyCount === stats.length;
+    // (b) 合成新格式快照：绝对路径键 ⇒ 不得被标成 legacy
+    const synth = { time: '2026-11-17 12:00:00', projects: {
+      'D:\\fcm-helper': { name: 'fcm-helper', dirty: 1, sizeMB: 1, commitTime: '' }
+    } };
+    const synthStat = historyStatsFor([synth])[0] || {};
+    const newMislabel = synthStat.legacy === true; // true=把新格式误标为旧格式（期望 false）
+    // (c) 真实数据下的趋势 HTML 须同时带说明与角标
+    let html = '';
+    try { html = historyTrendHtml(); } catch (_e) { html = ''; }
+    const hasNote = html.indexOf(HIST_LEGACY_NOTE) >= 0;
+    const hasBadge = html.indexOf(HIST_LEGACY_BADGE) >= 0;
+    const pass = legacyAll && !newMislabel && hasBadge && hasNote;
+
+    const el = document.createElement('div');
+    el.id = 'histlegacyqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'HISTLEGACYQA 真实旧格式=' + legacyCount + '/' + stats.length +
+      ' 新格式误标=' + String(newMislabel) +
+      ' 角标=' + String(hasBadge) +
+      ' 说明=' + String(hasNote) +
       ' | ' + (pass ? 'PASS' : 'FAIL');
     const v = $('#view');
     if (v) v.insertBefore(el, v.firstChild);
@@ -2603,14 +2642,20 @@ function normHistoryProjects(h) {
   return out;
 }
 
-/* v1.7.19：快照数组 -> 趋势/QA 共用统计（纯函数）。n=归一化后项目数，dirty=未提交文件数总和。 */
+/* v1.7.19：快照数组 -> 趋势/QA 共用统计（纯函数）。n=归一化后项目数，dirty=未提交文件数总和。
+   v1.7.29：新增 legacy —— 原始快照的项目键若全部为「名称键」（不含 \ 或 /）则为旧格式，
+   其 n/dirty 按名去重、可能低于真实值；仅作标注，不改动 n/dirty/totalMB 的计算。 */
 function historyStatsFor(hist) {
   return (hist || []).map(h => {
     const norm = normHistoryProjects(h);
     const keys = Object.keys(norm);
     let dirty = 0;
     keys.forEach(k => { dirty += (norm[k].dirty || 0); });
-    return { time: (h && h.time) || '', fast: !!(h && h.fast), n: keys.length, dirty, totalMB: (h && h.totalMB) || 0 };
+    // 用「原始」快照的 projects 键判定，不能用归一化后的 keys（会把名称键变成 'name:' 前缀）
+    let origKeys = [];
+    try { origKeys = Object.keys((h && h.projects) || {}); } catch (_e) { origKeys = []; }
+    const legacy = origKeys.length > 0 && origKeys.every(k => !/[\\/]/.test(k));
+    return { time: (h && h.time) || '', fast: !!(h && h.fast), n: keys.length, dirty, totalMB: (h && h.totalMB) || 0, legacy };
   });
 }
 function historyStats() {
@@ -2671,6 +2716,9 @@ function historyDiffItems(hist, projects) {
   });
   return out;
 }
+/* v1.7.29：旧格式（按项目名存储）快照提示文案 —— 角标 / 说明 / QA 共用常量，避免文案漂移 */
+const HIST_LEGACY_BADGE = '旧格式·名称去重';
+const HIST_LEGACY_NOTE = '⚠ 旧格式快照（按项目名存储）的项目数/未提交数可能低于真实值，仅供趋势参考；体量为全量统计。';
 function historyTrendHtml() {
   const st = historyStats();
   if (st.length < 2) {
@@ -2678,12 +2726,17 @@ function historyTrendHtml() {
       '<span class="muted small">按 F5 全量重扫后，这里会开始画出你的工作节奏。</span></div>';
   }
   const last10 = st.slice(-10).reverse();
+  // v1.7.29：只有最近 10 行里出现旧格式快照时才给一条持久说明；列值一律不重算
+  const noteHtml = last10.some(s => s.legacy)
+    ? '<div class="hint" style="margin:0 0 9px">' + HIST_LEGACY_NOTE + '</div>'
+    : '';
   return '<div class="card" style="margin-bottom:13px"><canvas id="trend-cv" style="width:100%;height:120px;display:block"></canvas>' +
     '<div class="chips" style="margin-top:9px">' +
     '<span class="chip"><span class="live-dot" style="background:var(--acc)"></span>未提交文件总量</span>' +
-    '<span class="chip"><span class="live-dot" style="background:var(--acc2)"></span>收录项目数</span></div></div>' +
+    '<span class="chip"><span class="live-dot" style="background:var(--acc2)"></span>收录项目数</span></div>' +
+    noteHtml + '</div>' +
     '<table class="sys"><tr><th>时间</th><th>项目数</th><th>未提交文件</th><th>源码总体量</th><th>模式</th></tr>' +
-    last10.map(s => '<tr><td>' + esc(s.time) + '</td><td>' + s.n + '</td><td>' + (s.dirty ? '<b style="color:var(--amber)">' + s.dirty + '</b>' : '0') + '</td>' +
+    last10.map(s => '<tr><td>' + esc(s.time) + (s.legacy ? ' <span class="muted small">' + HIST_LEGACY_BADGE + '</span>' : '') + '</td><td>' + s.n + '</td><td>' + (s.dirty ? '<b style="color:var(--amber)">' + s.dirty + '</b>' : '0') + '</td>' +
       '<td>' + fmtMB(s.totalMB) + '</td><td>' + (s.fast ? '快速' : '全量') + '</td></tr>').join('') + '</table>';
 }
 function drawTrend() {

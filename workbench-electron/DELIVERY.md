@@ -14,14 +14,16 @@
 
 ## 二、交付状态（当前）
 
-| 项 | 值 |
-|---|---|
-| 当前版本 | **v1.7.36** |
-| 安装包 | `out\Workbench-Setup-1.7.36.exe`（83.57 MB） |
-| 便携版 | `out\Workbench-1.7.36-portable.zip`（113.23 MB） |
-| 交付运行态 | 打包版 `out\win-unpacked\工作台.exe`，4 进程常驻，托盘可用 |
-| 验收门禁 | `verify-delivery.ps1` 12 项全 PASS ⇒ `✔ 交付态验收全过` |
-| Git | 本地 36 个 commit，**未推送远端**（按用户要求只 commit 不 push） |
+> **以下为写入本文时的快照值，会随迭代变化；当前真实值请按括注命令查询，勿以本文为准。**
+
+| 项 | 写入时快照 | 当前值查询命令 |
+|---|---|---|
+| 当前版本 | v1.7.36 | `Get-Content package.json -Raw \| ConvertFrom-Json \| Select -Expand version` |
+| 安装包 | `out\Workbench-Setup-<版本>.exe` | `Get-ChildItem out\Workbench-Setup-*.exe` |
+| 便携版 | `out\Workbench-<版本>-portable.zip` | `Get-ChildItem out\*portable.zip` |
+| 交付运行态 | 打包版 `out\win-unpacked\工作台.exe`，4 进程常驻，托盘可用 | `Get-Process 工作台 \| Measure` |
+| 验收门禁 | `verify-delivery.ps1` 12 项全 PASS | `pwsh -NoProfile -File verify-delivery.ps1` |
+| Git | 本地 commit 持续增长，**未推送远端**（按用户要求只 commit 不 push） | `git rev-list --count HEAD` / `git status` |
 
 > 旧版本产物在每次发版时按绝对路径核验后清除，`out\` 只保留当前版本。
 
@@ -83,7 +85,7 @@ workbench-electron/
 ```
 remote: git@github.com:chenpeigen2/usou.git
 branch: main
-提交数: 36（全部本地，未推送）
+提交数: 持续增长（当前值查 `git rev-list --count HEAD`），全部本地未推送
 ```
 
 **推送由用户手动执行**（本 agent 按明确要求从不 push）：

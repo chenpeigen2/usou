@@ -13,16 +13,16 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第二十九轮 / v1.7.19 · **「历史快照按项目名做 key ⇒ 同名项目塌缩（写侧 path-key + 读侧归一化 + 阴性对照）」**
-- **本轮主题一句话**：`appendHistory()` 的 `o[p.name]` 被 4 个同名 `TclLauncher` 末位胜出塌成 1 键且保留最旧 ⇒ 缓存 59/8 而 history 56/5、趋势图假信号且不可复现 ⇒ 写侧改 path-key、读侧加归一化兼容旧快照、`byName` 改 path 优先（点简报不再跳错项目）
-- **版本**：v1.7.19
-- **交付态**：`out\Workbench-Setup-1.7.19.exe`（83.55 MB）+ `out\Workbench-1.7.19-portable.zip`（113.21 MB）+ blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.19.0**）；旧 1.7.18 产物已清除（残留 0）
-- **运行时数据**：`%APPDATA%\工作台\`（scan-cache.json / history.json / settings.json / main.log；交付态干净，settings theme=dark · autoScanHours=0 默认）
-- **最后巡检**：2026-11-17 12:06 —— 打包版 **4 进程** v1.7.19.0、启动日志四项标志全在、`[renderer]` 行 = **0** / error 行 = **0**、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.19）`
-- **本轮改动面**：3 文件 —— `src/store.js`（写侧 reduce 1 处）+ `renderer/app.js`（`normHistoryProjects` / `historyStatsFor` / `historyDiffItems` 三纯函数、`--histqa=` 阴性对照钩子、移除旧 `byName`）+ `main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零历史迁移、零数据文件结构改动**
-- **核心实证**：① CDP 读 `--histqa=1` 取证行 = `HISTQA 旧命中=0 新命中=1 | 项目数 1->2 未提交 0->3 | 归因路径=D:\CLAUNCER2\TclLauncher | byName会错指=D:\TclLauncher | PASS`（**旧逻辑不可能通过**）；② 真实 `store.js` + 隔离 data 目录跑真实缓存 ⇒ **59 键 / 8 文件**（旧 56 / 5）、7 个同名系路径全保留；③ 读旧 6 快照零崩溃兼容、简报 9 条且 `fcm-helper` 归因 path 正确；④ 六视图审计 failCount 全 0 / min 4.73:1（零回归）
-- **已知遗留**：① 缓存里的已删除条目（60 条中 36 条）要等下一次真实扫描才从缓存消失（本机 autoScan=0）；② 托盘/总览失效判定靠 `existsSync`，目录换成同名文件（非删除）仍判存活（极端场景，未立项）；③ 现有 6 个快照仍是塌缩口径（56 键 / 5 文件），新快照起才正确 ⇒ 趋势图会有一次「56→59 / 5→8」的**诚实跳变**（数据质量改善的真实反映，非 bug）
-- **下一轮指针**：**READY 池已清空**（唯一 P1 本轮做完）⇒ 按 `PM.md`「待办池枯竭时自己造活」：下一轮先**真实巡检**（启动打包版逐视图 CDP 目检 + 读 `%APPDATA%\工作台\main.log` + 真实数据核验），找真实问题再立项；**用户指令「继续迭代直到 token 消耗完成」** ⇒ 收尾后不停止，立即进入第三十轮
+- **本轮状态**：DONE · 第三十轮 / v1.7.20 · **「今日简报跨夜后仍说『今天』（陈述不成立的事实）」**
+- **本轮主题一句话**：`buildActivity()` 按扫描当天生成日期桶，`buildBrief()` 取末桶后无条件贴「今天」⇒ 本机扫 11-16 13:47、末桶 11-16 count=306、当前 11-17 12:07（autoScan=0）⇒ 假陈述；修：按桶 `date` 与本地当日比对，今天/昨天/MM-DD/跨年 YYYY-MM-DD 四档，真实简报实测改为「昨天 D:\code 下有 306 个文件在动」
+- **版本**：v1.7.20
+- **交付态**：`out\Workbench-Setup-1.7.20.exe`（83.56 MB）+ `out\Workbench-1.7.20-portable.zip`（113.21 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.20.0**）；1.7.19 产物已清除
+- **运行时数据**：`%APPDATA%\工作台\`（scan-cache.json / history.json / settings.json / main.log）；交付态 `[renderer]` = 0 / error = 0
+- **最后巡检**：2026-11-17 12:14 —— `verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.20）`；六视图 CDP 审计 failCount 全 0 / min 4.73:1（零回归）
+- **本轮改动面**：2 文件 —— `renderer/app.js`（`activityDayLabel()` 纯函数 + `buildBrief()` 一处 + `--dayqa=` 四例钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据文件结构改动、`src/scanner.js` 一行不动**
+- **核心实证**：`--dayqa=1` = `DAYQA 真实数据=昨天(桶=2026-11-16, count=306) | 合成=今天→今天 昨天→昨天 更早→01-02 跨年→2024-03-05 | 旧逻辑恒=今天 | PASS`；旧逻辑在 3 例上不可能通过；`DATA.activity` 无泄漏
+- **已知遗留**：① 缓存里已删除条目（60 中 36）要等真实扫描才消失（autoScan=0）；② 现有 6 个历史快照仍是塌缩口径（v1.7.19 不迁移，趋势图会有一次诚实跳变）；③ **候选线索（第三十一轮）**：`relTime()` 以**扫描时刻**为基准（DECISIONS D8 有意设计），数据陈旧时简报「12 分钟前提交」会被误读为距现在 12 分钟（实际是距扫描 12 分钟）—— 需权衡「改文案加基准标注」还是「改基准为 Date.now()」（后者会破坏快照语义，风险更高）
+- **下一轮指针**：READY 仍空 ⇒ 第三十一轮继续**真实巡检造活**（优先核实 `relTime` 误读线索）；**用户指令「继续迭代直到 token 消耗完成」** ⇒ 收尾后立即进入下一轮
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

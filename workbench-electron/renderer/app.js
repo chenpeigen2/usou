@@ -563,6 +563,7 @@ async function init() {
   if (qs.get('themeqa')) triggerThemeQa(qs.get('themeqa'));
   if (qs.get('searchqa')) triggerSearchQa(qs.get('searchqa'));
   if (qs.get('histqa')) triggerHistoryQa();
+  if (qs.get('dayqa')) triggerDayQa();
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -955,6 +956,74 @@ function triggerHistoryQa() {
     if (v) v.insertBefore(el, v.firstChild);
   }, 1200);
 }
+
+/* QA 钩子（v1.7.20）：--dayqa=1 → 证明「今天」硬编码在真实数据（桶属于前一天）下必然陈述假事实。
+   先于任何变更抓取真实数据标签，再用 4 个合成日期经 buildBrief 取真实渲染标签，
+   并忠实复现旧逻辑（恒「今天」）作负对照；最后精确恢复 DATA.activity，注入持久取证行。 */
+function triggerDayQa() {
+  setTimeout(() => {
+    if (!DATA) return;
+    const now = new Date();
+    const p2 = x => String(x).padStart(2, '0');
+    const localKey = off => {
+      const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
+      return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+    };
+    const marker = 'D:\\code 下有';           // 实际文本 "D:\code 下有"
+    const cut = ' D:\\code';                  // 实际文本 " D:\code"，用于取标签前缀
+    const labelOf = t => { const s = String(t || ''), i = s.indexOf(cut); return i >= 0 ? s.slice(0, i) : ''; };
+    const briefLabel = () => {
+      const it = buildBrief().find(x => x && x.text && x.text.indexOf(marker) >= 0);
+      return it ? labelOf(it.text) : '';
+    };
+
+    // (a) 真实数据：先于任何变更抓取标签 + 末桶 date/count
+    const origActivity = DATA.activity;
+    const orig = origActivity || [];
+    const realBucket = orig.length ? orig[orig.length - 1] : null;
+    const realDate = realBucket ? realBucket.date : '';
+    const realCount = realBucket ? realBucket.count : 0;
+    const realLabel = briefLabel();
+    const realExpected = activityDayLabel(realDate, now);
+
+    // (b) 4 个合成用例：本地今天 / 昨天 / 更早(同年，验证 MM-DD 分支) / 跨年(往年，验证 YYYY-MM-DD 分支)
+    const CROSS_YEAR = '2024-03-05';            // 相对当前年份属于往年 → 走完整 YYYY-MM-DD 分支
+    const cases = [localKey(0), localKey(-1), '2026-01-02', CROSS_YEAR];
+    const labels = [], expected = [];
+    cases.forEach(dt => {
+      DATA.activity = [{ date: dt, count: 7 }];
+      const got = briefLabel();
+      labels.push(got);
+      expected.push(activityDayLabel(dt, now)); // 期望同源计算，随时间推移仍正确
+    });
+
+    // (c) 旧逻辑：无论哪个桶都渲染「今天」；至少一个新标签不同 ⇒ 旧逻辑不可能通过
+    const oldLabels = cases.map(() => '今天');
+    const defeatsOld = labels.some((x, i) => x !== oldLabels[i]);
+
+    // (d) 精确恢复原始数据引用（可能是 undefined），绝不留下被污染的数据
+    DATA.activity = origActivity;
+
+    const syntheticOk = labels.length === expected.length && labels.every((x, i) => x === expected[i]);
+    // 跨年用例必须命中完整 YYYY-MM-DD 分支：第 4 例标签 === activityDayLabel('2024-03-05') === 原串
+    const crossExpected = activityDayLabel(CROSS_YEAR, now);
+    const crossOk = labels[3] === crossExpected && crossExpected === CROSS_YEAR;
+    const pass = !!realLabel && realLabel === realExpected && syntheticOk && defeatsOld && crossOk;
+
+    // (e) 持久取证行：textContent only，无 innerHTML / 内联 onclick
+    const el = document.createElement('div');
+    el.id = 'dayqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'DAYQA 真实数据=' + realLabel + '(桶=' + realDate + ', count=' + realCount + ')' +
+      ' | 合成=今天→' + labels[0] + ' 昨天→' + labels[1] + ' 更早→' + labels[2] + ' 跨年→' + labels[3] +
+      ' | 旧逻辑恒=今天' +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
 function setView(v, silent) {
   view = v;
   localStorage.setItem('wb.view', v);
@@ -1113,6 +1182,28 @@ function drawPulse() {
 
 /* ---------- 今日简报 ---------- */
 
+/* v1.7.20：活动桶日期键 → 相对标签（今天/昨天/本月 MM-DD/跨年完整 YYYY-MM-DD）。
+   纯函数；now 缺省 new Date()。所有日期键以本地时间 padStart(2,'0') 生成。
+   昨天用日历法 new Date(y, m, d-1)（而非减 86400000ms），在 DST/月末边界仍准确。
+   对任意畸形输入均不抛异常，兜底返回 '当日'。 */
+function activityDayLabel(dateStr, now) {
+  try {
+    const p2 = x => String(x).padStart(2, '0');
+    const d = (now instanceof Date && !isNaN(now.getTime())) ? now : new Date();
+    const todayKey = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
+    const y = new Date(d.getFullYear(), d.getMonth(), d.getDate() - 1);
+    const yesterdayKey = y.getFullYear() + '-' + p2(y.getMonth() + 1) + '-' + p2(y.getDate());
+    const s = (typeof dateStr === 'string') ? dateStr : '';
+    if (!s) return '当日';
+    if (s === todayKey) return '今天';
+    if (s === yesterdayKey) return '昨天';
+    if (s.indexOf(String(d.getFullYear()) + '-') === 0) return s.slice(5);
+    return s;
+  } catch (e) {
+    return '当日';
+  }
+}
+
 function buildBrief() {
   const projects = DATA.projects || [];
   const out = [];
@@ -1132,8 +1223,12 @@ function buildBrief() {
 
   const act = DATA.activity || [];
   const today = act[act.length - 1];
-  if (today && today.count > 0) push('var(--green)', '今天 D:\\code 下有 <b>' + today.count + '</b> 个文件在动',
-    '今天 D:\\code 下有 ' + today.count + ' 个文件在动', 'goto', 'recent', '切到「最近」视图');
+  if (today && today.count > 0) {
+    // v1.7.20：桶日期未必是「今天」（autoScan=0 时可能是昨天/更早），标签按真实日期计算
+    const dayLabel = activityDayLabel(today.date);
+    push('var(--green)', dayLabel + ' D:\\code 下有 <b>' + today.count + '</b> 个文件在动',
+      dayLabel + ' D:\\code 下有 ' + today.count + ' 个文件在动', 'goto', 'recent', '切到「最近」视图');
+  }
 
   // v1.7.17：**只统计磁盘上仍然存在的文件**。
   // 根因：快照里的失效条目（磁盘上已不存在）保留了「删除前」的 mtime，往往比活文件新

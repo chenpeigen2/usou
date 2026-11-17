@@ -2930,3 +2930,10 @@ D:\code\usou\workbench-electron\out\
 > **实证（打包版 v1.7.36 + CDP）**：`VERSION=1.7.36`；`getState()` 返回 8 字段（autoCheck/cache/caps/history/loginItem/scanErrors/settings/version）；`caps={vscode:true,wt:true}`；`path:exists` 批量契约正确（数组入参 → `{path:bool}` 映射，存在 true / 缺失 false）；`showInFolder(缺失)` → `{ok:false,reason}`；`openIn(缺失,vscode)` → `{ok:false,msg}` 且零外部进程；`projectDetail(真实项目)` → `{git,readme,branch:main}`；bridge 22 方法齐全；日志 `[renderer]`=0 / error=0。
 > **注**：单字符串传给批量 `path:exists` 返回 `{}` 是正确的（无匹配键），非缺陷 —— 渲染层始终传数组，PROJ_DEAD 正确算出 2 条。
 > **结论**：打包版 IPC 契约全部正确、asar 环境零差异，本轮**无真实缺陷**。
+
+# 第五十二轮：扫描中关窗到托盘健壮性审计（无真实缺陷）
+
+> **选题依据**：真实使用场景 —— 用户按 F5 全量扫描后关窗到托盘（close→hide），扫描是否继续并正确落盘？前 51 轮从未验证「窗口隐藏后扫描生命周期」。
+> **实证（dev 态）**：触发快速扫描（skipSizes）→ 立即用 Win32 `ShowWindow(hwnd,0)` 隐藏主窗口 → 等待 ⇒ 日志 `scan DONE 57 projects, 48.1s`、缓存 `scanTime=2026-11-17 14:54:04`、activity 末桶刷新到 `2026-11-17 count=338` ⇒ **窗口隐藏不影响扫描完成与落盘**。
+> **顺带清理**：发现并删除第 41 轮持久化失败测试遗留的 `scan-cache.json.tmp`（残留 2 个月的无用临时文件），dev 数据目录恢复干净、基线数据已还原。
+> **结论**：本轮**无真实缺陷**。

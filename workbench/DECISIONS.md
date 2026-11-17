@@ -3054,3 +3054,10 @@ D:\code\usou\workbench-electron\out\
  > **整体核对**：HEAD=6c9078e、工作区干净、v1.7.38、本地 49 commit（只 commit 不 push）、4 进程交付、READY 空、pm 仅 4 治理文件、README 37 个版本段、DECISIONS 2404 行。
  > **最终验收**：verify-delivery.ps1 12 项全 PASS —— exe 版本一致 / 无旧产物 / Setup 83.6MB / zip 113.2MB / 日志 0 错误 / 三标志齐 / pm 洁净 / 语法 0 错 / 源码不新于产物 ⇒ ✔ 交付态验收全过（v1.7.38）。
  > **累计（第 28→65 轮，38 轮）**：修真实缺陷 16 项 + 新增功能 3 个（周报 / 项目对比 / 导出前缀）+ 元审计 3 项（QA 基建 / 门禁假阳性 / 入库脚本）+ 证伪巡检 10+ 轮。
+
+ # 第六十六轮：托盘菜单动态信息准确性审计（证伪一轮）
+
+ > **选题依据**：托盘是常驻入口，第 28 轮验证过未提交数，但「上次扫描 / 自动扫描开关 / liveItems 与模板一致性」从未系统核对。
+ > **实证（--trayqa=popup,<file> 钩子）**：`liveItemsMatchLabels=true`（挂到托盘的真实 Menu 实例与模板逐项一致）；菜单 = 显示工作台 / 上次扫描：1 天前（13:47）/ 未提交：3 个仓库 6 个文件 / 立即扫描 / 自动扫描：关 / 开机自启 / 退出；status 与 scan-cache.json 同源（scanTime=11-16 13:47:54、ageMinutes=1542、dirtyProjects=3、dirtyFiles=6），自动扫描关与 settings.autoScanHours=0 一致。
+ > **过程说明**：首次传 `--trayqa=popup,<目录>` 未生成文件（钩子参数是文件路径而非目录），改用完整文件路径后成功；临时 JSON 已清理。
+ > **结论**：托盘动态信息全部准确，本轮无产品缺陷。

@@ -2776,3 +2776,37 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.32）；**STATE / README 已更新**；临时物（`%TEMP%\r42shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第四十三轮按候选造活（扫描进度分母回退 / 活动 cutoff 差一天 / 系统页副标题误称仓库数）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第四十三轮：扫描进度分母回退 + 活动 cutoff 差一天（两个扫描器计数量化瑕疵）（P2 · 新视角巡检造活 · 编排侧第 88 轮 · v1.7.33）
+
+> **选题依据**：第三十九轮管线审计员（进度）与 scanner 审计员（cutoff）各报一项，同在 `src/scanner.js`、同为计数量化瑕疵，合并一轮修。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 进度为什么 `1/57→1/54`？**
+    - 定位：L410/L434 分母 = `roots.length + doneN`。4 个并发 worker 各自 `roots.shift()`，队列随开始数减少；而 `doneN` 只在项目**完成时** +1 ⇒ 分母 = 总数 − 在途数，分子（doneN+1）在 in-flight 期间不变 ⇒ 出现「分母 shrinking、分子 frozen」的假象。
+    - 结论：启动时快照 `totalProjects = roots.length`，分子用「已开始数 startedN」（shift 时 +1），分母恒为 totalProjects。
+    - 理由：① 进度语义是「已处理/总数」，总数不该随处理动态变化；② 用 startedN 让分子在 worker 取任务时就推进，与用户感知的「正在处理第 N 个」一致；③ 完成进度 L434 也改用统一分母，两条进度事件口径一致。
+
+  - **Q2 cutoff 差一天怎么修？**
+    - 定位：`cutoff = Date.now() - days*86400000`（now−90d），但输出桶从 `i=days-1`（now−89d）到 `i=0`（today）共 90 桶 ⇒ 最早桶是 now−89d，而 cutoff 放到 now−90d，落在 [now−90d, now−89d) 的文件被计入 map 却没有输出桶 ⇒ 第一天数据丢失。
+    - 结论：`cutoff = Date.now() - (days-1)*86400000`，与最早桶对齐。
+    - 理由：① 桶边界与 cutoff 必须同定义，否则边界数据要么丢失要么重复；② 不改桶数量（仍 90 桶），只改 cutoff 一天 ⇒ 数据契约 `{date,count}` 不变，渲染层零改动。
+
+  - **Q3 验证？**
+    - 结论：真实扫描日志读进度序列（分母恒定、分子递增）+ 活动最早桶 count 非恒 0。
+    - 理由：① 日志是进度事件的直接证据；② cutoff 修复后最早桶应能纳入边界文件（本机未必恰好有边界文件，故断言「桶存在且口径自洽」而非强行非0）；③ 零新增 IPC、零数据改动。
+
+  - **Q4 改动面？**
+    - 结论：仅 `src/scanner.js`（进度计数 2 行 + cutoff 1 行）；**零新增 IPC、零外部依赖、零数据文件结构改动**。
+
+### 本轮收尾（第四十三轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.33.exe`（83.56 MB）+ `Workbench-1.7.33-portable.zip`（113.22 MB）+ blockmap；1.7.32 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.33.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.33）`。
+- **核心实证（真实扫描进度事件序列）**：修复前分母随并发 shift 递减（`1/57→1/56→1/55→1/54`）、分子卡 1；修复后 115 条进度事件 **分母集合 = {57}（恒定）**、**分子单调不减**（0→57 无回退，如 `…[3,57],[4,57],[4,57],[5,57]…`）。第一版只改分母仍出现 `4→1` 回退（startedN/doneN 两计数器交替），第二版把完成事件的分子也统一为 startedN 后彻底消除。
+- **cutoff 修复**：`buildActivity` 的 cutoff 从 `now−90d` 改为 `now−(days−1)d`，与最早桶（now−89d）对齐；实测活动最早桶 `2026-08-20 count=31`（有数据、边界不再丢失）。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.32 基线一致）。
+- **改动面**：仅 `src/scanner.js`（进度计数快照 totalProjects + startedN 统一分子 + cutoff 一行）；**零新增 IPC、零外部依赖、零数据文件结构改动**。
+- **BACKLOG**：本项 → DONE（v1.7.33）；**STATE / README 已更新**；临时物（`%TEMP%\r43shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 仍空 ⇒ 第四十四轮处理最后候选「系统页副标题误称仓库数」或再巡检造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

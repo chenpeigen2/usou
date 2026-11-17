@@ -164,7 +164,7 @@ async function analyze(root, onProgress = () => {}) {
 //   从未遍历 ⇒ 这些项目的文件改动不进任何活动桶，热力图系统性低估 56% 项目。
 //   修：接收已发现的项目根，对不在两基础根之下的额外项目补扫（去重 + 复用 SIZE_EXCLUDE / 深度3）。
 async function buildActivity(days, projectRoots) {
-  const cutoff = Date.now() - days * 86400000;
+  const cutoff = Date.now() - (days - 1) * 86400000; // v1.7.33：与最早桶（now−(days−1)d）对齐，此前 now−days d 会丢第一天边界数据
   const map = new Map();
   async function rec(dir, depth) {
     const ents = await safeReaddir(dir);
@@ -402,12 +402,15 @@ async function runScan(opts = {}, onProgress = () => {}) {
   prog('projects', 0, roots.length, '开始');
   const projects = [];
   let doneN = 0;
+  let startedN = 0;                       // v1.7.33：已开始处理的项目数（shift 时 +1）
+  const totalProjects = roots.length;     // v1.7.33：启动时快照总数，分母恒定、不随并发 shift 回退
   const CONCURRENCY = 4; // 项目级并发：git 与体量统计互相并行，多项目流水线
   async function projWorker() {
     while (roots.length) {
       const r = roots.shift();
+      startedN++;
       const name = path.basename(r);
-      prog('projects', doneN + 1, roots.length + doneN + 1, name);
+      prog('projects', startedN, totalProjects, name);
       const [gi, size] = await Promise.all([
         gitInfo(r),
         opts.skipSizes ? Promise.resolve({ bytes: 0, files: 0 }) : walkSize(r, SIZE_EXCLUDE)
@@ -431,7 +434,7 @@ async function runScan(opts = {}, onProgress = () => {}) {
         rootMTime: st ? fmtDate(st.mtime) : ''
       });
       doneN++;
-      prog('projects', doneN, roots.length + doneN, name);
+      prog('projects', startedN, totalProjects, name); // 分子统一用 startedN：单调递增、不因两计数器交替而回退
     }
   }
   await Promise.all(Array.from({ length: CONCURRENCY }, projWorker));

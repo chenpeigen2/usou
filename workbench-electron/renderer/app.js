@@ -566,6 +566,7 @@ async function init() {
   if (qs.get('dayqa')) triggerDayQa();
   if (qs.get('timeqa')) triggerTimeQa();
   if (qs.get('palqa')) triggerPalQa(); // v1.7.22：命令面板点击索引修复的零副作用取证
+  if (qs.get('histdiffqa')) triggerHistDiffQa(); // v1.7.23：name-key→path-key 混合快照 diff 匹配修复取证
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -953,6 +954,64 @@ function triggerHistoryQa() {
       ' 未提交 ' + oldStats[0].dirty + '->' + stats[1].dirty +
       ' | 归因路径=' + (item.p || '') +
       ' | byName会错指=' + PA +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
+/* QA 钩子（v1.7.23）：--histdiffqa=1 → 证明 name-key→path-key 混合快照下身份桥接命中，
+   而「直接按 normHistoryProjects 归一化键匹配」（旧逻辑）交集为 0、必然漏报。
+   全程纯函数：无 IPC、无路径操作；取证行注入 #view 顶部（createElement + textContent，id=histdiffqa-evidence）。
+   NEW：OLD 名称键快照 ↔ NEW 路径键快照 ⇒ fcm-helper（唯一同名）桥接到路径命中「有新提交」，
+        4 个同名 TclLauncher 绝不猜归属（不误指）；旧逻辑归一化键交集 = 0。
+   NEGATIVE：直接归一化键交集 = 0 ⇒ 旧逻辑零命中，不可能通过。
+   REGRESSION：两个纯 OLD 快照（commitTime 前进）仍命中 ⇒ 纯旧行为保留。 */
+function triggerHistDiffQa() {
+  setTimeout(() => {
+    const T0 = '2026-11-01 10:00:00', T1 = '2026-11-16 12:00:00';
+    const PA = 'D:\\fcm-helper';
+    const TCL = ['D:\\TclLauncher', 'D:\\B\\TclLauncher', 'D:\\C\\TclLauncher', 'D:\\D\\TclLauncher'];
+    // OLD prev：名称键快照（值里没有 path）⇒ normHistoryProjects 产出 'name:' 键
+    const oldPrev = { time: T0, fast: false, totalMB: 30, projects: {
+      'fcm-helper': { dirty: 1, sizeMB: 10, commitTime: T0 },
+      'TclLauncher': { dirty: 1, sizeMB: 20, commitTime: T0 }
+    } };
+    // NEW cur：路径键快照；fcm-helper 唯一，TclLauncher 有 4 条同名路径
+    const curProjects = {};
+    curProjects[PA] = { name: 'fcm-helper', dirty: 1, sizeMB: 10, commitTime: T1 };
+    TCL.forEach((p, i) => { curProjects[p] = { name: 'TclLauncher', dirty: 1 + i, sizeMB: 20, commitTime: T1 }; });
+    const newCur = { time: T1, fast: false, totalMB: 30, projects: curProjects };
+    // 当前项目：fcm-helper 唯一同路径；TclLauncher 有 4 个同名 ⇒ 不可归因
+    const projects = [{ name: 'fcm-helper', path: PA }].concat(
+      TCL.map(p => ({ name: 'TclLauncher', path: p })));
+
+    // NEW：混合快照应命中 fcm-helper（有新提交），并桥接到其路径
+    const items = historyDiffItems([oldPrev, newCur], projects);
+    const first = items[0] || {};
+    // NEGATIVE：忠实复现旧「直接按归一化键匹配」——两快照归一化键交集必须为 0
+    const oldKeys = Object.keys(normHistoryProjects(oldPrev));
+    const newKeys = Object.keys(normHistoryProjects(newCur));
+    const inter = oldKeys.filter(k => newKeys.indexOf(k) >= 0);
+    // REGRESSION：两个纯 OLD 快照（fcm-helper commitTime 前进）仍须命中
+    const oldPrev2 = { time: T1, fast: false, totalMB: 30, projects: {
+      'fcm-helper': { dirty: 1, sizeMB: 10, commitTime: T1 },
+      'TclLauncher': { dirty: 1, sizeMB: 20, commitTime: T0 }
+    } };
+    const oldItems = historyDiffItems([oldPrev, oldPrev2], projects);
+
+    const pass = items.length >= 1 && first.p === PA &&
+      String(first.text || '').indexOf('fcm-helper') >= 0 &&
+      inter.length === 0 && oldItems.length >= 1;
+
+    const el = document.createElement('div');
+    el.id = 'histdiffqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'HISTDIFFQA 混合命中=' + items.length +
+      ' 旧逻辑交集=' + inter.length +
+      ' 纯旧命中=' + oldItems.length +
+      ' 归因=' + (first.p || '') +
       ' | ' + (pass ? 'PASS' : 'FAIL');
     const v = $('#view');
     if (v) v.insertBefore(el, v.firstChild);
@@ -2335,7 +2394,9 @@ function historyStats() {
 }
 
 /* v1.7.19：前后两次快照的项目差异 -> 简报 push 参数数组（最多 2 条，纯函数）。
-   命中项目只要带 path 就只走 byPath 精确匹配，绝不回退 byName（同名项目会错指）。 */
+   命中项目只要带 path 就只走 byPath 精确匹配，绝不回退 byName（同名项目会错指）。
+   v1.7.23：修复 name-key→path-key 过渡期的匹配断裂 —— 归一化条目先按「身份」键化再匹配，
+   令旧名称键快照能桥接到当前同路径项目；零/多个同名绝不猜归属，保留 'name:' 键。 */
 function historyDiffItems(hist, projects) {
   const out = [];
   const arr = hist || [];
@@ -2345,13 +2406,33 @@ function historyDiffItems(hist, projects) {
   const list = projects || [];
   const byPath = p => list.find(x => x && x.path === p);
   const byName = n => list.find(x => x && x.name === n);
+  // 纯函数身份解析器：有 path 直接用 path；旧名称键桥接到「唯一同名且带路径」的当前项目；
+  // 零个或多个同名（如 4 个 TclLauncher）退回 'name:'+name，绝不把变更错指到某个同名项目。
+  const identityOf = e => {
+    if (!e) return '';
+    if (e.path) return e.path;
+    const sameName = list.filter(p => p && p.name === e.name && p.path);
+    if (sameName.length === 1) return sameName[0].path;
+    return 'name:' + e.name;
+  };
+  const mapById = norm => {
+    const m = {};
+    Object.values(norm).forEach(e => {
+      const id = identityOf(e);
+      if (id) m[id] = e;
+    });
+    return m;
+  };
+  const prevById = mapById(prev);
+  const curById = mapById(cur);
   let diffN = 0;
-  Object.keys(cur).forEach(key => {
+  Object.keys(curById).forEach(key => {
     if (diffN >= 2) return;
-    const pp = prev[key];
+    const pp = prevById[key];
     if (!pp) return;
-    const cc = cur[key];
-    const hit = cc.path ? byPath(cc.path) : byName(cc.name);
+    const cc = curById[key];
+    // 身份为 path（含桥接补出的 path）走 byPath；仅遗留 'name:' 身份保留旧 byName 回退。
+    const hit = key.indexOf('name:') === 0 ? byName(cc.name) : byPath(key);
     const hAct = hit ? 'detail' : 'goto';
     const hP = hit ? hit.path : 'projects';
     const hTip = hit ? '查看「' + cc.name + '」项目详情' : '切到「项目」视图';

@@ -13,15 +13,15 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十二轮 / v1.7.22 · **「命令面板点击结果执行错误项目（过滤下标当完整列表下标）」**
-- **本轮主题一句话**：`renderPalList()` 的 `data-i` 是过滤后列表下标，`bindPalette()` 点击处理器却用 `PAL[i].run()`（完整列表下标）⇒ 查「tcl」点首项 `TclLauncherTestSuite` 实际执行 `America`、空查询点「视图：总览」实际打开 `Lowa` 文件夹 ⇒ 修：点击分支改走 `palFiltered()[i]`，与 Enter 分支同构
-- **版本**：v1.7.22
-- **交付态**：`out\Workbench-Setup-1.7.22.exe`（83.56 MB）+ `out\Workbench-1.7.22-portable.zip`（113.21 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.22.0**）；1.7.21 产物已清除
-- **最后巡检**：2026-11-17 12:37 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.22）`
-- **核心实证**：`PALQA 点击=TclLauncherTestSuite 记录=D:\TclLauncherTestSuite 旧逻辑会执行=America | PASS 视图项=goto:overview`；CDP 真实鼠标复测记录 `{act:open,p:D:\TclLauncherTestSuite}`，无 Explorer 新窗口
-- **本轮改动面**：2 文件 —— `renderer/app.js`（点击分支 1 行 + 零副作用 `--palqa=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**
-- **已知遗留（三审计员深度巡检所报，按优先级）**：① **v1.7.19 过渡轮丢历史对比条目**（旧 name-key 快照与新 path-key 快照归一化 key 零交集 ⇒ 下一轮扫描后「与上次扫描相比」两条全消失一轮，自引入回归）；② brief「未提交」条目未剔除 `PROJ_DEAD`（第 5 例假陈述，当前被 top-2 截断掩盖）；③ 活动条目说「D:\code 下」但 `buildActivity` 同时合并 `E:\workspace`；④ 屏幕简报标签不随时间刷新而复制/导出会重算（跨小时后同屏两答案）；⑤ `disk:analyze` 缓存命中分支清掉全局互斥锁 ⇒ 可并发分析；⑥ 最大化窗重启后标题栏图标不同步
-- **下一轮指针**：READY 仍空 ⇒ 第三十三轮取遗留 ①（v1.7.19 自引入回归）；用户指令「继续迭代直到 token 消耗完成」⇒ 收尾后立即进入下一轮
+- **本轮状态**：DONE · 第三十三轮 / v1.7.23 · **「新旧 history 格式过渡轮丢掉全部『与上次扫描相比』条目（自引入回归）」**
+- **本轮主题一句话**：v1.7.19 写侧改 path-key 后，旧快照归一化 key=`name:X`、新快照=`D:\…\X` 零交集 ⇒ 下一轮扫描后「有新提交 / 未提交 +N」两条全消失 ⇒ 修：读侧 `historyDiffItems()` 加纯身份解析（唯一同名的旧条目桥接为当前 path、同名多义保留 `name:` 防误归因）
+- **版本**：v1.7.23
+- **交付态**：`out\Workbench-Setup-1.7.23.exe`（83.56 MB）+ `out\Workbench-1.7.23-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.23.0**）；1.7.22 产物已清除
+- **最后巡检**：2026-11-17 12:45 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.23）`
+- **核心实证**：`HISTDIFFQA 混合命中=1 旧逻辑交集=0 纯旧命中=1 归因=D:\fcm-helper | PASS`；真实旧56键+新59键快照原始交集=0、新逻辑产出 1 条且归因正确
+- **本轮改动面**：2 文件 —— `renderer/app.js`（纯身份解析 + `--histdiffqa=` 钩子）、`main.js`（CLI 透传 2 行）；**写侧 store.js / normHistoryProjects / historyStatsFor 一行不动、零新增 IPC、零外部依赖、零数据改动**
+- **已知遗留（其余审计发现）**：brief「未提交」条目未剔除 `PROJ_DEAD`（第 5 例假陈述）/ 活动条目说「D:\code 下」但合并了 `E:\workspace` / 屏幕简报标签不随时间刷新而复制导出会重算 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步
+- **下一轮指针**：READY 仍空 ⇒ 第三十四轮按遗留清单造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

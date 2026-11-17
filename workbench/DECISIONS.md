@@ -2738,3 +2738,41 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.31）；**STATE / README 已更新**；临时物（`%TEMP%\r41shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第四十二轮按候选造活（最近 Top-60 递归深度 1 / 扫描进度分母回退 / 活动 cutoff 差一天 / 系统页副标题误称仓库数）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第四十二轮：最近 Top-60 递归太浅 ⇒ 看不到源码内层文件、只覆盖 3 个项目（P1 · 新视角巡检造活 · 编排侧第 87 轮 · v1.7.32）
+
+> **选题依据**：第三十九轮 scanner 审计员发现，lead 实证：60 条 recent 里内层 `src\`/`app\`/`lib\` 路径 = **0**，来源只有 `D:\code\usou`(34)/`D:\code\Poker`(10)/`D:\code\Paper`(1) 3 个项目 + 用户文件夹 —— 「最近动态」名为全机最近改动，实际是「3 个项目的根目录文件 + 桌面/下载」。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 为什么 levels=1 看不到源码？**
+    - 定位：`addFiles(dir, levels)` 收 dir 下文件 + 对子目录在 `levels>0` 时递归。`addFiles('D:\code', 1)` ⇒ 收 D:\code 根文件 + 对每个项目根 `addFiles(项目, 0)`（只收项目**根目录**文件，不进 src/）。
+    - 结论：levels 从 1 提到 **2**。
+    - 理由：① 深度 2 ⇒ 项目根文件 + `src\`/`app\` 下一层文件都能收到，覆盖真实源码改动；② 再深（3+）会收进大量嵌套文件、拖慢扫描且 Top-60 仍只取最新 60 条，边际收益低；③ 必须同时跳过 `SIZE_EXCLUDE`（node_modules/build/dist…），否则深度 2 会把依赖目录海量文件灌进候选集 —— 这是“加深”的安全前提。
+
+  - **Q2 为什么还要改根目录（从 2 个硬编码根到全部项目根）？**
+    - 结论：与第 40 轮活动热力图同构 —— `addFiles` 也只扫 D:\code/E:\workspace，33 个项目从未进 recent。
+    - 理由：① 本轮实证来源只有 3 个项目，正是「硬编码 2 根 + 深度 1」双重限制的结果；② 第 40 轮已建立「从 `projects` 根遍历 + 去重 + SIZE_EXCLUDE」的成熟模式，复用即可，零新增机制；③ 一次修掉「深度浅」与「覆盖窄」两个耦合缺陷，避免分两轮各自引入中间态。
+
+  - **Q3 用户文件夹（桌面/文档/下载）怎么处理？**
+    - 结论：保持原样（Desktop/Documents levels=1、Downloads levels=0），不加深、不排除。
+    - 理由：① 用户文件夹本就是「顶层文件列表」语义（如桌面快捷方式、下载的文件），深层递归无意义且可能碰到带 node_modules 的解压目录；② 本轮缺陷针对的是**项目源码**，改动聚焦项目根遍历，不扩大到用户文件夹（控制回归面）。
+
+  - **Q4 验证与风险？**
+    - 结论：真实全量扫描（只读探针）+ 对比 recent 内层路径数 / 来源项目数 / 扫描耗时。
+    - 理由：① 这是端到端证据（比合成更可信）；② dev 数据隔离、备份后恢复；③ 红线：扫描时间 ≤3min、内存无异常，超限则回退深度。
+
+  - **Q5 改动面？**
+    - 结论：仅 `src/scanner.js`（`addFiles` 加 SIZE_EXCLUDE + recent 收集改遍历项目根）；**零新增 IPC、零外部依赖、零数据文件结构改动、纯只读**。
+
+### 本轮收尾（第四十二轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.32.exe`（83.56 MB）+ `Workbench-1.7.32-portable.zip`（113.22 MB）+ blockmap；1.7.31 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.32.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.32）`。
+- **核心实证（真实全量扫描，只读探针）**：改前基线 recent 60 条里内层 `src\`/`app\`/`lib\` 路径 = **0**、来源仅 **3 项目**（usou34/Poker10/Paper1）；改后来源项目数 **24**、内层路径 **5**、前 4 条全是真实最近改的源码（`D:\code\usou\workbench-electron\src\scanner.js` / `DECISIONS.md` / `BACKLOG.md` / `STATE.md`）；扫描 52s（性能正常）。
+- **过程修正（两版探针）**：① 第一版仅把 levels 1→2 + 遍历项目根 ⇒ 来源 9 项目但内层仍 0，且 Top 被 `.tmp_jira`/`worktrees` 临时目录灌满 —— 发现真实源码藏在**第 3 层**（usou\workbench-electron\src\文件），且 `usou` 被 discoverRoots 显式排除；② 第二版改为**基础根深度 4 + 项目根深度 4 补扫** + 扩充 SIZE_EXCLUDE（排除 .tmp_jira/worktrees/browser_profile/download/data/out 等），实测 depth4 遍历 16232 文件仅 1.5s ⇒ 达成目标。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.31 基线一致）。
+- **改动面**：仅 `src/scanner.js`（`SIZE_EXCLUDE` 扩充 + `addFiles` 加排除判断 + recent 收集改深度4/遍历项目根）；**零新增 IPC、零外部依赖、零数据文件结构改动、纯只读磁盘访问**。
+- **副作用说明**：`SIZE_EXCLUDE` 同时被 `buildActivity`（第 40 轮）与体量统计使用 ⇒ 临时目录/运行时数据不再计入活动与体量，属正向修正（这些本就不是源码）；`analyze` 用 null 不受影响。
+- **BACKLOG**：本项 → DONE（v1.7.32）；**STATE / README 已更新**；临时物（`%TEMP%\r42shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 仍空 ⇒ 第四十三轮按候选造活（扫描进度分母回退 / 活动 cutoff 差一天 / 系统页副标题误称仓库数）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

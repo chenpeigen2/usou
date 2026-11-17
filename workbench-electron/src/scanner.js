@@ -15,7 +15,8 @@ const SIZE_EXCLUDE = new Set([
   'node_modules', 'build', '.gradle', '.git', 'dist', '.next', 'target',
   '__pycache__', '.venv', 'venv', '.idea', '.kotlin', '.tmp', 'uvcache',
   'obj', 'bin', '.codegraph', '.dart_tool', 'pods', '.pnpm-store',
-  '.turbo', 'coverage', '.cache'
+  '.turbo', 'coverage', '.cache', '.tmp_jira', 'worktrees', 'browser_profile',
+  'download', 'screenshots', 'node_modules_backup', 'data', 'out'
 ]);
 
 const PROJECT_MARKERS = ['settings.gradle', 'settings.gradle.kts', 'build.gradle',
@@ -259,6 +260,8 @@ async function addFiles(list, dir, levels) {
       const st = await fsp.stat(full).catch(() => null);
       if (st) list.push({ name: e.name, dir, path: full, sizeKB: r1(st.size / 1024), mtime: fmtDate(st.mtime) });
     } else if (e.isDirectory() && levels > 0) {
+      // v1.7.32：加深遍历时必须跳过构建产物目录（node_modules/build/dist…），否则候选集被海量依赖文件灌满
+      if (SIZE_EXCLUDE.has(e.name.toLowerCase())) continue;
       await addFiles(list, full, levels - 1);
     }
   }
@@ -441,8 +444,21 @@ async function runScan(opts = {}, onProgress = () => {}) {
   await addFiles(recent, path.join(HOME, 'Desktop'), 1);
   await addFiles(recent, path.join(HOME, 'Documents'), 1);
   await addFiles(recent, path.join(HOME, 'Downloads'), 0);
-  await addFiles(recent, 'D:\\code', 1);
-  await addFiles(recent, 'E:\\workspace', 1);
+  // v1.7.32：旧代码 levels=1 只收项目**根目录**文件（README/package.json），
+  //   看不到 src\ 内层源码（本机真实最近改的 D:\code\usou\workbench-electron\src\scanner.js
+  //   藏在第 3 层，旧逻辑与新 levels=2 都够不到），且来源只剩 3 个项目。
+  //   改为对基础根深度 4（实测 16232 文件 ~1.5s）+ 项目根深度 4 补扫 33 个外部项目；
+  //   addFiles 已跳过 SIZE_EXCLUDE + 临时目录，Top-60 按 mtime 取最新。
+  await addFiles(recent, 'D:\\code', 4);
+  await addFiles(recent, 'E:\\workspace', 4);
+  const recentSeen = new Set(['D:\\code', 'E:\\workspace']);
+  for (const pr of projects.map(p => p.path)) {
+    if (!pr || typeof pr !== 'string' || recentSeen.has(pr)) continue;
+    // 跳过基础根之下的项目（已被上面的深度4遍历覆盖）
+    if (['D:\\code', 'E:\\workspace'].some(s => pr === s || pr.startsWith(s + '\\') || pr.startsWith(s + '/'))) continue;
+    recentSeen.add(pr);
+    await addFiles(recent, pr, 4);
+  }
   recent.sort((a, b) => b.mtime.localeCompare(a.mtime));
   recent.length = Math.min(recent.length, 60);
 

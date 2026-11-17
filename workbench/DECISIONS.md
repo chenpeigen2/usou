@@ -2943,3 +2943,12 @@ D:\code\usou\workbench-electron\out\
 > **选题依据**：第 47–52 轮连续 6 轮证伪巡检、无真实缺陷，常规维度已充分覆盖。为避免「知识随会话丢失」，新增 `workbench-electron\DELIVERY.md` 作为接手人/新会话快速上手入口。
 > **内容（全部来自本机实测/git 状态，非推演）**：项目定位与技术栈、当前交付态（v1.7.36 / Setup 83.57MB / zip 113.23MB / 4 进程 / 12 项全 PASS / 36 commit 未推送）、代码结构树、六视图与核心功能、第 28–52 轮成果（15 项遗留 + 3 功能增量 + 6 轮证伪 + QA 基建审计）、开发与验收 8 条约定（含零副作用 QA、文案-钩子同步清点）、Git 与网络实情、关键不变量清单。
 > **无代码改动、无需发版**；交付态保持打包版运行。
+
+### 本轮收尾（第五十四轮完成 · 门禁元审计）
+
+- **实证假阳性**：用模拟日志（含一条正常 `[renderer] [pal] open...` 调试行）跑旧门禁逻辑 ⇒ 判为 1 条「错误行」⇒ 健康交付态会被误 FAIL。根因 `main.js:298-300` 的 `console-message` 事件不区分 level、把所有渲染层 console 记为 `[renderer]` 行。
+- **修复**：`verify-delivery.ps1:43` 的匹配模式从「任何 `[renderer]` 行」改为「仅含明确错误信号（Error/error/Uncaught/TypeError/ReferenceError/SyntaxError）+ ERROR/FAILED/EXCEPTION/tray icon EMPTY」；普通 console.log 不再算错误。
+- **阴性对照 6/6**：正常 `[pal] open` / `[brief] copied` / `pulse started` → PASS；`TypeError` / `Uncaught ReferenceError` / `scan ERROR` → FAIL。真实验收门禁（当前交付态）仍 12 项全 PASS。
+- **改动面**：仅 `verify-delivery.ps1`（验收脚本，非业务代码）；**无需重打包**（脚本不在源码一致性检查清单、不进 asar）；交付态保持 v1.7.36 运行。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 空 ⇒ 继续巡检或 IDEA 升级；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

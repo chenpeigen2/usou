@@ -40,7 +40,10 @@ Check '便携 zip 存在'    (Test-Path $zip)   $(if (Test-Path $zip)   { "{0:N1
 Write-Host "`n== 3. 日志 ==" -ForegroundColor Cyan
 $log = Join-Path $APPD 'main.log'
 if (Test-Path $log) {
-  $bad = @(Select-String -Path $log -Pattern '\[renderer\]|ERROR|tray icon EMPTY' -EA SilentlyContinue)
+  # v1.7.37：main.js 的 console-message 事件不区分 level，所有渲染层 console（含 [pal] open 等
+  #   正常调试 log）都被记为 [renderer] 行 ⇒ 旧逻辑把它整类当「错误行」会误判健康交付态 FAIL。
+  #   改为按内容判错：只认真正的错误信号，普通 console.log 不算。
+  $bad = @(Select-String -Path $log -Pattern '\[renderer\].*(Error|error|Uncaught|TypeError|ReferenceError|SyntaxError)|ERROR|tray icon EMPTY|FAILED|EXCEPTION' -EA SilentlyContinue)
   Check '日志无错误行' ($bad.Count -eq 0) "$($bad.Count) 条"
   $tail = @(Get-Content $log -Tail 40 -EA SilentlyContinue)
   Check '最近启动三标志齐' (($tail -match 'app ready').Count -ge 1 -and ($tail -match 'tray created').Count -ge 1 -and ($tail -match 'pulse started').Count -ge 1) ''

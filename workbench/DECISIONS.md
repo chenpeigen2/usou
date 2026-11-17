@@ -2403,3 +2403,40 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.21）⇒ READY 仍空；**STATE / README 已更新**；临时物（`%TEMP%\r31shots\` 六张截图 + 审计、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第三十二轮继续真实巡检造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第三十二轮：命令面板点击结果执行错误项目（过滤下标当完整列表下标）（P1 · 深度巡检造活 · 编排侧第 77 轮 · v1.7.22）
+
+> **选题依据**：第三十一轮收尾 READY 空 ⇒ 派 3 个只读审计员对 renderer / backend / 跨进程一致性做深度巡检（本轮不靠表面截图）。renderer 审计员给出 3 项，本轮取**最明确的用户可见缺陷**：命令面板鼠标点击路径。
+> **实证（CDP 真实鼠标管线）**：空查询面板列出 `America…Lamian`(data-i 0..7) + `视图：总览`(i=8) + `视图：项目`(i=9)，而 `PAL[8]=Lowa` / `PAL[9]=LatinAmerica` ⇒ 点「视图：总览」实际执行 `doAct('open', Lowa路径)`；查询「tcl」后点首项 `TclLauncherTestSuite`(data-i=0) 实际执行 `PAL[0]=America`。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 为什么 Enter 键正常、鼠标点击却是坏的？**
+    - 定位：`bindPalette()` L1617 的 Enter 分支用 `const list = palFiltered(); list[palActive].run()` —— **过滤后列表**，正确；L1611 的点击分支用 `PAL[i].run()` —— **完整列表**，错误。`renderPalList()` L1654 写进 DOM 的 `data-i` 是 `list.map((it,i)=>i)` 的 i，即过滤后下标。
+    - 结论：把点击分支也改为走 `palFiltered()[i]`。
+    - 理由：① 这是**唯一**一条把两种下标混用的路径；per-item 动作按钮走 `data-p`（真实路径）也是对的；② 备选「让 `data-i` 存原始 PAL 下标」需要改 `palFilteredFor()` 保留 `hits.map(h=>h.it)` 丢弃的 `h.i`，改动面更大且易再漏；③ 走过滤后列表与 Enter 分支**同构**，一处修复、两条路径语义统一。
+
+  - **Q2 这个缺陷为什么是 P1？**
+    - 结论：`open()` 有**真实外部副作用** —— 点击面板里一个项目，会在 Windows 资源管理器打开**另一个项目**的文件夹（甚至不是用户想看的那一个）。这不是显示错误，是**执行了错误动作**，且触发路径是命令面板最常用的「打字→点结果」。
+    - 理由：① 空查询下点「视图：总览/视图：项目」两个条目 100% 触发（它们恰在过滤列表尾部、下标与 PAL 错位最大）；② 有查询词时结果被相关性重排，错位更普遍；③ 与 v1.7.27 教训呼应 —— `openPath(存在路径)` 会真的拉起窗口，QA 必须零副作用。
+
+  - **Q3 QA 钩子怎么设计才不再制造外部窗口？**
+    - 结论：`--palqa=1` 用**模块级 recorder** 临时替换 `doAct`，只记录 `(act, p)`，绝不真调 `window.wb.openPath`；钩子结束在 `finally` 中精确恢复原函数。
+    - 理由：① 本轮 lead 用 CDP 真点首项时，`PAL[0]=America` 的 `open()` 真的被调用（所幸该路径不存在、`openPath` 直接返回错误，未留下窗口）—— **这正是 v1.7.27 用 12 个 Code.exe 换来的教训**，不能重犯；② 记录器 + CDP 真实鼠标管线可以同时证明「点击确实走到处理器」与「传给 doAct 的参数错在哪」，无需副作用；③ 阴性对照：旧逻辑传 `PAL[0].p`，新逻辑传 `palFiltered()[0].p`，两者在「tcl」查询下**必然不同** ⇒ 不可能同时通过。
+
+  - **Q4 改动面与风险边界？**
+    - 结论：仅 **2 文件** —— `renderer/app.js`（点击分支 1 行 + `--palqa=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**。
+    - 理由：① 修复是一行式下标纠正，与 Enter 分支同构，回归面极小；② 必须补一条「真实点击 → 记录器参数」的端到端断言，防止只测函数不测事件委托（历史上多次「DOM 有但点不动」的教训）；③ 六视图审计仍需全 0，确认面板改动未影响布局。
+
+### 本轮收尾（第三十二轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.22.exe`（83.56 MB）+ `Workbench-1.7.22-portable.zip`（113.21 MB）+ blockmap；1.7.21 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.22.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.22）`。
+- **核心实证（CDP，零副作用 recorder）**：`#palqa-evidence` = `PALQA 点击=TclLauncherTestSuite 记录=D:\TclLauncherTestSuite 旧逻辑会执行=America | PASS 视图项=goto:overview`；另用**真实鼠标管线**（`Input.dispatchMouseEvent`，先 stub `doAct`/`setView`）复测点击首项 ⇒ 记录 `{act:open, p:D:\TclLauncherTestSuite}`（修复前会执行 `America`），无 Explorer 新窗口。
+- **阴性对照**：查询「tcl」时过滤首项 `TclLauncherTestSuite` 的路径与 `PAL[0]=America` **必然不同** ⇒ 旧逻辑不可能通过；空查询「视图：总览」的正确动作 `goto:overview` 与旧逻辑 `PAL[8]=Lowa` 的 `open` 也完全不同。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.21 基线一致）。
+- **改动面**：2 文件 —— `renderer/app.js`（点击分支改走 `palFiltered()[i]` + 零副作用 `--palqa=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**。
+- **QA 方法论沉淀（第 4 条，重要）**：**命令面板的 `run()` 会真调 `openPath`，QA 绝不能在未 stub 的实例里真点结果体**（本轮 lead 首次探测时差点打开 `America` 文件夹，所幸路径不存在）。正确做法：先临时把全局 `doAct` / `setView` 换成 recorder（只记 `{act,p}`）、`finally` 精确恢复，再用 CDP 真实鼠标点击验证事件委托 —— 既保留真实输入管线，又零外部副作用。
+- **BACKLOG**：本项 → DONE（v1.7.22）；审计员另报 6 项遗留已写入 STATE 已知遗留（brief 未剔除失效项目 / 活动条目归因两个根目录 / 屏幕标签不随时间刷新 / v1.7.19 过渡轮丢历史对比条目 / disk 分析互斥锁 / 最大化图标不同步）。
+- **STATE / README 已更新**；临时物（`%TEMP%\r32shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 仍空 ⇒ 第三十三轮按遗留清单造活（优先「v1.7.19 过渡轮丢历史对比条目」—— 本系列自引入回归）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

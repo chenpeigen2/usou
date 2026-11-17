@@ -565,6 +565,7 @@ async function init() {
   if (qs.get('histqa')) triggerHistoryQa();
   if (qs.get('dayqa')) triggerDayQa();
   if (qs.get('timeqa')) triggerTimeQa();
+  if (qs.get('palqa')) triggerPalQa(); // v1.7.22：命令面板点击索引修复的零副作用取证
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1089,6 +1090,94 @@ function triggerTimeQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.22）：--palqa=1 → 证明命令面板点击「按过滤后下标解析」已修复。
+   零副作用：临时把全局 doAct 换成只记录 {act,p} 的 recorder（绝不碰 window.wb / 不调 openPath 等）；
+   视图项 run() 直接调 setView(v)，故同样临时换成记录 goto 的 stub —— 两个 stub 都在 finally 精确还原。
+   点击通过 .pal-item 上 bubbles 的 MouseEvent 派发，走 #palette 上真实的事件委托路径。 */
+function triggerPalQa() {
+  setTimeout(() => {
+    const origDoAct = doAct;
+    const origSetView = setView;
+    let evidence = '';
+    try {
+      window.__palqaRec = [];
+      doAct = function (act, p) { window.__palqaRec.push({ act: act, p: p }); };
+      setView = function (v) { window.__palqaRec.push({ act: 'goto', p: v }); };
+
+      // (a) 查询态：打开面板 → 输入 tcl → 以过滤后列表渲染
+      openPal();
+      const inp = $('#pal-input');
+      if (inp) inp.value = 'tcl';
+      renderPalList('tcl');
+
+      // (b) 取首条目的标签 / data-i / 包围盒；对照真实期望与旧逻辑误执行项
+      const firstEl = $('#pal-list .pal-item');
+      const labelEl = firstEl ? firstEl.querySelector('.pi-label') : null;
+      const label = labelEl ? labelEl.textContent : '(无)';
+      const dataI = firstEl ? Number(firstEl.dataset.i) : -1;
+      const rect = firstEl ? firstEl.getBoundingClientRect() : null;
+      const expected = palFiltered()[0] || {};
+      const wrongOld = PAL[0] || {};
+      const expPath = expected.acts && expected.acts[0] ? expected.acts[0][2] : '';
+      const wrongPath = wrongOld.acts && wrongOld.acts[0] ? wrongOld.acts[0][2] : '';
+      const clickItem = (el, r) => {
+        if (!el) return;
+        const box = r || el.getBoundingClientRect();
+        el.dispatchEvent(new MouseEvent('click', {
+          bubbles: true, cancelable: true, view: window,
+          clientX: box.left + box.width / 2, clientY: box.top + box.height / 2
+        }));
+      };
+
+      // (c) 在条目中心派发可冒泡的 MouseEvent → 由 #palette 上的真实委托处理器接管
+      clickItem(firstEl, rect);
+
+      // (d) 断言：记录路径 = 过滤后首项，且 != 旧 PAL[0] 的路径（负对照）
+      const rec = window.__palqaRec[0] || {};
+      const pass1 = dataI === 0 && !!expPath && rec.p === expPath && rec.p !== wrongPath && expPath !== wrongPath;
+
+      // (e) 空查询视图项：重开空查询面板，找到「视图：」条目并同样派发委托点击
+      window.__palqaRec.length = 0;
+      openPal();
+      if (inp) inp.value = '';
+      renderPalList('');
+      const viewEl = Array.from($$('#pal-list .pal-item')).find(el => {
+        const le = el.querySelector('.pi-label');
+        return le && le.textContent.indexOf('视图：') === 0;
+      });
+      const vLabel = viewEl && viewEl.querySelector('.pi-label') ? viewEl.querySelector('.pi-label').textContent : '(无)';
+      const VMAP = { '总览': 'overview', '项目': 'projects', '最近': 'recent', '空间': 'disk', '系统': 'system', '设置': 'settings' };
+      const wantV = VMAP[vLabel.replace(/^视图：/, '')] || '';
+      const wrongV = PAL[8] || {};
+      const wrongVPath = wrongV.acts && wrongV.acts[0] ? wrongV.acts[0][2] : '';
+      clickItem(viewEl);
+      const vrec = window.__palqaRec[0] || {};
+      const pass2 = !!wantV && vrec.act === 'goto' && vrec.p === wantV && vrec.p !== wrongVPath;
+
+      closePal();
+      const pass = pass1 && pass2;
+      evidence = 'PALQA 点击=' + label +
+        ' 记录=' + (rec.p || '(无)') +
+        ' 旧逻辑会执行=' + (wrongOld.label || '(无)') +
+        ' | ' + (pass ? 'PASS' : 'FAIL') +
+        ' 视图项=' + (vrec.act || '?') + ':' + (vrec.p || '?');
+    } catch (e) {
+      evidence = 'PALQA 异常=' + String(e && e.message || e) + ' | FAIL';
+    } finally {
+      // (f) 无论断言是否抛错，都精确还原两个全局函数引用
+      doAct = origDoAct;
+      setView = origSetView;
+      const el = document.createElement('div');
+      el.id = 'palqa-evidence';
+      el.className = 'hint';
+      el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+      el.textContent = evidence;
+      const v = $('#view');
+      if (v) v.insertBefore(el, v.firstChild);
+    }
+  }, 1200);
+}
+
 function setView(v, silent) {
   view = v;
   localStorage.setItem('wb.view', v);
@@ -1608,7 +1697,15 @@ function bindPalette() {
     const actB = e.target.closest('[data-act]');
     if (actB) { doAct(actB.dataset.act, actB.dataset.p); closePal(); return; }
     const item = e.target.closest('.pal-item');
-    if (item) { const i = Number(item.dataset.i); closePal(); if (PAL[i]) PAL[i].run(); }
+    if (item) {
+      // v1.7.22：data-i 来自 renderPalList() 里 palFiltered() 的「过滤后」下标，
+      // 必须同样用过滤后列表解析（与 Enter 路径一致）。旧代码用 PAL[i] 索引完整清单 ⇒
+      // 空查询点「视图：总览」(i=8) 会执行 PAL[8].run()=doAct('open', 错误路径)。
+      const list = palFiltered();
+      const i = Number(item.dataset.i);
+      closePal();
+      if (list[i]) list[i].run();
+    }
   });
   $('#pal-input').addEventListener('input', e => renderPalList(e.target.value));
   $('#pal-input').addEventListener('keydown', e => {

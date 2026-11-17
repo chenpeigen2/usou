@@ -13,15 +13,15 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十一轮 / v1.7.21 · **「数据陈旧时简报的『N 分钟前提交』误导近 23 小时」**
-- **本轮主题一句话**：`relTime()` 以扫描时刻为基准（DECISIONS D8 有意设计），简报提交条目写 `relTime+'前提交'` ⇒ fcm-helper 提交距扫描 12 分钟、距当前 1360 分钟（数据陈旧 22.5h）却说「12 分钟前提交」⇒ 修：简报提交条目在数据陈旧（>1h）时显示「于 MM-DD HH:mm 提交」绝对时刻，`relTime` 与其他视图一行不动
-- **版本**：v1.7.21
-- **交付态**：`out\Workbench-Setup-1.7.21.exe`（83.56 MB）+ `out\Workbench-1.7.21-portable.zip`（113.21 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.21.0**）；1.7.20 产物已清除
-- **最后巡检**：2026-11-17 12:21 —— 打包版 4 进程、`[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.21）`
-- **核心实证**：`TIMEQA 真实=于 11-16 13:35  | 新鲜=22 小时前 陈旧=于 11-16 13:35  | 旧逻辑两态恒=12 分钟前 | PASS`；真实简报 `「fcm-helper」于 11-16 13:35 提交`；`DATA.meta.scanTime` 无泄漏；简报仍 9 条
-- **本轮改动面**：2 文件 —— `renderer/app.js`（`commitWhenLabel()` 纯函数 + `buildBrief()` 两条提交条目 + `--timeqa=` 钩子）、`main.js`（CLI 透传 2 行）；**`relTime`/`base`/项目列表/详情弹窗/命令面板一行不动**
-- **已知遗留**：① 缓存里已删除条目（60 中 36）要等真实扫描才消失；② 现有 6 个历史快照仍是塌缩口径（v1.7.19 不迁移）；③ `relTime` 在其他视图仍以扫描时刻为基准（有意设计，本轮不碰）
-- **下一轮指针**：READY 仍空 ⇒ 第三十二轮继续真实巡检造活；**用户指令「继续迭代直到 token 消耗完成」** ⇒ 收尾后立即进入下一轮
+- **本轮状态**：DONE · 第三十二轮 / v1.7.22 · **「命令面板点击结果执行错误项目（过滤下标当完整列表下标）」**
+- **本轮主题一句话**：`renderPalList()` 的 `data-i` 是过滤后列表下标，`bindPalette()` 点击处理器却用 `PAL[i].run()`（完整列表下标）⇒ 查「tcl」点首项 `TclLauncherTestSuite` 实际执行 `America`、空查询点「视图：总览」实际打开 `Lowa` 文件夹 ⇒ 修：点击分支改走 `palFiltered()[i]`，与 Enter 分支同构
+- **版本**：v1.7.22
+- **交付态**：`out\Workbench-Setup-1.7.22.exe`（83.56 MB）+ `out\Workbench-1.7.22-portable.zip`（113.21 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.22.0**）；1.7.21 产物已清除
+- **最后巡检**：2026-11-17 12:37 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.22）`
+- **核心实证**：`PALQA 点击=TclLauncherTestSuite 记录=D:\TclLauncherTestSuite 旧逻辑会执行=America | PASS 视图项=goto:overview`；CDP 真实鼠标复测记录 `{act:open,p:D:\TclLauncherTestSuite}`，无 Explorer 新窗口
+- **本轮改动面**：2 文件 —— `renderer/app.js`（点击分支 1 行 + 零副作用 `--palqa=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**
+- **已知遗留（三审计员深度巡检所报，按优先级）**：① **v1.7.19 过渡轮丢历史对比条目**（旧 name-key 快照与新 path-key 快照归一化 key 零交集 ⇒ 下一轮扫描后「与上次扫描相比」两条全消失一轮，自引入回归）；② brief「未提交」条目未剔除 `PROJ_DEAD`（第 5 例假陈述，当前被 top-2 截断掩盖）；③ 活动条目说「D:\code 下」但 `buildActivity` 同时合并 `E:\workspace`；④ 屏幕简报标签不随时间刷新而复制/导出会重算（跨小时后同屏两答案）；⑤ `disk:analyze` 缓存命中分支清掉全局互斥锁 ⇒ 可并发分析；⑥ 最大化窗重启后标题栏图标不同步
+- **下一轮指针**：READY 仍空 ⇒ 第三十三轮取遗留 ①（v1.7.19 自引入回归）；用户指令「继续迭代直到 token 消耗完成」⇒ 收尾后立即进入下一轮
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

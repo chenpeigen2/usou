@@ -568,6 +568,7 @@ async function init() {
   if (qs.get('palqa')) triggerPalQa(); // v1.7.22：命令面板点击索引修复的零副作用取证
   if (qs.get('histdiffqa')) triggerHistDiffQa(); // v1.7.23：name-key→path-key 混合快照 diff 匹配修复取证
   if (qs.get('deadbriefqa')) triggerDeadBriefQa(); // v1.7.24：buildBrief 未提交条目剔除失效项目取证
+  if (qs.get('actrootqa')) triggerActRootQa(); // v1.7.25：简报活动条目两根目录归属修复取证
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1083,6 +1084,46 @@ function triggerDeadBriefQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.25）：--actrootqa=1 → 证明简报「文件在动」条目不再把 D:\code 与 E:\workspace
+    的合并计数误归属为只有 D:\code。纯只读：取真实 DATA.activity 经 buildBrief() 渲染的文案，
+    零 IPC / 零路径操作 / 不改 DATA。三项断言：(a) 文案同时含 D:\code 与 E:\workspace；
+    (b) 文案仍以末桶 activityDayLabel 开头（v1.7.20 无回归）；(c) 负对照：旧文案
+    oldText = activityDayLabel(last.date) + ' D:\code 下有 N 个文件在动' 不含 E:\workspace ⇒ 旧逻辑不可能通过 (a)。
+    取证行注入 #view 顶部（createElement + textContent，id=actrootqa-evidence，无 innerHTML、无内联 onclick）。 */
+function triggerActRootQa() {
+  setTimeout(() => {
+    if (!DATA) return;
+    let fullText = '';
+    try {
+      const it = buildBrief().find(i => i && i.text && String(i.text).includes('下有') && String(i.text).includes('文件在动'));
+      if (it) fullText = String(it.text);
+    } catch (_e) { fullText = ''; }
+    const act = DATA.activity || [];
+    const last = act.length ? act[act.length - 1] : null;
+    const expectedLabel = last ? activityDayLabel(last.date) : '';
+    // (a) 两个根目录都在真实文案里（修复点）
+    const bothRoots = !!fullText && fullText.includes('D:\\code') && fullText.includes('E:\\workspace');
+    // (b) 日标签仍取自末桶真实日期（v1.7.20 今天/昨天/MM-DD 无回归）
+    const dayKept = !!expectedLabel && fullText.indexOf(expectedLabel) === 0;
+    // (c) 负对照：旧文案只提 D:\code，必不含 E:\workspace（期望 false）
+    const oldText = expectedLabel + ' D:\\code 下有 N 个文件在动';
+    const oldHasE = oldText.includes('E:\\workspace');
+    const pass = bothRoots && dayKept && !oldHasE;
+
+    const el = document.createElement('div');
+    el.id = 'actrootqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'ACTROOTQA 文案=' + fullText +
+      ' | 含两根目录=' + String(bothRoots) +
+      ' 日标签保留=' + String(dayKept) +
+      ' 旧文案含E=' + String(oldHasE) +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
 /* QA 钩子（v1.7.20）：--dayqa=1 → 证明「今天」硬编码在真实数据（桶属于前一天）下必然陈述假事实。
    先于任何变更抓取真实数据标签，再用 4 个合成日期经 buildBrief 取真实渲染标签，
    并忠实复现旧逻辑（恒「今天」）作负对照；最后精确恢复 DATA.activity，注入持久取证行。 */
@@ -1095,8 +1136,8 @@ function triggerDayQa() {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
       return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
     };
-    const marker = 'D:\\code 下有';           // 实际文本 "D:\code 下有"
-    const cut = ' D:\\code';                  // 实际文本 " D:\code"，用于取标签前缀
+    const marker = '文件在动';                // 语义锚点：仅活动条目含此串，兼容旧「D:\code 下有」与新「D:\code 与 E:\workspace 下有」
+    const cut = ' D:\\code';                  // 实际文本 " D:\code"，旧/新文案均含此串，用于取标签前缀
     const labelOf = t => { const s = String(t || ''), i = s.indexOf(cut); return i >= 0 ? s.slice(0, i) : ''; };
     const briefLabel = () => {
       const it = buildBrief().find(x => x && x.text && x.text.indexOf(marker) >= 0);
@@ -1534,8 +1575,8 @@ function buildBrief() {
   if (today && today.count > 0) {
     // v1.7.20：桶日期未必是「今天」（autoScan=0 时可能是昨天/更早），标签按真实日期计算
     const dayLabel = activityDayLabel(today.date);
-    push('var(--green)', dayLabel + ' D:\\code 下有 <b>' + today.count + '</b> 个文件在动',
-      dayLabel + ' D:\\code 下有 ' + today.count + ' 个文件在动', 'goto', 'recent', '切到「最近」视图');
+    push('var(--green)', dayLabel + ' D:\\code 与 E:\\workspace 下有 <b>' + today.count + '</b> 个文件在动',
+      dayLabel + ' D:\\code 与 E:\\workspace 下有 ' + today.count + ' 个文件在动', 'goto', 'recent', '切到「最近」视图');
   }
 
   // v1.7.17：**只统计磁盘上仍然存在的文件**。

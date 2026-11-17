@@ -13,16 +13,16 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十四轮 / v1.7.24 · **「简报『未提交』条目仍把已删除项目当成活跃事实（第 5 例假陈述）」**
-- **本轮主题一句话**：`buildBrief()` 未提交过滤无 `PROJ_DEAD` 检查（v1.7.18 统一口径时漏掉简报这条旁路数据，且它被复制/导出带出应用）⇒ 合成失效 d=9 后简报播报「「wt-demo」还有 9 个文件未提交」⇒ 修：过滤加 `!PROJ_DEAD.has(p.path)`，双侧断言防过度剔除
-- **版本**：v1.7.24
-- **交付态**：`out\Workbench-Setup-1.7.24.exe`（83.56 MB）+ `out\Workbench-1.7.24-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.24.0**）；1.7.23 产物已清除
-- **最后巡检**：2026-11-17 12:53 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.24）`
-- **核心实证**：`DEADBRIEFQA 新条目=1 含失效=false 含存活=true 旧逻辑含失效=true | PASS`；真实简报未提交条目均为存活项目（TclLauncher 归因 `D:\CLAUNCER2\TclLauncher`、AsyncAnimator）；`DATA.projects` 无泄漏；简报仍 9 条
-- **本轮改动面**：2 文件 —— `renderer/app.js`（过滤 1 行 + `--deadbriefqa=` 钩子）、`main.js`（CLI 透传 2 行）；**简报其他条目一行不动、零新增 IPC、零外部依赖、零数据改动**
-- **教训沉淀**：**简报是旁路数据**（`buildBrief()` 独立生成 + `briefMarkdown()` 复制/导出带出应用）⇒ 以后任何「同一口径」变更必须把简报及其复制/导出通道列入清点清单（本轮为第 5 例假陈述）
-- **已知遗留（其余审计发现）**：活动条目说「D:\code 下」但 `buildActivity` 合并了 `E:\workspace` / 屏幕简报标签不随时间刷新而复制导出会重算 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步
-- **下一轮指针**：READY 仍空 ⇒ 第三十五轮按遗留清单造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
+- **本轮状态**：DONE · 第三十五轮 / v1.7.25 · **「简报活动条目把两个根目录的变动全归给 D:\code（陈述不实）」**
+- **本轮主题一句话**：`buildActivity()` 同时扫 `D:\code` 与 `E:\workspace` 并合并计数，简报却硬编码「D:\code 下有 N 个文件在动」⇒ 实证 E:\workspace 近 90 天 795 文件被错误归属（19.6%）⇒ 文案改为同时点名两个根目录，与扫描器实际范围严格一致；同时修正 `--dayqa` finder 的附带假 FAIL
+- **版本**：v1.7.25
+- **交付态**：`out\Workbench-Setup-1.7.25.exe`（83.56 MB）+ `out\Workbench-1.7.25-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.25.0**）；1.7.24 产物已清除
+- **最后巡检**：2026-11-17 13:01 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.25）`
+- **核心实证**：双钩子同跑均 PASS —— `ACTROOTQA 文案=昨天 D:\code 与 E:\workspace 下有 306 个文件在动 | 含两根目录=true 日标签保留=true 旧文案含E=false | PASS`、`DAYQA … | PASS`；真实简报文案正确、仍 9 条
+- **本轮改动面**：2 文件 —— `renderer/app.js`（活动文案 1 行 + `--actrootqa=` 钩子 + `--dayqa` finder 语义锚点）、`main.js`（CLI 透传 2 行）；**扫描器/数据结构一行不动、零新增 IPC、零外部依赖、零数据改动**
+- **教训沉淀**：改用户可见文案时必须同步清点所有依赖该文案字符串做匹配的 QA 钩子（本轮 `--dayqa` finder 曾因此假 FAIL，已当场修正）
+- **已知遗留（其余审计发现）**：屏幕简报标签不随时间刷新而复制导出会重算 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步
+- **下一轮指针**：READY 仍空 ⇒ 第三十六轮按遗留清单造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

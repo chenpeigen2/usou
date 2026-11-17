@@ -3122,3 +3122,12 @@ D:\code\usou\workbench-electron\out\
  > **关键正确性**：`main.js` 用 `__dirname` 定位 renderer/preload/icon，与目录层级无关；electron-builder.yml 的相对路径（electronDist: runtime/electron、output: out、buildResources: build）在根目录下依然正确。
  > **验证（阴性对照式）**：语法 8/8；`__dirname` 定位检查；CDP 实测应用从 `file:///D:/code/usou/renderer/index.html` 启动（不再是 /workbench-electron/）、三个脚本顺序加载、全局函数可见、59 项目、`tcl launcher`=14（与铺平前一致）；六视图审计 failCount 0 / min 4.64；**重新打包 builder=0**（产物在根 out\）、4 进程交付、verify-delivery.ps1 12 项全 PASS。
  > **守护约定**：用户明确「只 commit 不 push」—— 本轮严格只 commit。
+
+ # 第七十五轮：抽出对比度审计为平铺文件 + 修正 DELIVERY 结构树（代码组织 · v1.7.40 重建）
+
+ > **选题依据**：用户确认仓库已扁平后要求继续迭代；代码组织仍是重点 —— app.js（现 3119 行）里的对比度审计段（160 行）是自包含纯计算模块（WCAG 公式、颜色合成），只依赖 document 与自身常量，适合抽出。
+ > **做法**：把 `_parseColor`/`_lum`/`_effectiveBg`/`_contrast`/`auditContrast`/`CONTRAST_TARGETS` 抽到平铺文件 `renderer/contrast.js`（不建子目录/package），普通 <script> 顺序加载、全局直接可见；avatarInk（用 _contrast）、QA 钩子、qashot（用 auditContrast）调用点零改动。index.html 在 format.js 前加载 contrast.js。verify-delivery.ps1 的语法/时序清单同步。
+ > **附带修正**：DELIVERY.md 结构树之前写错 `public/build/`（实际扁平后是 `build/`），且漏列 format.js/search.js/runtime/out/data/.github —— 一并按真实结构补全。
+ > **实证（CDP）**：4 脚本顺序加载（contrast/format/search/app）；`_contrast`/`auditContrast`/`avatarInk`/`CONTRAST_TARGETS` 全局可见；auditContrast 实算 34 元素 / min 5.07 / fail 0；avatarInk(60) 返回深墨 #0b1220（v1.7.9 修复逻辑生效）；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建（产物含 contrast.js）、4 进程、verify-delivery.ps1 12 项全 PASS。
+ > **守护约定**：只 commit 不 push（本地 62 → 63，远端 59 不动）。

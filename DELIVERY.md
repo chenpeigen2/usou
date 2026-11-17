@@ -36,11 +36,18 @@
 ├─ src/scanner.js       扫描内核：项目发现/git/体量/活动/最近/工具链（只读）
 ├─ src/store.js         持久化：扫描缓存/设置/历史/错误诊断
 ├─ renderer/
-│  ├─ index.html        六视图骨架 + 无框架标题栏
-│  ├─ app.js            渲染逻辑：视图/搜索/简报/周报/对比/QA 钩子
+│  ├─ index.html        六视图骨架 + 无框架标题栏（顺序加载 3 个 script）
+│  ├─ format.js         纯格式化工具（nodebestpractices 1.3 抽出）
+│  ├─ search.js         搜索内核（分词 AND/拼音/模糊，可独立单测）
+│  ├─ app.js            渲染逻辑：视图/简报/周报/对比/QA 钩子（主入口）
 │  └─ style.css         设计系统（语义 CSS 变量、深浅双主题）
-├─ public/build/        图标生成
+├─ build/               图标生成（icon.ico / icon.png / make_icon.py）
+├─ runtime/electron/    本地 Electron 33.4.11（gitignore，CI 从镜像下载）
+├─ out/                 构建产物（gitignore，Setup + 便携 zip）
+├─ data/                运行时数据（gitignore，开发态）
+├─ .github/workflows/   CI 发版（release.yml：打 v* tag 自动发布）
 ├─ electron-builder.yml 打包配置（electronDist 复用本地运行时）
+├─ electron-builder.ci.yml  CI 打包配置（去掉 electronDist，走镜像下载）
 ├─ auto-commit.ps1      只 commit 不 push 的入库脚本
 ├─ verify-delivery.ps1  12 项交付验收门禁
 └─ pm/                  PM 自驱治理（仅 4 文件，其余不相干文件禁止入内）

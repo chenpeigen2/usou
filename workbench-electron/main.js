@@ -343,6 +343,8 @@ function createWindow() {
   if (briefSyncQaArg) q.briefsync = briefSyncQaArg.slice('--briefsync='.length);
   const histLegacyQaArg = process.argv.find(a => a.startsWith('--histlegacyqa='));
   if (histLegacyQaArg) q.histlegacyqa = histLegacyQaArg.slice('--histlegacyqa='.length);
+  const weekQaArg = process.argv.find(a => a.startsWith('--weekqa='));
+  if (weekQaArg) q.weekqa = weekQaArg.slice('--weekqa='.length);
   const qaShotArg = process.argv.find(a => a.startsWith('--qashot='));
   if (qaShotArg) qaShotDir = qaShotArg.slice('--qashot='.length); // 目录由主进程直接消费，不透传渲染层
   const trayQaArg = process.argv.find(a => a.startsWith('--trayqa='));
@@ -727,7 +729,8 @@ ipcMain.handle('brief:copy', (_e, text) => {
 });
 
 /* 导出 Markdown：落到 Documents\工作台\（不存在则回落应用数据目录），文件名带时间戳不覆盖历史 */
-ipcMain.handle('brief:export', (_e, md) => {
+ipcMain.handle('brief:export', (_e, md, prefix) => {
+  const safePrefix = (typeof prefix === 'string' && /^[\u4e00-\u9fa5A-Za-z0-9_-]{1,12}$/.test(prefix)) ? prefix : '简报';
   const s = String(md == null ? '' : md);
   if (!s) return { ok: false, reason: '内容为空' };
   try {
@@ -740,7 +743,7 @@ ipcMain.handle('brief:export', (_e, md) => {
     fs.mkdirSync(dir, { recursive: true });
     const d = new Date(), p2 = n => String(n).padStart(2, '0');
     const stamp = d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes());
-    const file = path.join(dir, '简报-' + stamp + '.md');
+    const file = path.join(dir, safePrefix + '-' + stamp + '.md');
     fs.writeFileSync(file, s, 'utf8');
     const bytes = fs.statSync(file).size;
     log('brief exported -> ' + file + ' (' + bytes + ' bytes)');

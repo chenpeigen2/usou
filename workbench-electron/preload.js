@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('wb', {
   saveSettings: (s) => ipcRenderer.invoke('settings:set', s),
   scanErrorsClear: () => ipcRenderer.invoke('scan-errors:clear'),
   briefCopy: (text) => ipcRenderer.invoke('brief:copy', text),
-  briefExport: (md) => ipcRenderer.invoke('brief:export', md),
+  briefExport: (md, prefix) => ipcRenderer.invoke('brief:export', md, prefix),
   loginItemSet: (open) => ipcRenderer.invoke('login-item:set', open),
   on: (ch, cb) => ipcRenderer.on(ch, (_e, payload) => cb(payload)),
   winMin: () => ipcRenderer.send('win:minimize'),

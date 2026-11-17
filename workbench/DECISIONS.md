@@ -2837,3 +2837,36 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.34）；**STATE / README 已更新**；临时物（`%TEMP%\r44shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 空、遗留清空 ⇒ 第四十五轮从 IDEA 池升级（项目对比视图 / 每周节奏周报 / 多机器数据合并）或再巡检造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第四十五轮：每周开发节奏周报（IDEA 升级 · 功能增量 · 编排侧第 90 轮 · v1.7.35）
+
+> **选题依据**：第 44 轮已知遗留全部清空、READY 空 ⇒ 按 PM.md「待办枯竭时从 IDEA 池升级」。IDEA 池 5 项中评估：多机器合并（改动面大+冲突规则）、读文件近期修改（碰只读红线）、全字库拼音（收益低）、项目对比视图（需新 UI 交互）；唯**每周节奏周报**复用已有 activity/history 数据 + 已有 export IPC，能自证、零数据改动、用户可直接用 ⇒ 本轮取此项。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 周报和已有的「今日简报」重复吗？**
+    - 结论：不重复 —— 今日简报是**当天快照的横向切片**（9 条可跳转条目），周报是**近 7 天的纵向趋势聚合**（每日文件数/活跃天数/峰值日/项目数变化）。
+    - 理由：① 数据源不同：简报主用 scan-cache 当下状态，周报主用 activity(90天桶) + history(60快照) 的时间序列；② 粒度不同：日 vs 周；③ 复用 `brief:export` 落盘通道（零新增 IPC），只是内容不同、文件名带「周报-」前缀。
+
+  - **Q2 周报放哪、怎么触发？**
+    - 结论：总览「今日机器简报」卡头，与「📋 复制简报 / ⬇ 导出 Markdown」并排加「📅 导出周报」按钮；点击走 `data-act=weekly:export` 事件委托 → `weeklyMarkdown()` → 既有 `window.wb.briefExport()`。
+    - 理由：① 简报卡已是「导出类」功能的聚集地，认知一致；② 事件委托绑在 #view、无内联 onclick；③ 复用 briefExport 通道意味着周报也落在 Documents\工作台\、带时间戳，与简报一致的用户体验。
+
+  - **Q3 周报内容怎么保证真实、不杜撰？**
+    - 结论：全部从 `DATA.activity` 与 `HISTORY` 现算，且带「数据截至 YYYY-MM-DD HH:mm（扫描时间）」标注；`--weekqa=1` 用独立重算断言每一项。
+    - 理由：① 周报是**陈述事实**的功能，若数字与数据不符就是第 8 例假陈述；② 带扫描时间标注，让用户知道数据新鲜度（避免跨夜误读）；③ 阴性对照：合成已知的 activity/history 小样本，断言周报每项 = 独立重算值，旧逻辑不存在 ⇒ 不可能「碰巧对」。
+
+  - **Q4 改动面？**
+    - 结论：仅 `renderer/app.js`（`weeklyMarkdown()` + `exportWeekly()` + 1 个按钮 + `--weekqa=` 钩子）；**零新增 IPC（复用 brief:export）、零外部依赖、零数据文件结构改动**。
+
+### 本轮收尾（第四十五轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.35.exe`（83.57 MB）+ `Workbench-1.7.35-portable.zip`（113.22 MB）+ blockmap；1.7.34 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.35.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.35）`。
+- **核心实证（CDP + 真实导出）**：`#weekqa-evidence` = `WEEKQA 区间=2026-11-10 ~ 2026-11-16 活跃=7 合计=672 峰值=2026-11-16 明细行=7 纯净=true | PASS`；总览简报卡头「📅 导出周报」按钮在位；真实点击 `briefExport(weeklyMarkdown(),'周报')` ⇒ 落盘 `Documents\工作台\周报-20261117-1427.md`（630 字节），内容含统计区间 / 数据截至 / 活跃 7/7 / 合计 672 / 峰值日 / 本周快照 6 次·项目数 +2 / 7 行每日明细，全部与独立重算一致（测试文件已清理）。
+- **QA 复核发现并修正**：`--weekqa=1` 的 CLI 透传遗漏（backend 任务描述漏写）⇒ `--weekqa` 从命令行不可达、钩子成死代码；已在 `main.js` 补 2 行（与既有 QA 钩子同构），补后 CDP 取证 PASS。
+- **前缀安全**：`brief:export` 的可选 prefix 经严格白名单 `/^[一-龥A-Za-z0-9_-]{1,12}$/` 过滤（拒绝 `..` / 斜杠 / 空格 / 超长），非字符串回落「简报」⇒ 无路径穿越；旧调用只传 md 仍默认「简报」，向后兼容，**现有简报复制/导出零回归**。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.34 基线一致）。
+- **改动面**：3 文件 —— `renderer/app.js`（`weeklyMarkdown()` 纯生成器 + `exportWeekly()` + 按钮 + doAct case + `--weekqa=` 钩子）、`main.js`（brief:export 前缀白名单 + weekqa CLI 透传）、`preload.js`（briefExport 桥接增可选 prefix）；**零新增 IPC 名（复用 brief:export）、零外部依赖、零数据文件结构改动**。
+- **BACKLOG**：本项从 IDEA 升级 → DONE（v1.7.35）；**STATE / README 已更新**；临时物（`%TEMP%\r45shots\`、探针、测试周报）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 空 ⇒ 第四十六轮从 IDEA 池升级（项目对比视图 / 多机器合并）或再巡检；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

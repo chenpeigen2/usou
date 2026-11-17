@@ -583,6 +583,7 @@ async function init() {
   if (qs.get('actrootqa')) triggerActRootQa(); // v1.7.25：简报活动条目两根目录归属修复取证
   if (qs.get('briefsync')) triggerBriefSyncQa(); // v1.7.26：长开窗口简报文案漂移修复取证
   if (qs.get('histlegacyqa')) triggerHistLegacyQa(); // v1.7.29：旧格式快照标注取证（纯只读）
+  if (qs.get('weekqa')) triggerWeekQa(); // v1.7.35：周报纯生成器取证（零副作用）
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1066,6 +1067,48 @@ function triggerHistLegacyQa() {
       ' 新格式误标=' + String(newMislabel) +
       ' 角标=' + String(hasBadge) +
       ' 说明=' + String(hasNote) +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
+/* QA 钩子（v1.7.35）：--weekqa=1 → 周报纯生成器取证（零外部副作用：不调用 briefExport、不写文件、不改数据）。
+   独立从 DATA.activity 重算区间/活跃/合计/峰值，与 weeklyMarkdown() 产物交叉断言；
+   取证行注入 #view 顶部（createElement + textContent，id=weekqa-evidence，无 innerHTML、无内联 onclick）。 */
+function triggerWeekQa() {
+  setTimeout(() => {
+    let md = '';
+    try { md = weeklyMarkdown(); } catch (_e) { md = ''; }
+    const A2 = Array.isArray(DATA && DATA.activity) ? DATA.activity : [];
+    const last7 = A2.slice(-7);
+    const expActive = last7.filter(d => d && Number(d.count) > 0).length;
+    const expTotal = last7.reduce((s, d) => s + ((d && Number(d.count)) || 0), 0);
+    let expPeak = null, mx = 0;
+    last7.forEach(d => { const c = (d && Number(d.count)) || 0; if (c > mx) { mx = c; expPeak = d; } });
+    const expRange = (last7.length ? String((last7[0] && last7[0].date) || '') : '') + ' ~ ' +
+      (last7.length ? String((last7[last7.length - 1] && last7[last7.length - 1].date) || '') : '');
+    const peakDate = expPeak ? String(expPeak.date) : '';
+    // (a) 独立重算的核心统计须出现在报告文本中
+    const hasRange = md.indexOf('统计区间：' + expRange) >= 0;
+    const hasActive = md.indexOf('活跃天数：' + expActive + '/7') >= 0;
+    const hasTotal = md.indexOf('变动文件合计：' + expTotal) >= 0;
+    const hasPeak = expPeak ? md.indexOf(peakDate) >= 0 : md.indexOf('峰值日：无') >= 0;
+    // (b) 结构：标题 + 每日明细 + 恰好 7 行日期明细
+    const hasHeader = md.indexOf('每周开发节奏周报') >= 0;
+    const hasDetail = md.indexOf('每日明细') >= 0;
+    const rows = (md.match(/^\| \d{4}-\d{2}-\d{2} \|/gm) || []).length;
+    const sevenRows = rows === 7;
+    // (c) 纯净度：不得出现 undefined / NaN
+    const pure = md.indexOf('undefined') < 0 && md.indexOf('NaN') < 0;
+    const pass = hasRange && hasActive && hasTotal && hasPeak && hasHeader && hasDetail && sevenRows && pure;
+
+    const el = document.createElement('div');
+    el.id = 'weekqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'WEEKQA 区间=' + expRange + ' 活跃=' + expActive + ' 合计=' + expTotal +
+      ' 峰值=' + peakDate + ' 明细行=' + rows + ' 纯净=' + String(pure) +
       ' | ' + (pass ? 'PASS' : 'FAIL');
     const v = $('#view');
     if (v) v.insertBefore(el, v.firstChild);
@@ -1844,6 +1887,72 @@ async function exportBrief() {
     toast('导出失败：' + String((e && e.message) || e), 'err');
   }
 }
+/* ---------- 每周开发节奏周报（v1.7.35） ----------
+   weeklyMarkdown 是纯函数：只读 DATA.activity / HISTORY，不调用 IPC、不写文件、不改任何全局数据。
+   复用 mdEsc 做 Markdown 转义、normHistoryProjects 归一化快照项目键，畸形数据一律降级为零值/「无」，绝不抛异常。 */
+function weeklyMarkdown() {
+  const m = (DATA && DATA.meta) || {};
+  const A = Array.isArray(DATA && DATA.activity) ? DATA.activity : [];
+  const days = A.slice(-7); // 最近 7 个活动桶（最旧→最新）
+  let activeDays = 0, totalFiles = 0, peak = null, maxCount = 0;
+  days.forEach(d => {
+    const c = (d && Number(d.count)) || 0;
+    if (c > 0) activeDays++;
+    totalFiles += c;
+    if (c > maxCount) { maxCount = c; peak = d; } // 全 0 时 peak 保持 null
+  });
+  const weekStart = days.length ? String((days[0] && days[0].date) || '') : '';
+  const weekEnd = days.length ? String((days[days.length - 1] && days[days.length - 1].date) || '') : '';
+
+  // 本周快照：time（'YYYY-MM-DD HH:mm:ss'）日期部分落在 [weekStart, weekEnd] 内
+  const recentSnaps = (Array.isArray(HISTORY) ? HISTORY : []).filter(h => {
+    const t = (h && typeof h.time === 'string') ? h.time.slice(0, 10) : '';
+    return !!t && (!weekStart || t >= weekStart) && (!weekEnd || t <= weekEnd);
+  });
+  const snapCount = recentSnaps.length;
+  const firstN = snapCount >= 2 ? Object.keys(normHistoryProjects(recentSnaps[0])).length : null;
+  const lastN = snapCount >= 2 ? Object.keys(normHistoryProjects(recentSnaps[snapCount - 1])).length : null;
+  const projectDelta = (firstN != null && lastN != null) ? (lastN - firstN) : null;
+
+  const lines = [];
+  lines.push('# 每周开发节奏周报');
+  lines.push('');
+  lines.push('- 统计区间：' + mdEsc(weekStart) + ' ~ ' + mdEsc(weekEnd) + '（近 7 天）');
+  lines.push('- 数据截至：' + (m.scanTime || '') + '（本机扫描快照）');
+  lines.push('- 活跃天数：' + activeDays + '/7 · 变动文件合计：' + totalFiles);
+  lines.push('- 峰值日：' + (peak ? mdEsc(String(peak.date)) + '（' + mdEsc(String(peak.count)) + ' 个文件）' : '无'));
+  lines.push('- 本周快照：' + snapCount + ' 次' + (projectDelta != null ? ' · 收录项目数变化：' + (projectDelta >= 0 ? '+' : '') + projectDelta : ''));
+  lines.push('');
+  lines.push('## 每日明细');
+  lines.push('');
+  lines.push('| 日期 | 变动文件 |');
+  lines.push('|---|---|');
+  days.forEach(d => {
+    lines.push('| ' + mdEsc(String((d && d.date) || '')) + ' | ' + ((d && Number(d.count)) || 0) + ' |');
+  });
+  lines.push('');
+  lines.push('---');
+  lines.push('由「工作台」本地生成 · 数据源：近 90 天活动桶 + 扫描历史 · 纯规则推导、无 AI 参与 · 数据只读自本机');
+  return lines.join('\n');
+}
+let lastWeeklyExport = null;
+async function exportWeekly() {
+  const md = weeklyMarkdown();
+  try {
+    const r = await window.wb.briefExport(md, '周报');
+    if (r && r.ok) {
+      lastWeeklyExport = { path: r.path, bytes: r.bytes, chars: r.chars };
+      toast('周报已导出：' + r.path, 'ok');
+    } else {
+      lastWeeklyExport = { ok: false, reason: (r && r.reason) || '未知错误' };
+      toast('导出失败：' + ((r && r.reason) || '未知错误'), 'err');
+    }
+  } catch (e) {
+    lastWeeklyExport = { ok: false, reason: String((e && e.message) || e) };
+    toast('导出失败：' + String((e && e.message) || e), 'err');
+  }
+}
+
 // 导出落点提示（常驻在简报卡片内，路径可点 → 复用既有 path:show 打开所在文件夹）
 function briefExportTipHtml() {
   if (!lastBriefExport || !lastBriefExport.path) return '';
@@ -1897,6 +2006,7 @@ function doAct(act, p) {
     case 'brief:bysize': sortBy = 'size'; setView('projects'); break;
     case 'brief:copy': copyBrief(); break;
     case 'brief:export': exportBrief(); break;
+    case 'weekly:export': exportWeekly(); break;
     case 'fav': toggleFav(p); break;
     case 'typefilter': filterType = p; render(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
@@ -2192,6 +2302,7 @@ function renderOverview() {
     '<div class="brief-tools">' +
     '<button class="btool" data-act="brief:copy" title="复制今日简报为 Markdown 文本到剪贴板">📋 复制简报</button>' +
     '<button class="btool" data-act="brief:export" title="导出今日简报为 Markdown 文件">⬇ 导出 Markdown</button>' +
+    '<button class="btool" data-act="weekly:export" title="导出近 7 天开发节奏周报为 Markdown">📅 导出周报</button>' +
     '<span class="brief-export-tip" id="brief-export-tip">' + briefExportTipHtml() + '</span>' +
     '</div>' +
     '<div class="daily-list" id="daily-list">' + briefItemsHtml(briefItems) +

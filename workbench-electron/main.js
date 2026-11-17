@@ -325,6 +325,8 @@ function createWindow() {
   if (themeQaArg) q.themeqa = themeQaArg.slice('--themeqa='.length);
   const searchQaArg = process.argv.find(a => a.startsWith('--searchqa='));
   if (searchQaArg) q.searchqa = searchQaArg.slice('--searchqa='.length);
+  const histQaArg = process.argv.find(a => a.startsWith('--histqa='));
+  if (histQaArg) q.histqa = histQaArg.slice('--histqa='.length);
   const qaShotArg = process.argv.find(a => a.startsWith('--qashot='));
   if (qaShotArg) qaShotDir = qaShotArg.slice('--qashot='.length); // 目录由主进程直接消费，不透传渲染层
   const trayQaArg = process.argv.find(a => a.startsWith('--trayqa='));

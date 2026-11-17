@@ -562,6 +562,7 @@ async function init() {
   if (qs.get('briefqa')) triggerBriefExportQa(qs.get('briefqa'));
   if (qs.get('themeqa')) triggerThemeQa(qs.get('themeqa'));
   if (qs.get('searchqa')) triggerSearchQa(qs.get('searchqa'));
+  if (qs.get('histqa')) triggerHistoryQa();
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -889,6 +890,71 @@ function triggerSearchQa(query) {
     document.body.appendChild(el);
   }, 1400);
 }
+
+/* QA 钩子（v1.7.19）：--histqa=1 → 用合成快照证明「按名称键 reduce」必然漏报/错指，
+   归一化后按路径读取才能精确命中 B。取证行注入 #view 顶部（textContent，id=histqa-evidence，无内联 onclick）。
+   OLD：两个同名 TclLauncher 按 name reduce（插入序 [B,A] ⇒ last-wins=A）⇒ 仅 1 项、A 无新提交无脏 ⇒ 命中 0；
+   NEW：normHistoryProjects 保留两条路径 ⇒ 命中 B（有新提交）、项目数 1->2、未提交 0->3。 */
+function triggerHistoryQa() {
+  setTimeout(() => {
+    const PA = 'D:\\TclLauncher';
+    const PB = 'D:\\CLAUNCER2\\TclLauncher';
+    const T0 = '2026-11-01 10:00:00', T1 = '2026-11-16 10:30:00';
+    const ent = (dirty, commitTime) => ({ name: 'TclLauncher', dirty: dirty, sizeMB: 100, commitTime: commitTime });
+    // 按路径键、插入顺序 [B, A] ⇒ 旧 name-key reduce 的 last-wins 恰为 A
+    const prev = { time: T0, fast: false, totalMB: 200, projects: {} };
+    prev.projects[PB] = ent(1, T0);
+    prev.projects[PA] = ent(0, T0);
+    const cur = { time: T1, fast: false, totalMB: 200, projects: {} };
+    cur.projects[PB] = ent(3, T1);
+    cur.projects[PA] = ent(0, T0);
+    const projects = [{ name: 'TclLauncher', path: PA }, { name: 'TclLauncher', path: PB }];
+
+    const items = historyDiffItems([prev, cur], projects);
+    const stats = historyStatsFor([prev, cur]);
+
+    // 忠实复现旧的「按 name reduce、last-wins」读取，证明它不可能通过本次断言
+    const oldReduce = snap => {
+      const o = {};
+      Object.keys(snap.projects).forEach(k => { const v = snap.projects[k]; o[v.name] = v; });
+      return o;
+    };
+    const oldPrev = oldReduce(prev), oldCur = oldReduce(cur); // 均只剩 { TclLauncher: A }
+    let oldHits = 0;
+    Object.keys(oldCur).forEach(name => {
+      const pp = oldPrev[name], cc = oldCur[name];
+      if (!pp) return;
+      if (cc.commitTime && (!pp.commitTime || cc.commitTime > pp.commitTime)) oldHits++;
+      else if (cc.dirty > pp.dirty) oldHits++;
+    });
+    const oldStats = [prev, cur].map(h => {
+      const o = oldReduce(h), names = Object.keys(o);
+      let dirty = 0;
+      names.forEach(n => { dirty += (o[n].dirty || 0); });
+      return { n: names.length, dirty: dirty };
+    });
+
+    const item = items[0] || {};
+    const pass = oldHits === 0 && items.length === 1 && item.p === PB &&
+      !!stats[0] && stats[0].n === 2 && stats[0].dirty === 1 &&
+      !!stats[1] && stats[1].n === 2 && stats[1].dirty === 3 &&
+      !!oldStats[0] && oldStats[0].n === 1 && oldStats[0].dirty === 0 &&
+      !!oldStats[1] && oldStats[1].n === 1 && oldStats[1].dirty === 0;
+
+    const el = document.createElement('div');
+    el.id = 'histqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'HISTQA 旧命中=' + oldHits + ' 新命中=' + items.length +
+      ' | 项目数 ' + oldStats[0].n + '->' + stats[0].n +
+      ' 未提交 ' + oldStats[0].dirty + '->' + stats[1].dirty +
+      ' | 归因路径=' + (item.p || '') +
+      ' | byName会错指=' + PA +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
 function setView(v, silent) {
   view = v;
   localStorage.setItem('wb.view', v);
@@ -1053,7 +1119,6 @@ function buildBrief() {
   // 每条简报携带可操作动作：act/p 走既有 data-act 事件委托；tip 为悬浮提示（渲染时统一 esc）
   // v1.7.7：同时携带纯文本 text —— 复制/导出用 text，不再从 html 反推（HTML 反推会漏标签语义）
   const push = (color, html, text, act, p, tip) => out.push({ color, html, text, act, p, tip });
-  const byName = n => projects.find(x => x.name === n);
 
   projects.filter(p => p.isGit && p.dirty > 0).sort((a, b) => b.dirty - a.dirty).slice(0, 2)
     .forEach(p => push('var(--amber)', '「<b>' + esc(p.name) + '</b>」还有 <span class="warn">' + p.dirty + '</span> 个文件未提交，停在 <b>' + esc(p.branch) + '</b> 分支',
@@ -1099,31 +1164,9 @@ function buildBrief() {
   if (top && top.sizeMB) push('var(--purple)', '体量最大的是「<b>' + esc(top.name) + '</b>」（' + (top.sizeMB / 1024).toFixed(1) + ' GB）',
     '体量最大的是「' + top.name + '」（' + (top.sizeMB / 1024).toFixed(1) + ' GB）', 'brief:bysize', '', '项目雷达按体量排序');
 
-  if (HISTORY.length >= 2) {
-    const prev = HISTORY[HISTORY.length - 2], cur = HISTORY[HISTORY.length - 1];
-    let diffN = 0;
-    Object.keys(cur.projects).forEach(name => {
-      if (diffN >= 2) return;
-      const pp = prev.projects[name], cc = cur.projects[name];
-      if (!pp) return;
-      const hit = byName(name);
-      const hAct = hit ? 'detail' : 'goto';
-      const hP = hit ? hit.path : 'projects';
-      const hTip = hit ? '查看「' + name + '」项目详情' : '切到「项目」视图';
-      // v1.7.17：原先比的是 `cc.commitTime > pp.time` —— 但 `pp` 是 history.json 里的**项目条目**，
-      // 其契约是 `{ dirty, sizeMB, commitTime }`（见 src/store.js 的 appendHistory），
-      // **根本没有 `time` 字段**（`time` 只是**快照顶层**的扫描时刻）⇒ `pp.time` 恒为 undefined
-      // ⇒ `cc.commitTime > undefined` 恒为 false ⇒ 「有新提交」这条**永远检测不到、静默失效**。
-      // 修法：比**上一次的提交时间** `pp.commitTime`（同一维度，且 `!pp.commitTime` 分支已覆盖「上次还没有提交」）。
-      if (cc.commitTime && (!pp.commitTime || cc.commitTime > pp.commitTime)) {
-        push('var(--acc)', '与上次扫描相比，「<b>' + esc(name) + '</b>」有新提交',
-          '与上次扫描相比，「' + name + '」有新提交', hAct, hP, hTip); diffN++;
-      } else if (cc.dirty > pp.dirty) {
-        push('var(--amber)', '与上次扫描相比，「<b>' + esc(name) + '</b>」未提交 +' + (cc.dirty - pp.dirty),
-          '与上次扫描相比，「' + name + '」未提交 +' + (cc.dirty - pp.dirty), hAct, hP, hTip); diffN++;
-      }
-    });
-  }
+  // v1.7.19：历史快照读取归一化（新格式绝对路径键 / 旧格式名称键 / 混合快照）统一在 historyDiffItems 内处理。
+  // 命中项目有 path 时一律 byPath 精确匹配，绝不回退 name —— 4 个同名 TclLauncher 曾会被错指到错误项目。
+  historyDiffItems(HISTORY, projects).forEach(it => push(it.color, it.html, it.text, it.act, it.p, it.tip));
   // 保留 9 条：确保「详情 / 打开磁盘 / 切最近 / 按体量排序」四类动作都在列表内（列表自带滚动，不撑高卡片）
   return out.slice(0, 9);
 }
@@ -1964,13 +2007,77 @@ function renderSystem() {
 }
 
 /* 扫描历史趋势：画布折线 + 最近 10 次快照表 */
-function historyStats() {
-  return HISTORY.map(h => {
-    const names = Object.keys(h.projects || {});
-    let dirty = 0;
-    names.forEach(n => { dirty += (h.projects[n].dirty || 0); });
-    return { time: h.time, fast: !!h.fast, n: names.length, dirty, totalMB: h.totalMB || 0 };
+/* v1.7.19：history.json 快照格式演进 —— 旧快照按「项目名」为键、值 {dirty,sizeMB,commitTime}；
+   新快照按「绝对路径」为键、值 {name,dirty,sizeMB,commitTime}。同一 history.json 里两种可共存（混合快照）。
+   normHistoryProjects 把任一快照的 projects 统一成 normalizedKey -> {path,name,dirty,sizeMB,commitTime}：
+     · 键含 \ 或 / ⇒ 视为路径键：path=键，name=值.name 或路径末段；
+     · 否则视为旧名称键：path=值.path 或空，name=值.name 或键本身；
+     · normalizedKey 优先用 path，无 path 才用 'name:'+name ⇒ 同名不同路径不会互相覆盖。
+   纯函数，畸形条目逐个跳过、绝不抛异常，无历史迁移。 */
+function normHistoryProjects(h) {
+  const out = {};
+  const projects = (h && h.projects) || {};
+  let keys = [];
+  try { keys = Object.keys(projects); } catch (_e) { keys = []; }
+  keys.forEach(k => {
+    try {
+      const key = String(k);
+      const v = projects[k] || {};
+      const pathLike = /[\\/]/.test(key);
+      const path = pathLike ? key : (v.path ? String(v.path) : '');
+      const name = v.name ? String(v.name) : (pathLike ? path.split(/[\\/]/).pop() : key);
+      const normalizedKey = path || ('name:' + name);
+      out[normalizedKey] = { path: path, name: name, dirty: v.dirty || 0, sizeMB: v.sizeMB || 0, commitTime: v.commitTime || '' };
+    } catch (_e) { /* 单块坏数据不影响其余条目：跳过即可 */ }
   });
+  return out;
+}
+
+/* v1.7.19：快照数组 -> 趋势/QA 共用统计（纯函数）。n=归一化后项目数，dirty=未提交文件数总和。 */
+function historyStatsFor(hist) {
+  return (hist || []).map(h => {
+    const norm = normHistoryProjects(h);
+    const keys = Object.keys(norm);
+    let dirty = 0;
+    keys.forEach(k => { dirty += (norm[k].dirty || 0); });
+    return { time: (h && h.time) || '', fast: !!(h && h.fast), n: keys.length, dirty, totalMB: (h && h.totalMB) || 0 };
+  });
+}
+function historyStats() {
+  return historyStatsFor(HISTORY);
+}
+
+/* v1.7.19：前后两次快照的项目差异 -> 简报 push 参数数组（最多 2 条，纯函数）。
+   命中项目只要带 path 就只走 byPath 精确匹配，绝不回退 byName（同名项目会错指）。 */
+function historyDiffItems(hist, projects) {
+  const out = [];
+  const arr = hist || [];
+  if (arr.length < 2) return out;
+  const prev = normHistoryProjects(arr[arr.length - 2]);
+  const cur = normHistoryProjects(arr[arr.length - 1]);
+  const list = projects || [];
+  const byPath = p => list.find(x => x && x.path === p);
+  const byName = n => list.find(x => x && x.name === n);
+  let diffN = 0;
+  Object.keys(cur).forEach(key => {
+    if (diffN >= 2) return;
+    const pp = prev[key];
+    if (!pp) return;
+    const cc = cur[key];
+    const hit = cc.path ? byPath(cc.path) : byName(cc.name);
+    const hAct = hit ? 'detail' : 'goto';
+    const hP = hit ? hit.path : 'projects';
+    const hTip = hit ? '查看「' + cc.name + '」项目详情' : '切到「项目」视图';
+    // v1.7.17：比上一次的提交时间 pp.commitTime（同维度）；!pp.commitTime 覆盖「上次还没有提交」。
+    if (cc.commitTime && (!pp.commitTime || cc.commitTime > pp.commitTime)) {
+      out.push({ color: 'var(--acc)', html: '与上次扫描相比，「<b>' + esc(cc.name) + '</b>」有新提交',
+        text: '与上次扫描相比，「' + cc.name + '」有新提交', act: hAct, p: hP, tip: hTip }); diffN++;
+    } else if (cc.dirty > pp.dirty) {
+      out.push({ color: 'var(--amber)', html: '与上次扫描相比，「<b>' + esc(cc.name) + '</b>」未提交 +' + (cc.dirty - pp.dirty),
+        text: '与上次扫描相比，「' + cc.name + '」未提交 +' + (cc.dirty - pp.dirty), act: hAct, p: hP, tip: hTip }); diffN++;
+    }
+  });
+  return out;
 }
 function historyTrendHtml() {
   const st = historyStats();

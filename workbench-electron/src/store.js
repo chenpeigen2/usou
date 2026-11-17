@@ -56,8 +56,10 @@ function appendHistory(data) {
     time: data.meta.scanTime,
     fast: !!data.meta.fast,
     totalMB: Math.round(data.projects.reduce((s, p) => s + (p.sizeMB || 0), 0)),
+    // v1.7.19 改用绝对路径作 key（唯一）：此前按 name 作 key，4 个同名 TclLauncher 被 reduce 后写覆盖、只剩最旧一个，致历史快照项目数/dirty 数少于扫描缓存；旧快照仍是 name-keyed，读取侧已做归一化兼容。
     projects: data.projects.reduce((o, p) => {
-      o[p.name] = { dirty: p.dirty || 0, sizeMB: p.sizeMB || 0, commitTime: p.lastCommitTime || '' };
+      const key = p.path || ('name:' + p.name);
+      o[key] = { name: p.name, dirty: p.dirty || 0, sizeMB: p.sizeMB || 0, commitTime: p.lastCommitTime || '' };
       return o;
     }, {})
   });

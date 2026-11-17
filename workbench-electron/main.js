@@ -345,6 +345,8 @@ function createWindow() {
   if (histLegacyQaArg) q.histlegacyqa = histLegacyQaArg.slice('--histlegacyqa='.length);
   const weekQaArg = process.argv.find(a => a.startsWith('--weekqa='));
   if (weekQaArg) q.weekqa = weekQaArg.slice('--weekqa='.length);
+  const compareQaArg = process.argv.find(a => a.startsWith('--compareqa='));
+  if (compareQaArg) q.compareqa = compareQaArg.slice('--compareqa='.length);
   const qaShotArg = process.argv.find(a => a.startsWith('--qashot='));
   if (qaShotArg) qaShotDir = qaShotArg.slice('--qashot='.length); // 目录由主进程直接消费，不透传渲染层
   const trayQaArg = process.argv.find(a => a.startsWith('--trayqa='));

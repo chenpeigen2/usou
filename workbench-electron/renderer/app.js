@@ -584,6 +584,7 @@ async function init() {
   if (qs.get('briefsync')) triggerBriefSyncQa(); // v1.7.26：长开窗口简报文案漂移修复取证
   if (qs.get('histlegacyqa')) triggerHistLegacyQa(); // v1.7.29：旧格式快照标注取证（纯只读）
   if (qs.get('weekqa')) triggerWeekQa(); // v1.7.35：周报纯生成器取证（零副作用）
+  if (qs.get('compareqa')) triggerCompareQa(); // v1.7.36：项目对比纯生成器取证（零副作用）
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -2015,6 +2016,8 @@ function doAct(act, p) {
     case 'saveSettings': saveSettings(); break;
     case 'clearScanErrors': clearScanErrors(); break;
     case 'theme:set': setTheme(p); break;
+    case 'compare:open': openCompare(); break;
+    case 'compare:run': runCompare(); break;
   }
 }
 
@@ -2519,6 +2522,7 @@ function renderProjects() {
     '<option value="commit"' + (sortBy === 'commit' ? ' selected' : '') + '>按最近提交</option>' +
     '<option value="size"' + (sortBy === 'size' ? ' selected' : '') + '>按体量</option>' +
     '<option value="name"' + (sortBy === 'name' ? ' selected' : '') + '>按名称</option></select>' +
+    '<button class="btool" data-act="compare:open" title="并排对比两个 git 项目的分支 / 未提交 / 提交 / 体量">⚖ 对比</button>' +
     '</div><div id="proj-list"></div></div>';
   renderTypeChips();
   renderProjectList();
@@ -3016,6 +3020,175 @@ function openModal(html) {
   $('#modal').classList.remove('hidden');
 }
 function closeModal() { $('#modal').classList.add('hidden'); currentDetail = null; }
+
+/* ---------- 项目对比（v1.7.36）----------
+   两个 git 项目并排对比：分支 / 未提交 / 提交 / 体量 / 文件数。
+   零新增 IPC（复用 project:detail），弹窗内按钮复用 #modal 的 data-act 委托（bindDelegation 已覆盖，勿重复绑定）。
+   compareRows / compareHtml 为纯函数（无 DOM 写入、无 IPC、无文件操作），供 runCompare 与 --compareqa 共用。 */
+function compareRows(pa, pb, da, db) {
+  pa = pa || {}; pb = pb || {}; da = da || {}; db = db || {};
+  const ga = da.git || {}, gb = db.git || {};
+  const val = (v, fb) => (v == null || v === '' ? fb : v);
+  const s = v => (v == null || v === '' ? '—' : String(v));
+  const branchA = s(val(ga.branch, pa.branch)), branchB = s(val(gb.branch, pb.branch));
+  // 详情 git.dirty 是数量；缺失时回退 dirtyFiles.length，再回退项目快照的 dirty
+  const dirtyA = ga.dirty != null ? ga.dirty : (ga.dirtyFiles ? ga.dirtyFiles.length : pa.dirty);
+  const dirtyB = gb.dirty != null ? gb.dirty : (gb.dirtyFiles ? gb.dirtyFiles.length : pb.dirty);
+  const timeA = val(ga.commitTime, pa.lastCommitTime), timeB = val(gb.commitTime, pb.lastCommitTime);
+  const relA = timeA ? relTime(timeA) : '—', relB = timeB ? relTime(timeB) : '—';
+  const subjA = s(val(ga.log && ga.log[0] && ga.log[0].subject, pa.lastCommitSubject));
+  const subjB = s(val(gb.log && gb.log[0] && gb.log[0].subject, pb.lastCommitSubject));
+  const sizeA = pa.sizeMB ? fmtMB(pa.sizeMB) : '—', sizeB = pb.sizeMB ? fmtMB(pb.sizeMB) : '—';
+  const cntA = pa.fileCount ? Number(pa.fileCount).toLocaleString() : '—';
+  const cntB = pb.fileCount ? Number(pb.fileCount).toLocaleString() : '—';
+  const mk = (label, va, vb) => {
+    const a = s(va), b = s(vb);
+    return { label: label, va: a, vb: b, diff: a !== b }; // 基于原始值比较，展示时再 esc()
+  };
+  return [
+    mk('项目名', pa.name, pb.name),
+    mk('路径', pa.path, pb.path),
+    mk('类型', pa.type, pb.type),
+    mk('分支', branchA, branchB),
+    mk('未提交文件数', dirtyA, dirtyB),
+    mk('最近提交时间', relA, relB),
+    mk('提交主题', subjA, subjB),
+    mk('体量', sizeA, sizeB),
+    mk('文件数', cntA, cntB)
+  ];
+}
+
+function compareHtml(rows) {
+  // 差异单元格带 cmp-diff 类；因仅允许改 app.js，视觉高亮用内联样式落地（等价的细琥珀底）
+  const cell = (v, diff) => '<td class="' + (diff ? 'cmp-diff' : '') + '"' +
+    (diff ? ' style="background:rgba(255,184,36,.16);color:var(--amber);font-weight:600"' : '') +
+    '>' + esc(v) + '</td>';
+  return '<div class="cmp-wrap" style="overflow:auto">' +
+    '<table class="cmp-table" style="width:100%;border-collapse:collapse;line-height:1.7">' +
+    '<thead><tr style="border-bottom:1px solid var(--line2)">' +
+    '<th style="text-align:left;padding:5px 8px">对比项</th>' +
+    '<th style="text-align:left;padding:5px 8px">项目 A</th>' +
+    '<th style="text-align:left;padding:5px 8px">项目 B</th>' +
+    '</tr></thead><tbody>' +
+    (rows || []).map(r => '<tr style="border-top:1px solid var(--line2)">' +
+      '<td class="muted" style="padding:5px 8px;white-space:nowrap">' + esc(r.label) + '</td>' +
+      cell(r.va, r.diff) + cell(r.vb, r.diff) + '</tr>').join('') +
+    '</tbody></table></div>';
+}
+
+async function openCompare() {
+  const projects = ((DATA && DATA.projects) || []).filter(p => p && p.isGit);
+  const opts = projects.map(p =>
+    '<option value="' + esc(p.path) + '">' + esc(p.name) + ' — ' + esc(shortPath(p.path)) + '</option>').join('');
+  const few = projects.length < 2
+    ? '<div class="hint" style="color:var(--amber)">可对比的 git 项目不足 2 个（当前 ' + projects.length + ' 个），请先扫描更多 git 项目。</div>'
+    : '';
+  const picker = (id) => '<select id="' + id + '"' + (projects.length < 2 ? ' disabled' : '') + '>' + opts + '</select>';
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>⚖ 项目对比</h3></div>' +
+    few +
+    '<div class="small muted" style="margin:8px 0">选择两个 git 项目，并排对比分支 / 未提交 / 提交 / 体量等信息。</div>' +
+    '<div class="cmp-picker" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:12px 0">' +
+    picker('cmp-a') + '<span class="muted">vs</span>' + picker('cmp-b') +
+    '<button class="btool" data-act="compare:run"' + (projects.length < 2 ? ' disabled' : '') + '>对比</button>' +
+    '</div>' +
+    '<div id="cmp-result"></div>'
+  );
+  const a = $('#cmp-a'), b = $('#cmp-b');
+  if (a && projects[0]) a.value = projects[0].path; // 默认 A=第一个
+  if (b && projects[1]) b.value = projects[1].path; // 默认 B=第二个
+}
+
+async function runCompare() {
+  const res = $('#cmp-result');
+  if (!res) return;
+  const ea = $('#cmp-a'), eb = $('#cmp-b');
+  const a = ea ? ea.value : '', b = eb ? eb.value : '';
+  if (!a || !b || a === b) {
+    res.innerHTML = '<div class="hint" style="color:var(--amber)">请选择两个不同的 git 项目后再对比。</div>';
+    return;
+  }
+  res.innerHTML = '<div class="hint">对比中…</div>';
+  // 每个请求单独 try/catch：一个项目详情失败不会拖垮另一个
+  const safeDetail = (p) => (async () => {
+    try { return await window.wb.projectDetail(p); }
+    catch (e) { return { __error: String((e && e.message) || e) }; }
+  })();
+  const [da, db] = await Promise.all([safeDetail(a), safeDetail(b)]);
+  const plist = (DATA && DATA.projects) || [];
+  const pa = plist.find(x => x && x.path === a) || { name: shortPath(a), path: a };
+  const pb = plist.find(x => x && x.path === b) || { name: shortPath(b), path: b };
+  const rows = compareRows(pa, pb, da, db);
+  const errNote = (da && da.__error) || (db && db.__error)
+    ? '<div class="small muted" style="margin-bottom:6px;color:var(--amber)">部分项目详情读取失败，缺失项已用快照数据 / — 兜底。</div>'
+    : '';
+  res.innerHTML = errNote + compareHtml(rows);
+}
+
+/* QA 钩子（v1.7.36）：--compareqa=1 → 纯取证，零 IPC / 零文件写入 / 不打开弹窗。
+   用 DATA.projects[0]/[1]（缺失则用内置合成对象）+ 由它们派生的 detail 调用 compareRows，
+   断言：(a) 行数≥8；(b) 分支/未提交/提交行的 va/vb 等于源字段；(c) 差异标记对差异对为 true、对相同对为 false；
+   (d) compareHtml 输出无 undefined/NaN 且注入的 <script> 已 esc()。取证行注入 #view（createElement + textContent）。 */
+function triggerCompareQa() {
+  setTimeout(() => {
+    let line;
+    try {
+      const ps = (DATA && DATA.projects) || [];
+      const sv = v => String(v == null || v === '' ? '—' : v);
+      const mkDetail = p => ({ git: {
+        branch: p.branch, dirty: p.dirty, dirtyFiles: null,
+        commitTime: p.lastCommitTime, log: [{ subject: p.lastCommitSubject }], branches: []
+      }, readme: { exists: false } });
+      const fallback = (n) => ({
+        name: n, path: 'D:\\qa\\' + n, type: n === 'A' ? 'web' : 'app',
+        branch: n === 'A' ? 'main' : 'dev', dirty: n === 'A' ? 1 : 2,
+        sizeMB: n === 'A' ? 10 : 20, fileCount: n === 'A' ? 100 : 200,
+        lastCommitTime: n === 'A' ? '2020-01-01 00:00:00' : '2024-06-01 00:00:00',
+        lastCommitSubject: n === 'A' ? 'qa-subject-a' : 'qa-subject-b'
+      });
+      const pa = ps[0] || fallback('A'), pb = ps[1] || fallback('B');
+      const da = mkDetail(pa), db = mkDetail(pb);
+      const rows = compareRows(pa, pb, da, db);
+      // (a) 行数
+      const rowsOk = rows.length >= 8;
+      // (b) 源字段一致性
+      const by = t => rows.find(r => r.label === t);
+      const br = by('分支'), un = by('未提交文件数'), tm = by('最近提交时间'), sj = by('提交主题');
+      const valuesOk = !!br && !!un && !!tm && !!sj &&
+        br.va === sv(pa.branch) && br.vb === sv(pb.branch) &&
+        un.va === sv(pa.dirty) && un.vb === sv(pb.dirty) &&
+        tm.va === (pa.lastCommitTime ? relTime(pa.lastCommitTime) : '—') &&
+        tm.vb === (pb.lastCommitTime ? relTime(pb.lastCommitTime) : '—') &&
+        sj.va === sv(pa.lastCommitSubject) && sj.vb === sv(pb.lastCommitSubject);
+      // (c) 差异标记：刻意不同的两对象全为 true，完全相同的两对象全为 false
+      const X = fallback('A'), Y = fallback('B');
+      const diffRows = compareRows(X, Y, mkDetail(X), mkDetail(Y));
+      const sameRows = compareRows(X, X, mkDetail(X), mkDetail(X));
+      const diffOk = diffRows.length > 0 && diffRows.every(r => r.diff === true) &&
+        sameRows.length > 0 && sameRows.every(r => r.diff === false);
+      // (d) 纯净度 + 转义
+      const html = compareHtml(rows);
+      const evil = Object.assign({}, X, { lastCommitSubject: '<script>alert(1)</script>' });
+      const evilHtml = compareHtml(compareRows(evil, X, mkDetail(evil), mkDetail(X)));
+      const pure = html.indexOf('undefined') < 0 && html.indexOf('NaN') < 0 && html.indexOf('<script>') < 0 &&
+        evilHtml.indexOf('undefined') < 0 && evilHtml.indexOf('NaN') < 0 &&
+        evilHtml.indexOf('<script>') < 0 && evilHtml.indexOf('&lt;script&gt;') >= 0;
+      const pass = rowsOk && valuesOk && diffOk && pure;
+      line = 'COMPAREQA 行数=' + rows.length + ' 值一致=' + String(valuesOk) +
+        ' 差异标记=' + String(diffOk) + ' 纯净=' + String(pure) + ' | ' + (pass ? 'PASS' : 'FAIL');
+    } catch (_e) {
+      line = 'COMPAREQA 行数=0 值一致=false 差异标记=false 纯净=false | FAIL';
+    }
+    const el = document.createElement('div');
+    el.id = 'compareqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = line;
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
 
 /* v1.7.4 目录构成弹窗内下钻：currentDetail.stack 路径栈，栈顶 = 当前层；
    下钻 push / 返回 pop，loadDirs 按栈顶取数（复用 project:dirs + dirs-cache.json 按路径缓存）。 */

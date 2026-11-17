@@ -2870,3 +2870,35 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项从 IDEA 升级 → DONE（v1.7.35）；**STATE / README 已更新**；临时物（`%TEMP%\r45shots\`、探针、测试周报）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 空 ⇒ 第四十六轮从 IDEA 池升级（项目对比视图 / 多机器合并）或再巡检；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第四十六轮：项目对比视图（IDEA 升级 · 功能增量 · 编排侧第 91 轮 · v1.7.36）
+
+> **选题依据**：第 45 轮周报做完、READY 空 ⇒ 继续从 IDEA 池升级。项目对比视图复用已有 `project:detail` IPC（并发调两次即可），无需新通道、不碰用户数据、能自证 ⇒ 本轮取此项。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 为什么要对比视图？**
+    - 结论：两个同名/同类项目（如 4 个 TclLauncher）现状不同，用户要对比分支/未提交/提交时间只能连开两个详情弹窗来回切，对比视图把关键维度并排、一眼可比。
+    - 理由：① 数据已在 DATA.projects + projectDetail 里，零新增数据源；② 对比是只读呈现，不碰用户文件。
+
+  - **Q2 怎么实现最省？**
+    - 结论：弹窗 + 两个 select + 并发两次 `window.wb.projectDetail(p)`，零新增 IPC。
+    - 理由：① 现有 `openProject()` 已是「openModal + projectDetail + 渲染」模式，对比视图复用同一套 openModal/样式；② projectDetail 支持任意项目路径，并发两次无冲突；③ 用弹窗而非新视图，不碰导航/路由/窗口状态，回归面最小。
+
+  - **Q3 如何自证与防假陈述？**
+    - 结论：`--compareqa=1` 选两个已知项目，断言对比面板每个维度 = 各自 projectDetail 返回值与 DATA.projects 值（独立重算），且无 undefined/NaN。
+    - 理由：① 对比视图展示的是事实，若数字与源数据不符就是假陈述；② 零文件写入的纯 QA 钩子，只调纯渲染函数/比对内存数据；③ 阴性对照：故意选同一个项目两次或空选择，应有明确处理不崩。
+
+  - **Q4 改动面？**
+    - 结论：主要 `renderer/app.js`（对比弹窗 + 按钮 + doAct case + compareqa 钩子）+ `main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**。
+
+### 本轮收尾（第四十六轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.36.exe`（83.57 MB）+ `Workbench-1.7.36-portable.zip`（113.23 MB）+ blockmap；1.7.35 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.36.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.36）`。
+- **核心实证（CDP + 真实交互）**：`#compareqa-evidence` = `COMPAREQA 行数=9 值一致=true 差异标记=true 纯净=true | PASS`；项目视图「⚖ 对比」按钮在位；真实打开对比弹窗 → 两个下拉各 **46 个 git 项目** → 选 America vs 3d娃娃并对比 ⇒ 9 行并排数据完整（分支 main/main、未提交 0/0、提交主题、体量 1.20GB/86.8MB、文件数 541/32 全部正确），无 undefined。
+- **QA 复核发现并修正**：`--compareqa=` 的 CLI 透传遗漏（前端任务未含 main.js 所有权）⇒ 已在 `main.js` 补 2 行，与既有 QA 钩子同构，补后 CDP 取证 PASS。
+- **改动面**：2 文件 —— `renderer/app.js`（纯 `compareRows()`/`compareHtml()` + `openCompare()`/`runCompare()` + 「⚖ 对比」按钮 + 2 个 doAct case + `--compareqa=` 钩子，+173 行 0 删除）+ `main.js`（compareqa CLI 透传 2 行）；**零新增 IPC（复用 project:detail）、零外部依赖、零数据改动**，全部动态文本 esc()、模态委托复用既有、无 inline onclick。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.35 基线一致）。
+- **BACKLOG**：本项从 IDEA 升级 → DONE（v1.7.36）；**STATE / README 已更新**；临时物（`%TEMP%\r46shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 空 ⇒ 第四十七轮从 IDEA 池升级（多机器数据合并等）或再巡检；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

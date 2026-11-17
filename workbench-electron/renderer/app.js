@@ -564,6 +564,7 @@ async function init() {
   if (qs.get('searchqa')) triggerSearchQa(qs.get('searchqa'));
   if (qs.get('histqa')) triggerHistoryQa();
   if (qs.get('dayqa')) triggerDayQa();
+  if (qs.get('timeqa')) triggerTimeQa();
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1024,6 +1025,70 @@ function triggerDayQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.21）：--timeqa=1 → 证明「12 分钟前提交」在陈旧快照下陈述假事实。
+   真实取证 → 两态（scan=now-5min / now-22h）经真实 buildBrief 取渲染标签 →
+   复现旧逻辑 relTime(COMMIT)+'前' 作恒为相对标签的负对照 → 精确恢复 scanTime → 持久取证行。 */
+function triggerTimeQa() {
+  setTimeout(() => {
+    if (!DATA) return;
+    if (view !== 'overview') setView('overview', true);
+    const now = new Date();
+    const COMMIT = '2026-11-16 13:35:59';
+    const p2 = x => String(x).padStart(2, '0');
+    const scanOf = msAgo => {
+      const d = new Date(Date.now() - msAgo);
+      return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' +
+        p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+    };
+    const labelOf = txt => {
+      const s = String(txt || ''), a = s.indexOf('」'), b = s.indexOf('提交：');
+      return (a >= 0 && b > a) ? s.slice(a + 1, b) : '';
+    };
+    const commitItem = () => {
+      const items = buildBrief();
+      return items.find(x => x && x.text && x.text.indexOf('fcm-helper') >= 0 && x.text.indexOf('提交：') >= 0)
+        || items.find(x => x && x.text && x.text.indexOf('提交：') >= 0) || null;
+    };
+
+    // (a) 变更前抓真实取证：真实简报提交标签 / 真实 scanTime / fcm-helper 真实提交时间（均只读）
+    const origMeta = DATA.meta;
+    const meta = DATA.meta || (DATA.meta = {});
+    const origScan = meta.scanTime;
+    const realItem = commitItem();
+    let realLabel = realItem ? labelOf(realItem.text) : '';
+    const realCommit = ((DATA.projects || []).find(p => p && /fcm-helper/i.test(String(p.name || ''))) || {}).lastCommitTime || '';
+    if (!realLabel && realCommit) realLabel = commitWhenLabel(realCommit, origScan, now);
+
+    // (c) 负对照：旧逻辑只调 relTime（base 锚定 scanTime），恒为相对标签；真实快照下即「12 分钟前」
+    const oldLabel = relTime(COMMIT) + '前';
+    let freshLabel = '', staleLabel = '';
+    try {
+      // (b) 两态临时改 scanTime，调用真实 buildBrief() 取渲染标签（缺失条目时同源回退）
+      meta.scanTime = scanOf(5 * 60000);
+      const fi = commitItem();
+      freshLabel = fi ? labelOf(fi.text) : commitWhenLabel(realCommit || COMMIT, meta.scanTime, now);
+      meta.scanTime = scanOf(22 * 3600000);
+      const si = commitItem();
+      staleLabel = si ? labelOf(si.text) : commitWhenLabel(realCommit || COMMIT, meta.scanTime, now);
+    } finally {
+      // (d) 精确恢复原引用（含 meta 原本不存在的情形），零 mutation leak
+      meta.scanTime = origScan;
+      if (!origMeta) delete DATA.meta;
+    }
+
+    const pass = !!realLabel && /^\d/.test(freshLabel) && freshLabel.indexOf('前') >= 0 &&
+      staleLabel.indexOf('于 ') === 0 && staleLabel.indexOf(':') >= 0 && staleLabel !== freshLabel;
+    const el = document.createElement('div');
+    el.id = 'timeqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'TIMEQA 真实=' + realLabel + ' | 新鲜=' + freshLabel + ' 陈旧=' + staleLabel +
+      ' | 旧逻辑两态恒=' + oldLabel + ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
 function setView(v, silent) {
   view = v;
   localStorage.setItem('wb.view', v);
@@ -1204,6 +1269,33 @@ function activityDayLabel(dateStr, now) {
   }
 }
 
+/* v1.7.21：简报「最近提交」的时间标签。
+   根因：relTime() 的 base() 恒为 DATA.meta.scanTime（快照语义，DECISIONS D8，不得改动），
+   数据陈旧时「12 分钟前」是「提交距扫描 12 分钟」而非「距此刻 12 分钟」→ 读者误读为假事实。
+   修法：只把扫描时刻距此刻 ≤1h 的**新鲜快照**继续交给 relTime（零回归）；
+   陈旧快照改用绝对时间「于 MM-DD HH:mm 」（跨年补 YYYY-）。纯函数，不改 DATA / relTime / base。 */
+function commitWhenLabel(commitTime, scanTime, now) {
+  const p2 = x => String(x).padStart(2, '0');
+  const toDate = v => {
+    if (v == null || v === '') return new Date(NaN);
+    if (v instanceof Date) return new Date(v.getTime());
+    if (typeof v === 'number') return new Date(v);
+    return new Date(String(v).slice(0, 19).replace(' ', 'T'));
+  };
+  try {
+    const n = toDate(now == null ? new Date() : now);
+    const s = toDate(scanTime);
+    if (!isNaN(s) && !isNaN(n) && (n - s) <= 3600000) return relTime(commitTime) + '前';
+    const c = toDate(commitTime);
+    if (isNaN(c)) return String(commitTime);
+    const ymd = (!isNaN(n) && c.getFullYear() !== n.getFullYear() ? c.getFullYear() + '-' : '') +
+      p2(c.getMonth() + 1) + '-' + p2(c.getDate());
+    return '于 ' + ymd + ' ' + p2(c.getHours()) + ':' + p2(c.getMinutes()) + ' ';
+  } catch (e) {
+    return String(commitTime);
+  }
+}
+
 function buildBrief() {
   const projects = DATA.projects || [];
   const out = [];
@@ -1218,8 +1310,11 @@ function buildBrief() {
   projects.filter(p => p.isGit && p.lastCommitTime)
     .sort((a, b) => (b.lastCommitTime || '').localeCompare(a.lastCommitTime || ''))
     .slice(0, 2)
-    .forEach(p => push('var(--acc)', '「<b>' + esc(p.name) + '</b>」' + relTime(p.lastCommitTime) + '前提交："' + esc((p.lastCommitSubject || '').slice(0, 36)) + '"',
-      '「' + p.name + '」' + relTime(p.lastCommitTime) + '前提交："' + (p.lastCommitSubject || '').slice(0, 36) + '"', 'detail', p.path, '查看「' + p.name + '」项目详情'));
+    .forEach(p => {
+      const label = commitWhenLabel(p.lastCommitTime, DATA.meta && DATA.meta.scanTime);
+      push('var(--acc)', '「<b>' + esc(p.name) + '</b>」' + esc(label) + '提交："' + esc((p.lastCommitSubject || '').slice(0, 36)) + '"',
+        '「' + p.name + '」' + label + '提交："' + (p.lastCommitSubject || '').slice(0, 36) + '"', 'detail', p.path, '查看「' + p.name + '」项目详情');
+    });
 
   const act = DATA.activity || [];
   const today = act[act.length - 1];

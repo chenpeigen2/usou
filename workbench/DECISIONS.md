@@ -3075,3 +3075,10 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：从 DATA.projects 独立重算 projects=59 / git=46 / 未提交仓库=3（剔除 PROJ_DEAD）/ 最近=60；与 `ms-projects`/`ms-git`/`ms-dirty`/`ms-recent` 四个 DOM 元素文本逐项比对 ⇒ **全部匹配（match=true）**。
  > **测试陷阱**：首轮探针用 `parentElement.textContent.replace(/[^0-9]/g,'')` 抓取，得到 47/36/2/48 的错值 —— 实为取到了非 KPI 元素（或 render 未完成的中间态）；改为直接读 `#ms-*` 元素 textContent 后正确。又一条「先核对探针本身」的教训（同第 51/64/67 轮）。
  > **结论**：KPI 数字口径自洽，本轮无产品缺陷。
+
+ # 第六十九轮：QA 探针范式固化为项目规则（元治理 · 无产品缺陷）
+
+ > **选题依据**：第 51/64/67/68 轮连续出现「疑似缺陷实为探针写法问题」（pathExists 参数类型 / extraRoots await 位置 / 主题绕过 UI / KPI DOM 抓取），说明这类坑不是偶发而是缺少可复用范式。
+ > **改动**：在 `AGENTS.md` 的 QA 门禁章节后新增「QA 探针范式（避免假缺陷）」7 条 —— 走真实路径 / CDP await 包 async IIFE / 批量 IPC 参数类型 / DOM 统计只取目标元素 / 恢复后必须验证 / 改文案清点 finder / 零副作用。lead 拥有该文件，属文档元治理。
+ > **价值**：后续轮次遇到「疑似缺陷」先按清单自查探针，减少无效立项（BACKLOG 假线索会消耗判断力）。
+ > **无代码改动、无需发版**；交付态保持 v1.7.38 运行。

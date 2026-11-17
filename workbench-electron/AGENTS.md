@@ -33,6 +33,20 @@
 3. 检查清单：无空面板/多余遮罩、脉搏有波形、热力图铺满、磁盘环按用量变色、简报时间轴、SVG 图标、标题栏刷新按钮、布局无破碎
 4. 打包版冒烟：进程存活、日志无 [renderer] 错误、pulse started、单实例锁生效
 
+### QA 探针范式（避免「假缺陷」—— 第 51/64/67/68 轮教训）
+
+巡检/验收时先确认探针本身正确，再判断是否真有缺陷。反复踩过的坑：
+
+1. **走用户真实路径，不直接调底层 bridge**：主题切换走 `setTheme()`（applyTheme 立即生效 + saveSettings 落盘），直接调 `saveSettings({theme})` 只会落盘不更新 DOM ⇒ 误报「切换无效」（第 67 轮）。`saveSettings` 的 patch 不含 theme/extraRoots 之外的很多字段。
+2. **CDP `Runtime.evaluate` 里 await 必须包在 async IIFE 中**：`JSON.stringify(await window.wb.xxx())` 会语法错；用 `(async()=>{...})()` 包裹（第 51/64 轮）。
+3. **批量 IPC 要传对参数类型**：`path:exists` 收数组返回 `{path:bool}` 映射，传单字符串返回 `{}` 是正确的（第 51 轮）。
+4. **读 DOM 统计只取目标元素 textContent**：不要对 `parentElement.textContent` 做 `replace(/[^0-9]/g,'')`（会把其他数字一起抓进来，第 68 轮误报 47/36/2）。
+5. **「恢复/回滚」后必须立即验证结果**：不能凭「执行了复制命令」就声称恢复成功 —— 备份要在变更前建立（第 57 轮 dev 缓存未真正恢复却在记录里写了「已还原」）。
+6. **改用户可见文案时同步清点依赖该字符串的 QA 钩子 finder**（第 35/36 轮 `--dayqa` finder 假 FAIL）。
+7. **零副作用**：绝不在真实实例里调 `openPath(存在路径)` / `openIn(存在路径)`（会拉起外部窗口），改用 stub recorder（第 24/32 轮）。
+
+> 疑似缺陷先按上述清单自查探针，确认不是测试方式问题后再立项 —— BACKLOG 攒满假线索会消耗后续判断力。
+
 ## PM 自驱层（第十轮起，lead 只做验收）
 
 治理文件（由 PM agent 每轮维护）：

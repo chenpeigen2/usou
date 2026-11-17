@@ -135,34 +135,9 @@ function freshness(s) {
   if (d < 43200) return '数据 ' + Math.floor(d / 1440) + ' 天前更新';
   return '数据 ' + Math.floor(d / 43200) + ' 个月前更新';
 }
-function fmtMB(mb) { if (!mb) return '—'; return mb >= 1024 ? (mb / 1024).toFixed(2) + ' GB' : mb.toFixed(1) + ' MB'; }
-function fmtSizeKB(kb) {
-  if (kb == null) return '—';
-  if (kb >= 1048576) return (kb / 1048576).toFixed(1) + ' GB';
-  if (kb >= 1024) return (kb / 1024).toFixed(1) + ' MB';
-  return Math.round(kb) + ' KB';
-}
-function fmtBytes(b) {
-  if (b >= 2 ** 30) return (b / 2 ** 30).toFixed(2) + ' GB';
-  if (b >= 2 ** 20) return (b / 2 ** 20).toFixed(1) + ' MB';
-  if (b >= 1024) return (b / 1024).toFixed(1) + ' KB';
-  return Math.round(b) + ' B';
-}
-function hueOf(name) {
-  let h = 0;
-  for (const c of String(name)) h = (h * 31 + c.charCodeAt(0)) % 360;
-  return h;
-}
-function shortPath(p) { return String(p || '').split('\\').slice(-2).join('\\'); }
-function greet() {
-  const h = new Date().getHours();
-  if (h < 5) return '夜深了';
-  if (h < 9) return '早上好';
-  if (h < 12) return '上午好';
-  if (h < 14) return '中午好';
-  if (h < 18) return '下午好';
-  return '晚上好';
-}
+/* 格式化工具（fmtMB/fmtSizeKB/fmtBytes/hueOf/shortPath/greet）已按 nodebestpractices 1.3
+   抽为平铺文件 renderer/format.js（v1.7.41），同为普通 <script> 加载、全局直接可见。 */
+
 function toast(msg, type) {
   const el = document.createElement('div');
   el.className = 'toast ' + (type || 'ok');

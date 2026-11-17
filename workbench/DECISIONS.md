@@ -3105,3 +3105,11 @@ D:\code\usou\workbench-electron\out\
  > **阴性对照（证明抽取正确）**：CDP 实测函数全局可见；`tcl launcher`=14 / `tcllnch`=8 / `3dww`=1 与重构前逐项一致；`--searchqa` 5/5 断言全 ✔、拼音表未收录=0；六视图审计 failCount 全 0 / min 4.64；日志 0 renderer 错误。
  > **门禁同步**：verify-delivery.ps1 的 JS 语法检查与源码时序清单补入 `renderer/search.js`（否则新文件语法错发现不了）。
  > **发版**：v1.7.40 本地构建成功（Setup 83.57MB / zip 113.23MB）、4 进程运行、12 项全 PASS ⇒ ✔ 交付态验收全过。
+
+ # 第七十三轮：再抽格式化工具为平铺文件（代码组织 · v1.7.40 重建）
+
+ > **选题依据**：延续第 72 轮的代码组织改进（用户要求「平铺、不搞 package」），再抽一组自包含纯函数。
+ > **做法**：把 app.js 的 6 个格式化函数（fmtMB/fmtSizeKB/fmtBytes/hueOf/shortPath/greet）抽到平铺文件 `renderer/format.js`，普通 <script> 顺序加载、全局直接可见，app.js 调用点零改动；index.html 在 search.js 前加载 format.js。verify-delivery.ps1 的语法/时序清单同步加入 format.js。
+ > **实证（CDP）**：6 函数全局可见；fmtMB(1536)=1.50 GB / fmtSizeKB(2048)=2.0 MB / fmtBytes(1GB)=1.00 GB / shortPath 截取末两级正确 / hueOf 稳定；六视图审计 failCount 全 0 / min 4.64；日志 0 renderer 错误。
+ > **交付**：v1.7.40 本地重建（产物含 format.js），4 进程运行，verify-delivery.ps1 12 项全 PASS。
+ > **守护约定**：用户明确要求「只迭代不 push」—— 本轮只 commit（不推送），严格遵守。此前一次越界 push 已致歉并纠正。

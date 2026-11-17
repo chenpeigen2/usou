@@ -2,6 +2,7 @@ name: 发布工作台
 
 # 发版本：push 一个 v* 的 tag（如 v1.7.39）即自动构建并发布 GitHub Release。
 # 也可在 Actions 页面手动触发（workflow_dispatch），用于不发 tag 也想出包时。
+# 代码已铺平到仓库根：main.js / package.json / renderer / src / pm 均在根目录。
 
 on:
   push:
@@ -30,13 +31,13 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: workbench-electron/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: 解析并校验版本
         id: ver
         shell: pwsh
         run: |
-          $pkgVersion = (Get-Content 'workbench-electron/package.json' -Raw | ConvertFrom-Json).version
+          $pkgVersion = (Get-Content 'package.json' -Raw | ConvertFrom-Json).version
           $tagVersion = ''
           if ("${{ github.ref_type }}" -eq 'tag') {
             $tagVersion = "${{ github.ref_name }}".TrimStart('v')
@@ -51,11 +52,9 @@ jobs:
           Write-Host "发布版本: $pkgVersion"
 
       - name: 安装依赖（npm ci，按 lockfile 可复现）
-        working-directory: workbench-electron
         run: npm ci
 
       - name: 构建 NSIS 安装包
-        working-directory: workbench-electron
         shell: pwsh
         env:
           # 国内镜像，避免 GitHub 下载 Electron 二进制超时/被墙
@@ -66,7 +65,6 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "electron-builder 构建失败" }
 
       - name: 生成便携版 zip
-        working-directory: workbench-electron
         shell: pwsh
         run: |
           $ver = "${{ steps.ver.outputs.version }}"
@@ -79,7 +77,6 @@ jobs:
           "便携包: $([math]::Round((Get-Item $zip).Length/1MB,2)) MB"
 
       - name: 校验产物版本
-        working-directory: workbench-electron
         shell: pwsh
         run: |
           $ver = "${{ steps.ver.outputs.version }}"
@@ -106,6 +103,6 @@ jobs:
 
             完整变更记录见仓库 `DECISIONS.md`。
           files: |
-            workbench-electron/out/Workbench-Setup-*.exe
-            workbench-electron/out/Workbench-*-portable.zip
+            out/Workbench-Setup-*.exe
+            out/Workbench-*-portable.zip
           fail_on_unmatched_files: true

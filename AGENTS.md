@@ -66,7 +66,7 @@
 
 ## 版本入库（每轮收尾）
 
-- 脚本：`workbench-electron/auto-commit.ps1 -Message "<本轮主题：v<版本> <一句话>"`
+- 脚本：`auto-commit.ps1 -Message "<本轮主题：v<版本> <一句话>"`
 - 行为：自动 `git add -A` + commit（消息含版本号与变更文件数），并报告本地待推送 commit 数。
 - **默认只 commit，绝不代为 push**——用户明确要求 push 由自己执行。仅在用户显式指示时才使用 `-Push` 开关。
 - 仓库：`git@github.com:chenpeigen2/usou.git`，分支 `main`，remote 已配置。
@@ -82,3 +82,4 @@
    删除前必须核验绝对路径位于 `out\` 之内。
 6. 预置 `%APPDATA%\工作台\`（scan-cache.json + history.json）实现首启秒开
 7. 结束保留打包版运行态 = 交付状态
+

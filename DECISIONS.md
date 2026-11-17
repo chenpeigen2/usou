@@ -3113,3 +3113,12 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：6 函数全局可见；fmtMB(1536)=1.50 GB / fmtSizeKB(2048)=2.0 MB / fmtBytes(1GB)=1.00 GB / shortPath 截取末两级正确 / hueOf 稳定；六视图审计 failCount 全 0 / min 4.64；日志 0 renderer 错误。
  > **交付**：v1.7.40 本地重建（产物含 format.js），4 进程运行，verify-delivery.ps1 12 项全 PASS。
  > **守护约定**：用户明确要求「只迭代不 push」—— 本轮只 commit（不推送），严格遵守。此前一次越界 push 已致歉并纠正。
+
+ # 第七十四轮：仓库彻底铺平（消除 workbench-electron/ 与 workbench/ 两层嵌套）
+
+ > **选题依据**：用户指出「usou 还是里面两个文件夹，不是铺开的」—— 仓库顶层仍有 `workbench-electron/`（Electron 应用）和 `workbench/`（静态兜底）两层嵌套，要求真正铺平到仓库根。
+ > **做法**：用 `git mv` 把两个目录的全部 33 个 tracked 文件上移到仓库根（git 识别为 rename、保留历史）；被 gitignore 的 `runtime/`、`out/`、`node_modules/`、`data/`、`data.json` 物理移动（不在 git 索引）；删除两个空目录。铺平后根目录直接是 `main.js`/`preload.js`/`renderer/`/`src/`/`pm/`/`package.json` 等。
+ > **路径引用同步**：`.gitignore`（前缀全去）、`auto-commit.ps1`（`$ROOT=$PSScriptRoot`、package.json 路径）、`verify-delivery.ps1`（`$APP=$ROOT=PSScriptRoot`）、`.github/workflows/release.yml`（去掉 4 个 working-directory、cache-dependency-path、files 路径）、活跃文档（AGENTS/DELIVERY/pm/*.md 的旧路径）；历史版本流水（README 的 v1.7.32 描述、DECISIONS 历史条目）保留原样作史实。
+ > **关键正确性**：`main.js` 用 `__dirname` 定位 renderer/preload/icon，与目录层级无关；electron-builder.yml 的相对路径（electronDist: runtime/electron、output: out、buildResources: build）在根目录下依然正确。
+ > **验证（阴性对照式）**：语法 8/8；`__dirname` 定位检查；CDP 实测应用从 `file:///D:/code/usou/renderer/index.html` 启动（不再是 /workbench-electron/）、三个脚本顺序加载、全局函数可见、59 项目、`tcl launcher`=14（与铺平前一致）；六视图审计 failCount 0 / min 4.64；**重新打包 builder=0**（产物在根 out\）、4 进程交付、verify-delivery.ps1 12 项全 PASS。
+ > **守护约定**：用户明确「只 commit 不 push」—— 本轮严格只 commit。

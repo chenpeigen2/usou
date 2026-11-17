@@ -1,7 +1,7 @@
 # 工作台 · 交付总览
 
 > 本文件是接手人/新会话的快速上手入口。所有数字来自本机实测与 git 仓库状态，非推演。
-> 迭代日志见 [DECISIONS.md](../workbench/DECISIONS.md)（2323 行），版本变更流水见 [README.md](README.md)。
+> 迭代日志见 [DECISIONS.md](DECISIONS.md)（2323 行），版本变更流水见 [README.md](README.md)。
 
 ## 一、这是什么
 
@@ -30,7 +30,7 @@
 ## 三、代码结构
 
 ```
-workbench-electron/
+
 ├─ main.js              主进程：窗口/托盘/自启/扫描调度/IPC/导出
 ├─ preload.js           contextBridge 白名单（window.wb，22 方法）
 ├─ src/scanner.js       扫描内核：项目发现/git/体量/活动/最近/工具链（只读）
@@ -89,7 +89,7 @@ workbench-electron/
 - 多轮**证伪巡检**（搜索召回 / 浅色对比度 / 收藏闭环 / 打包版 IPC / 扫描中关窗），确认无真实缺陷、不强行立项。
 - QA 基建审计：22 个 QA 钩子 CLI 透传完整，8 个关键钩子动态冒烟全 PASS。
 
-> 详细决策与自问自答见 `workbench\DECISIONS.md`。
+> 详细决策与自问自答见 `DECISIONS.md`。
 
 ## 五·五、CI 自动发版（GitHub Actions）
 
@@ -142,3 +142,4 @@ git push -u origin main
 - 「未提交」「有新提交」等陈述必须与同屏其他视图一致；时间标签随数据新鲜度切换「N 分钟前」⇄「于 MM-DD HH:mm」。
 - 历史快照：旧 name-key 快照标 `legacy`，新 path-key 快照按绝对路径配对；同名项目不塌缩、跳转按 path。
 - 所有用户可见文案的度量值，都必须能被独立重算复现（数据侧独立重算是本项目的核心巡检方法）。
+

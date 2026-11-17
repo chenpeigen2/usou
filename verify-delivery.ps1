@@ -6,8 +6,8 @@ param([int]$TimeoutSec = 20)
 
 $ErrorActionPreference = 'SilentlyContinue'
 # 路径从脚本自身位置推导，不写死任何本机目录
-$APP  = $PSScriptRoot
-$ROOT = Split-Path -Parent $APP
+$APP  = $PSScriptRoot   # 脚本已在仓库根
+$ROOT = $APP            # 仓库根即脚本所在目录
 $PM   = Join-Path $APP 'pm'
 $OUT  = Join-Path $APP 'out'
 $APPD = Join-Path $env:APPDATA '工作台'

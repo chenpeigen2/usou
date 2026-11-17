@@ -1,6 +1,6 @@
 # 迭代提交（PM agent 每轮收尾调用）—— 默认只 commit，不 push
-# 用法: pwsh -NoProfile -File <仓库>/workbench-electron/auto-commit.ps1 -Message "<本轮摘要>"
-# 路径从脚本自身位置推导（$PSScriptRoot = workbench-electron），不写死任何本机目录。
+# 用法: pwsh -NoProfile -File <仓库>/auto-commit.ps1 -Message "<本轮摘要>"
+# 路径从脚本自身位置推导（$PSScriptRoot = 仓库根），不写死任何本机目录。
 # 行为:
 #   1. 若工作区有变更 → 自动 add -A + commit（消息含版本号与变更文件数）
 #   2. 报告本地待推送 commit 数；**默认不推送**（用户自行 push）
@@ -13,7 +13,7 @@ param(
 $ErrorActionPreference = 'Stop'
 # git 走 PATH（也可设 GIT_EXE 覆盖，便于非标准安装位置）
 $git = if ($env:GIT_EXE) { $env:GIT_EXE } else { 'git' }
-$ROOT = Split-Path -Parent $PSScriptRoot   # 脚本在 workbench-electron\ 下，仓库根是其父目录
+$ROOT = $PSScriptRoot   # 脚本已在仓库根，无需再上溯
 Set-Location $ROOT
 
 function RunGit([string[]]$a) { $out = & $git @a 2>&1; return @{ out = ($out -join "`n"); code = $LASTEXITCODE } }
@@ -22,7 +22,7 @@ function RunGit([string[]]$a) { $out = & $git @a 2>&1; return @{ out = ($out -jo
 $st = RunGit @('status', '--porcelain')
 $changed = @($st.out -split "`n" | Where-Object { $_.Trim() })
 $pkgVer = '?'
-try { $pkgVer = (Get-Content (Join-Path $ROOT 'workbench-electron\package.json') -Raw | ConvertFrom-Json).version } catch {}
+try { $pkgVer = (Get-Content (Join-Path $ROOT 'package.json') -Raw | ConvertFrom-Json).version } catch {}
 
 if ($changed.Count -gt 0) {
   # v1.7.37：提交前禁入路径校验 —— 历史事故：QA 探针/截图/临时目录被 git add -A 误提交
@@ -45,7 +45,7 @@ $msg
 
 - 版本: v$pkgVer
 - 变更文件: $($changed.Count) 个
-- 自动提交: workbench-electron/auto-commit.ps1（只 commit，push 由用户自行执行）
+- 自动提交: auto-commit.ps1（只 commit，push 由用户自行执行）
 "@
   $r = RunGit @('add', '-A')
   if ($r.code -ne 0) { Write-Host "✘ git add 失败:`n$($r.out)" -ForegroundColor Red; exit 1 }

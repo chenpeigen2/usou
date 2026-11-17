@@ -23,7 +23,7 @@
 
 1. `pm/STATE.md` —— 当前版本、上一轮结论、下一轮指针
 2. `pm/BACKLOG.md` —— 待办池（READY / DOING / DONE / IDEA）
-3. `DECISIONS.md`（同级 `D:\code\usou\workbench\DECISIONS.md`）—— 历轮决策与踩坑库
+3. `DECISIONS.md`（同级 `DECISIONS.md`）—— 历轮决策与踩坑库
 4. `AGENTS.md` —— 文件所有权、IPC 契约、QA 门禁、打包协议
 5. `README.md` —— 当前功能全貌
 6. 运行态取证：`%APPDATA%\工作台\main.log` 尾部、`Get-Process -Name 工作台`、必要时截屏
@@ -72,10 +72,10 @@ STATE.md 标记该主题为 DOING。
 - `DECISIONS.md`：补 QA 与发版实测结论、产物路径
 - `README.md`：顶部加一行本版本摘要
 - **删本轮所有临时探针 / 截图 / 隔离 profile**（`pm\` 目录只允许留 BACKLOG/PM/PROMPT/STATE 四个文件）
-- **收尾自检（必须跑，必须全过）**：`pwsh -NoProfile -File "D:\code\usou\workbench-electron\verify-delivery.ps1"`
+- **收尾自检（必须跑，必须全过）**：`pwsh -NoProfile -File "verify-delivery.ps1"`
   必须输出「✔ 交付态验收全过」。若报 `pm\ 只含 4 个治理文件` 失败 → 说明第 7 步清理没做干净 → **清干净再重跑，直到全过**。
   （本轮运行期间该脚本可能报此项失败——那是运行中间态，收尾时必须为 PASS 才能结束本轮。）
-- **版本入库（每轮收尾必做）**：`pwsh -NoProfile -File "D:\code\usou\workbench-electron\auto-commit.ps1" -Message "<本轮主题：v<版本> <一句话>"`
+- **版本入库（每轮收尾必做）**：`pwsh -NoProfile -File "auto-commit.ps1" -Message "<本轮主题：v<版本> <一句话>"`
   脚本会自动 `git add -A` + commit（消息含版本号与变更文件数），并报告本地待推送 commit 数。
   **默认不 push**（用户自行推送）—— 绝不在本流程里代为 push。
   报告里必须写出 commit hash 与「待推送 N 个（由用户自行 push）」。
@@ -113,4 +113,5 @@ STATE.md 标记该主题为 DOING。
   **保活用**——若链式批次因会话结束/异常中断，6 小时后重新拉起一批（最多 3 轮）。
 - 正常情况由 lead 在每轮收尾后**直接起下一轮**（本会话内用 workflow 串跑），不等定时。
 - 每次唤醒读状态 → 连跑最多 3 轮 SOP → 结束。用户无需参与。
+
 

@@ -23,6 +23,20 @@ $pkgVer = '?'
 try { $pkgVer = (Get-Content (Join-Path $ROOT 'workbench-electron\package.json') -Raw | ConvertFrom-Json).version } catch {}
 
 if ($changed.Count -gt 0) {
+  # v1.7.37：提交前禁入路径校验 —— 历史事故：QA 探针/截图/临时目录被 git add -A 误提交
+  #   （第 28 轮 pm/r28shots/ 污染 commit、第 27 轮 agent 死了留 15 个探针脚本）。
+  #   这里只拦截并给出明确提示，不自动删除（删除由 lead 核验绝对路径后手动做）。
+  $forbidden = @($changed | Where-Object {
+    $p = $_.Substring([Math]::Min(3, $_.Length)).Trim() -replace '^"|"$',''
+    $p -match '(^|/)(runtime|out|node_modules|data)/' -or
+    $p -match '(_qa_|_shots|r\d+shots|probe|\.tmp$|\.bak$)' -or
+    $p -match '^pm/' -and $p -notmatch '^pm/(BACKLOG|PM|PROMPT|STATE)\.md$'
+  })
+  if ($forbidden.Count -gt 0) {
+    Write-Host "✘ 检测到禁入路径，已中止提交（请先核验绝对路径后清理）：" -ForegroundColor Red
+    $forbidden | ForEach-Object { Write-Host "    $_" -ForegroundColor Red }
+    exit 1
+  }
   $msg = if ($Message.Trim()) { $Message.Trim() } else { "chore: 工作台 v$pkgVer 迭代更新" }
   $body = @"
 $msg

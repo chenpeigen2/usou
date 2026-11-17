@@ -158,7 +158,11 @@ async function analyze(root, onProgress = () => {}) {
 }
 
 // 活动热力：聚合目录下近 N 天每日变动文件数（限深 3 层，排除构建产物目录）
-async function buildActivity(days) {
+// v1.7.30：此前只扫 D:\code 与 E:\workspace 两个硬编码根，而实际发现 59 个项目 ——
+//   21 个在 D:\code 下、5 个在 E:\workspace 下被覆盖，其余 33 个（fcm-helper / launcher 系列等）
+//   从未遍历 ⇒ 这些项目的文件改动不进任何活动桶，热力图系统性低估 56% 项目。
+//   修：接收已发现的项目根，对不在两基础根之下的额外项目补扫（去重 + 复用 SIZE_EXCLUDE / 深度3）。
+async function buildActivity(days, projectRoots) {
   const cutoff = Date.now() - days * 86400000;
   const map = new Map();
   async function rec(dir, depth) {
@@ -180,8 +184,17 @@ async function buildActivity(days) {
       }
     }
   }
-  await rec('D:\\code', 3);
-  await rec('E:\\workspace', 3);
+  const BASE = ['D:\\code', 'E:\\workspace'];
+  for (const r of BASE) await rec(r, 3);
+  // 补扫：项目根不在两基础根之下（避免重复遍历 D:\code\* 与 E:\workspace\* 下的 26 个项目）
+  const seen = BASE.slice();
+  for (const pr of (projectRoots || [])) {
+    if (!pr || typeof pr !== 'string') continue;
+    const p = String(pr);
+    if (seen.some(s => p === s || p.startsWith(s + '\\') || p.startsWith(s + '/'))) continue;
+    seen.push(p);
+    await rec(p, 3);
+  }
   const out = [];
   const now = new Date();
   for (let i = days - 1; i >= 0; i--) {
@@ -421,7 +434,7 @@ async function runScan(opts = {}, onProgress = () => {}) {
   await Promise.all(Array.from({ length: CONCURRENCY }, projWorker));
 
   prog('activity', 0, 1, '活动统计');
-  const activity = await buildActivity(90);
+  const activity = await buildActivity(90, projects.map(p => p.path));
 
   prog('recent', 0, 1, '最近动态');
   const recent = [];

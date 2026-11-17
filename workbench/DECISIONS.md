@@ -3061,3 +3061,10 @@ D:\code\usou\workbench-electron\out\
  > **实证（--trayqa=popup,<file> 钩子）**：`liveItemsMatchLabels=true`（挂到托盘的真实 Menu 实例与模板逐项一致）；菜单 = 显示工作台 / 上次扫描：1 天前（13:47）/ 未提交：3 个仓库 6 个文件 / 立即扫描 / 自动扫描：关 / 开机自启 / 退出；status 与 scan-cache.json 同源（scanTime=11-16 13:47:54、ageMinutes=1542、dirtyProjects=3、dirtyFiles=6），自动扫描关与 settings.autoScanHours=0 一致。
  > **过程说明**：首次传 `--trayqa=popup,<目录>` 未生成文件（钩子参数是文件路径而非目录），改用完整文件路径后成功；临时 JSON 已清理。
  > **结论**：托盘动态信息全部准确，本轮无产品缺陷。
+
+ # 第六十七轮：主题持久化链路回归（证伪一轮）
+
+ > **选题依据**：主题持久化建立于第 8 轮，此后 settings 链路在第 41/56 轮大改 ⇒ 回归验证 setTheme 的「立即生效 + 落盘 + 重启保持」。
+ > **实证（CDP）**：真实用户路径 `setTheme('dark')` ⇒ DOM data-theme=dark、SETTINGS.theme=dark、落盘 settings.json.theme=dark，三者一致；重启后启动主题亦为 dark（前次 saveSettings 落盘生效）。
+ > **测试陷阱澄清**：初测直接调 `saveSettings({theme:'dark'})` 出现「落盘 dark 但 DOM 仍 light」的疑似缺陷 —— 实为**绕过 UI 的测试方式问题**：saveSettings() 的 patch 只含 extraRoots/trayMinimize/autoScanHours，不含 theme；主题切换走专门的 setTheme()（applyTheme 立即生效 + saveSettings 落盘）和设置页 chip 的 data-act=theme:set。非产品缺陷。
+ > **纪律**：又一条「看起来像 bug 先核对真实调用路径」的教训（同第 51 轮 pathExists 探针、第 64 轮 extraRoots 探针）。测试须走用户真实路径，不能想当然调底层 bridge。

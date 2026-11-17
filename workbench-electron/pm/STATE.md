@@ -13,15 +13,15 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第四十轮 / v1.7.30 · **「活动热力图只扫 2 个硬编码根 ⇒ 33/59 项目从未进入」**
-- **本轮主题一句话**：`buildActivity()` 只扫 D:\code 与 E:\workspace，59 项目中 33 个（含 fcm-helper 与 launcher 系列）从未进热力图 ⇒ 接收项目根、对两基础根之外按深度3补扫（去重 + SIZE_EXCLUDE 复用）
-- **版本**：v1.7.30
-- **交付态**：`out\Workbench-Setup-1.7.30.exe`（83.56 MB）+ `out\Workbench-1.7.30-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.30.0**）；1.7.29 产物已清除
-- **最后巡检**：2026-11-17 13:46 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.30）`
-- **核心实证**：真实全量扫描（只读探针）活跃天数 36→**66** / 峰值 1187→**2946** / 总和 5401→**16081**；去重补扫 28 个额外根；扫描 60s；dev 基线缓存已恢复
-- **本轮改动面**：仅 `src/scanner.js`（buildActivity 增参 + 补扫循环 + 调用点）；**零新增 IPC、零外部依赖、零数据改动、纯只读磁盘访问**
-- **已知遗留（第三十九轮其余候选）**：最近 Top-60 递归深度 1；持久化失败误报为扫描失败；扫描进度 1/57→1/54 分母回退；活动 cutoff 差一天；系统页副标题误称「仓库数」
-- **下一轮指针**：READY 仍空 ⇒ 第四十一轮按候选造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
+- **本轮状态**：DONE · 第四十一轮 / v1.7.31 · **「持久化失败被误报为『扫描失败』（成功与失败信号颠倒）」**
+- **本轮主题一句话**：`startScanRun().then` 里 `setScan` 无 try/catch ⇒ 写盘失败被记为扫描失败（实际扫描成功）、appendHistory 异常却被吞仍报成功 ⇒ 分开两类信号、scan:done 只在 setScan 成功后发
+- **版本**：v1.7.31
+- **交付态**：`out\Workbench-Setup-1.7.31.exe`（83.56 MB）+ `out\Workbench-1.7.31-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.31.0**）；1.7.30 产物已清除
+- **最后巡检**：2026-11-17 13:54 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.31）`
+- **核心实证**：只读缓存触发 `persist scan-cache ERROR EPERM` 且**无** `scan ERROR`、`SCAN_ERRORS=1/HAS_PERSIST_ERROR=true`、标题栏未误报；权限与基线已恢复
+- **本轮改动面**：2 文件 —— `main.js`（.then 持久化块重构）+ `renderer/app.js`（scan:persist-error 订阅）；**零新增 IPC、零外部依赖、零数据改动**
+- **已知遗留**：最近 Top-60 递归深度 1；扫描进度 1/57→1/54 分母回退；活动 cutoff 差一天；系统页副标题误称「仓库数」
+- **下一轮指针**：READY 仍空 ⇒ 第四十二轮按候选造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

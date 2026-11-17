@@ -1522,6 +1522,12 @@ function bindScanEvents() {
     logLine('✘ ' + e);
     if (!DATA) renderNoData('扫描失败：' + e);
   });
+  // v1.7.31：扫描成功但持久化失败 —— 与「扫描失败」分开呈现，不再误导用户去排查扫描本身
+  window.wb.on('scan:persist-error', msg => {
+    tbStatus('⚠ 数据未保存');
+    toast(String(msg || '扫描已完成，但数据保存失败'), 'err');
+    logLine('⚠ 持久化失败：' + String(msg || ''));
+  });
   window.wb.on('analyze:progress', p => {
     if (view !== 'disk') return;
     const el = $('#anprogress');

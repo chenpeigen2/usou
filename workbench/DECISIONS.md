@@ -2699,3 +2699,42 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.30）；**STATE / README 已更新**；临时物（`%TEMP%\r40shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第四十一轮按候选造活（最近 Top-60 递归深度 1 / 持久化失败误报为扫描失败 / 扫描进度分母回退 / 活动 cutoff 差一天 / 系统页副标题误称仓库数）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第四十一轮：持久化失败被误报为「扫描失败」（成功与失败信号颠倒）（P1 · 新视角巡检造活 · 编排侧第 86 轮 · v1.7.31）
+
+> **选题依据**：第三十九轮管线审计员发现；代码实证 `main.js:511-530`：`.then` 里 `store.setScan(data)` 无 try/catch、`store.appendHistory(data)` 却单独 try/catch 吞异常 ⇒ 同类写盘失败被处理成两个相反结果。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 为什么必须区分「扫描失败」与「持久化失败」？**
+    - 备选：A. 统一都报「扫描失败」（现状）｜B. 统一都静默吞｜C. 分开：扫描失败 = 数据没拿到；持久化失败 = 数据拿到了但没存下。
+    - 结论：**C**。
+    - 理由：① A 在缓存只读时告诉用户「扫描失败」，可用户明明看到扫描进度跑完、项目列表却没更新 —— 是**陈述与事实不符**（同款第 7 例），且误导用户去排查网络/磁盘扫描而非写权限；② B 静默吞掉写入失败，用户以为数据更新了，下次打开还是旧的 —— 更隐蔽；③ C 让两类失败各有准确文案，用户能对症处理（改权限 vs 重扫）。
+
+  - **Q2 `scan:done` 什么时候发？**
+    - 结论：**只在 `setScan` 成功后发**；`setScan` 失败则不发 `scan:done`、也不发 `scan:error`，改发一个持久化失败提示（复用现有 toast + scanErrors 诊断列表，零新 IPC）。
+    - 理由：① `scan:done` 的语义是「数据已更新」，setScan 失败时数据没更新，发它是假陈述；② 不发 `scan:error` 是因为扫描本身没失败，发它会污染「扫描错误」诊断；③ 走 scanErrors 列表（`pushScanError('持久化', msg)`）让用户事后可查，toast 即时提示 —— 复用已有通道，零新增。
+
+  - **Q3 `appendHistory` 的吞异常处理？**
+    - 结论：不再静默吞 —— 与 setScan 一样走持久化失败通道，但不阻断 `scan:done`（历史摘要非主数据，丢了不影响本次项目缓存的可用性）。
+    - 理由：① 当前 `catch(e){log('history ERROR')}` 只写日志，用户完全不知道历史没记上；② 但历史写入失败不该让整个扫描报失败（主数据 `scan-cache.json` 已成功写入，工作台可用）；③ 记入 scanErrors + 日志即可，scan:done 照发（主数据成功）。
+
+  - **Q4 验证方案？**
+    - 结论：隔离 dev 目录 + 把 `scan-cache.json` 设为只读 → 触发扫描 → 断言 UI/日志报「持久化失败」而非「扫描失败」。
+    - 理由：① 只读文件让 `renameSync` 抛错，精确复现写盘失败；② dev 目录隔离，不碰交付态 `%APPDATA%`；③ 验证后恢复文件权限与基线数据。
+
+  - **Q5 改动面与风险边界？**
+    - 结论：仅 `main.js` 一处 `.then` 块重构；**零新增 IPC、零外部依赖、零数据文件结构改动**。
+    - 理由：① 失败路径重分类，成功路径（`setScan` 成功 → `scan:done`）行为完全不变；② 复用既有 `pushScanError` / toast / scanErrors 通道；③ 与 v1.7.19~v1.7.30 同样的门禁。
+
+### 本轮收尾（第四十一轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.31.exe`（83.56 MB）+ `Workbench-1.7.31-portable.zip`（113.22 MB）+ blockmap；1.7.30 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.31.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.31）`。
+- **核心实证（隔离 dev 目录 + 只读 scan-cache.json）**：把缓存设为只读后触发扫描（skipSizes 快速模式），日志 = `persist scan-cache ERROR Error: EPERM: operation not permitted, rename ...scan-cache.json.tmp -> scan-cache.json`、**无** `scan ERROR` ⇒ 写盘失败不再误报扫描失败；渲染层 `SCAN_ERRORS=1`、`HAS_PERSIST_ERROR=true`（诊断列表正确记录「持久化」类），标题栏未显示「扫描失败」。权限与基线数据已精确恢复。
+- **阴性对照**：旧代码下 setScan 抛错会落入 `.catch` ⇒ `pushScanError('扫描')` + `send('scan:error')`，必然出现 `scan ERROR` ⇒ 不可能通过。
+- **成功路径零回归**：`setScan` 成功后 `scan:done` / 托盘重建 / 完成气泡行为完全不变；`appendHistory` 失败不再静默吞、记入持久化诊断但不阻断主数据完成。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.30 基线一致）。
+- **改动面**：2 文件 —— `main.js`（`.then` 持久化块重构：区分扫描失败/持久化失败）+ `renderer/app.js`（`scan:persist-error` 订阅 → toast + 状态栏 + 日志）；**零新增 IPC（复用通用 `on` 桥接与 scanErrors 通道）、零外部依赖、零数据文件结构改动**。
+- **BACKLOG**：本项 → DONE（v1.7.31）；**STATE / README 已更新**；临时物（`%TEMP%\r41shots\`、探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 仍空 ⇒ 第四十二轮按候选造活（最近 Top-60 递归深度 1 / 扫描进度分母回退 / 活动 cutoff 差一天 / 系统页副标题误称仓库数）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

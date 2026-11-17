@@ -509,15 +509,32 @@ function startScanRun(opts) {
     send('scan:progress', p);
   })
     .then(data => {
-      store.setScan(data);
-      try { store.appendHistory(data); } catch (e) { log('history ERROR ' + e); }
+      // v1.7.31：区分「扫描失败」与「持久化失败」—— 此前 setScan 无 try/catch，
+      //   写盘失败（缓存只读/文件被锁/磁盘满）会落入 .catch 被误报为「扫描失败」，
+      //   而实际数据已成功扫描、只是没存下 ⇒ 陈述与事实不符（同款第 7 例）。
+      //   现在：扫描成功 = runScan 返回 data；持久化单独处理，不再与扫描失败混淆。
       scanning = false;
-      log('scan DONE ' + data.projects.length + ' projects, ' + data.meta.durationSec + 's');
-      send('scan:done', { scanTime: data.meta.scanTime, durationSec: data.meta.durationSec });
-      // v1.7.11：数据变了 → 托盘菜单必须立刻重建（「上次扫描」「未提交」不能停留在旧值）
-      refreshTrayMenu('扫描完成');
-      if (tray) {
-        try { tray.displayBalloon({ title: '工作台', content: '扫描完成：简报与项目数据已更新', iconType: 'info' }); } catch (_e) { /* 仅 Windows 生效，其余忽略 */ }
+      let persisted = false;
+      try {
+        store.setScan(data);
+        persisted = true;
+      } catch (e) {
+        const msg = String((e && e.stack) || e);
+        log('persist scan-cache ERROR ' + msg);
+        pushScanError('持久化', '主数据保存失败（扫描已完成）：' + msg);
+        send('scan:persist-error', '扫描已完成，但数据保存失败（请检查缓存目录写权限/磁盘空间）');
+      }
+      if (persisted) {
+        // 历史摘要非主数据：写入失败记入诊断，但不阻断主数据的 scan:done
+        try { store.appendHistory(data); }
+        catch (e) { pushScanError('持久化', '历史摘要保存失败：' + String((e && e.message) || e)); }
+        log('scan DONE ' + data.projects.length + ' projects, ' + data.meta.durationSec + 's');
+        send('scan:done', { scanTime: data.meta.scanTime, durationSec: data.meta.durationSec });
+        // v1.7.11：数据变了 → 托盘菜单必须立刻重建（「上次扫描」「未提交」不能停留在旧值）
+        refreshTrayMenu('扫描完成');
+        if (tray) {
+          try { tray.displayBalloon({ title: '工作台', content: '扫描完成：简报与项目数据已更新', iconType: 'info' }); } catch (_e) { /* 仅 Windows 生效，其余忽略 */ }
+        }
       }
     })
     .catch(err => {

@@ -2581,3 +2581,16 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.26）；**STATE / README 已更新**；临时物（`%TEMP%\r36shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第三十七轮按遗留清单造活（候选：`disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+### 本轮收尾（第三十七轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.27.exe`（83.56 MB）+ `Workbench-1.7.27-portable.zip`（113.22 MB）+ blockmap；1.7.26 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.27.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.27）`。
+- **核心实证（CDP 真实 IPC 三连，开发态缓存临时刷新）**：`r1=分析 D:\code(force) started=true` → `r2=缓存命中 D:\CLAUNCER2\TclLauncher started=true, cached=true` → `r3=分析 E:\workspace` ⇒ **`started=false, reason=分析已在进行中`** ⇒ `mutexHeldAfterCacheHit=true`。旧代码在 r2 的缓存命中分支写 `analyzing=false`，r3 必然放行第二次并发分析 ⇒ 不可能通过。
+- **复现条件**：`disk:analyze` 缓存命中分支（L597 旧代码）无条件清掉**属于另一次在途分析**的全局互斥锁 ⇒ 「分析 A 进行中 → 命中缓存 B → 再启动 C」时 A 与 C 并发跑同一份 `dirsCache`，结果互相覆盖且资源竞争。
+- **修复**：仅删掉缓存命中分支的 `analyzing = false;`，补注释明确**互斥锁只能由真正启动的分析在 .then/.catch 终态里清除**；`project:dirs` 的同类分支经核对本就正确（无此行），未动。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.26 基线一致）。
+- **改动面**：仅 `main.js` 1 处删除 + 注释 + `package.json` 版本号；**零新增 IPC、零外部依赖、零数据改动**；测试用的临时缓存条目与强制分析结果已精确清理（dev `data\dirs-cache.json` 恢复原 4 键）。
+- **本轮分工**：lead 直接做一行式 hotfix + CDP 真实 IPC 取证（未起 agent —— 改动面仅 1 行，起 agent 的协调成本高于收益）；延续「自问自答 → 实现 → QA → 发版 → 治理」门禁。
+- **BACKLOG**：本项（深度巡检遗留之一）已实证并修复；**STATE / README 已更新**；临时物（`%TEMP%\r37shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 仍空 ⇒ 第三十八轮按最后遗留造活（候选：最大化窗重启后标题栏图标不同步；若巡检无新缺陷则从 IDEA 池升级）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

@@ -594,7 +594,10 @@ ipcMain.handle('disk:analyze', (_e, root, force) => {
   const hit = cache[root];
   if (!force && hit && (Date.now() - hit.savedAt) < DIRS_TTL) {
     const res = { root, totalSize: hit.totalSize, items: hit.items, cached: true, cachedAt: hit.savedAt };
-    analyzing = false;
+    // v1.7.27：缓存命中分支**绝不能**清 `analyzing` —— 它属于当前正在进行的另一次分析。
+    // 旧代码在这里写 `analyzing = false`，导致「分析 A 进行中 → 命中缓存 B → 再启动分析 C」
+    // 时互斥锁被 B 清掉、C 与 A 并发跑同一份 dirsCache（EBUSY/结果互相覆盖）。
+    // 互斥锁只能由**真正启动的分析**在 .then/.catch 的终态里清除。
     send('analyze:done', res);
     return { started: true, cached: true };
   }

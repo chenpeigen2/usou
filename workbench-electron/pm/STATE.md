@@ -13,15 +13,15 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十六轮 / v1.7.26 · **「长开窗口后屏幕简报标签与复制/导出内容不一致（同屏两答案）」**
-- **本轮主题一句话**：`buildBrief()` 时间标签以 now 求值但只在 renderOverview 落 DOM、clockTick 只刷标题栏、briefMarkdown 每次重算 ⇒ 跨小时后屏幕「12 分钟前」vs 剪贴板「于 11-16 13:35」⇒ 修：签名门控的 `refreshBrief()` 局部重绘 #daily-list、导出复用同一份 items
-- **版本**：v1.7.26
-- **交付态**：`out\Workbench-Setup-1.7.26.exe`（83.56 MB）+ `out\Workbench-1.7.26-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.26.0**）；1.7.25 产物已清除
-- **最后巡检**：2026-11-17 13:14 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.26）`
-- **核心实证**：`BRIEFSYNC 新鲜=分钟前 陈旧DOM=于/分钟前=true/false 陈旧MD=于/分钟前=true/false 旧行为会不一致=true | PASS`；scanTime 精确恢复、屏幕无假时间戳；旧行为不可能通过
-- **本轮改动面**：2 文件 —— `renderer/app.js`（`refreshBrief()` + `#daily-list` + clockTick 接线 + briefMarkdown 复用 + `--briefsync=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**
-- **已知遗留（其余审计发现）**：`disk:analyze` 缓存命中清互斥锁 ⇒ 可并发分析 / 最大化窗重启后标题栏图标不同步
-- **下一轮指针**：READY 仍空 ⇒ 第三十七轮按遗留清单造活（优先 `disk:analyze` 互斥锁）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
+- **本轮状态**：DONE · 第三十七轮 / v1.7.27 · **「`disk:analyze` 缓存命中误清全局互斥锁（可并发分析同一缓存）」**
+- **本轮主题一句话**：缓存命中分支无条件 `analyzing=false`，清掉属于另一次在途分析的锁 ⇒ 「A 分析中 → 命中缓存 B → 启动 C」时 A/C 并发写 `dirsCache` ⇒ 删除该行，互斥锁只由真正启动的分析在终态清除
+- **版本**：v1.7.27
+- **交付态**：`out\Workbench-Setup-1.7.27.exe`（83.56 MB）+ `out\Workbench-1.7.27-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.27.0**）；1.7.26 产物已清除
+- **最后巡检**：2026-11-17 13:19 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.27）`
+- **核心实证**：CDP 真实 IPC 三连 `r1 started=true → r2 cached=true → r3 started=false/reason=分析已在进行中`（旧逻辑 r3 必然放行 ⇒ 不可能通过）；测试缓存已精确清理
+- **本轮改动面**：仅 `main.js` 1 行删除 + 注释与 `package.json` 版本号；**零新增 IPC、零外部依赖、零数据改动、`project:dirs` 未动**
+- **已知遗留**：最大化窗重启后标题栏图标不同步（深度巡检最后一项）；IDEA 池：项目对比视图 / 每周节奏周报 / 多机器数据合并
+- **下一轮指针**：READY 仍空 ⇒ 第三十八轮按最后遗留或 IDEA 池造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

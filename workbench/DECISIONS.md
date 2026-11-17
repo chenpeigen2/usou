@@ -2974,3 +2974,10 @@ D:\code\usou\workbench-electron\out\
 > **发现的问题（治理流程，非产品）**：截图里项目体量全显示「—」、总览 KPI「体积 —」，追查发现是 **dev 数据被第 52 轮快速扫描（skipSizes）覆盖**（fast:true、58 项目 sizeMB=0）—— 而我在第 52 轮决策记录里写了「基线数据已还原」，实际**并未还原成功**（备份 `.r52bak` 在扫描启动后才建、内容已被污染，且恢复后没有验证）。交付态 `%APPDATA%` 数据始终健康（59 项目 / 58 有体量 / 全量），故**不影响交付**。
 > **当场修正**：从健康的交付态数据复制回 dev（`scan-cache.json` + `history.json`），验证 `scanTime=2026-11-16 13:47:54 / 有体量=58 / fast=false` ⇒ 确认恢复。
 > **教训沉淀（写入项目规则）**：任何「恢复/回滚/清理」操作后**必须立即验证结果**，不能凭「执行了命令」就声称成功 —— 这与项目核心原则「日志绿 ≠ 应用好、必须拿真实数据自证」同源；备份必须在**变更前**建立并验证内容。
+
+# 第五十八轮：治理文档同步 + 磁盘分析契约审计（无产品缺陷）
+
+> **治理同步**：BACKLOG 中第 54 轮「门禁 renderer 假阳性」项实为 DONE（修复在 `verify-delivery.ps1:43-46`，阴性对照 6/6 已过）却仍标 READY ⇒ 改为 DONE；STATE.md 此前停在第 46 轮（后续 11 轮巡检/文档轮未同步）⇒ 追到第 57 轮并记录 46→57 概览。READY 池现清零。
+> **磁盘分析审计（dev 态 CDP 实测）**：`analyze(root)` 返回 `{started:true}`（异步结果走 `analyze:done` 事件）；`projectDirs(root,false)` 首调 `{cached:false, items:18, totalMB:142}`，再调 `{cached:true, items:18}`，`force:true` → `{cached:false, items:18}` ⇒ 缓存命中/穿透/强制重算三条路径全对、项数一致。
+> **过程说明**：首次探针因 Promise 链写法得到 EX，改用 await + try/catch 捕获后确认是探针语法问题、非产品缺陷（同第 51 轮 pathExists 探针教训）。测试只更新 dev dirs-cache 已有键（4 个），交付态 `%APPDATA%` 隔离未受影响。
+> **结论**：本轮**无产品缺陷**；治理文档一致性已修复。

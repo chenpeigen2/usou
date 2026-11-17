@@ -3014,3 +3014,9 @@ D:\code\usou\workbench-electron\out\
 - **改动面**：2 文件 —— `renderer/app.js`（项目视图排序谓词失效分层优先 + palIndex 收藏排序 + `--favdeadqa=` 零副作用钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动（不动 FAVS 本身，只改呈现排序）**。
 - **教训沉淀**：这是第 6 类「失效项混入口径」；与第 26 轮「失效沉底」的排序规则曾打架（那里沉底、这里收藏失效却置顶）——任何新增的「置顶/优先」规则都必须同时回答「失效项怎么办」。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+
+# 第六十轮：命令面板失效收藏排序审计（证伪一轮）
+
+> **选题依据**：第 59 轮修了项目视图与 palIndex 默认清单的失效收藏置顶，本轮检查搜索路径 `palFilteredFor()` 的相关性排序是否也需排除失效项。
+> **实证（CDP）**：收藏失效项 `D:\wt-demo` 后，默认清单 `palFilteredFor(' ')` 前 5 项 = America/3d娃娃/24bit/Australia/CNBMoblieBank，**不含失效项**（`DEAD_IN_DEFAULT_TOP=false`）⇒ 第 59 轮修复在命令面板生效；搜索 `wt` 时结果 = wt-demo/wt-prev/TclLauncher_WT_GL8035 —— 失效项排在前面是**相关性匹配的合理结果**（非置顶），且点击会走 v1.7.13 的失效路径保护（提示而非静默失败）。
+> **结论**：无需修改，命令面板行为符合预期；本轮**无产品缺陷**。

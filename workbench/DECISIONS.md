@@ -2952,3 +2952,12 @@ D:\code\usou\workbench-electron\out\
 - **改动面**：仅 `verify-delivery.ps1`（验收脚本，非业务代码）；**无需重打包**（脚本不在源码一致性检查清单、不进 asar）；交付态保持 v1.7.36 运行。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 空 ⇒ 继续巡检或 IDEA 升级；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第五十五轮：入库脚本提交前禁入路径校验（元审计 · 安全增强）
+
+> **选题依据**：第 54 轮审计了验收门禁、第 55 轮转向唯一允许文件写操作的 `auto-commit.ps1`。历史事故：第 28 轮 QA 临时物 `pm/r28shots/` 污染 commit、第 27 轮 agent 中途死亡留下 15 个探针脚本 ⇒ `git add -A` 会把任何新文件纳入提交。
+> **实证**：`auto-commit.ps1` 默认路径（无 -Push）只 add+commit+统计、不碰网络 ⇒ 符合「只 commit 不 push」红线；`-Push` 分支仅显式调用才触发（历史设计，默认行为安全）。
+> **增强**：在 `git add -A` 前加禁入路径校验 —— 拦截 `runtime/`/`out/`/`node_modules/`/`data/` 下的文件、`_qa_`/`_shots`/`r\d+shots`/`probe`/`.tmp`/`.bak` 路径、以及 `pm/` 下非 4 个治理文件的项；命中则中止提交并打印具体路径（只拦截不自动删除，删除由 lead 核验绝对路径后手动做）。
+> **阴性对照 8/8**：合法路径（pm/BACKLOG.md、main.js）→ 放行；禁入路径（r55shots、_qa_probe、out/Setup、data/scan-cache、STATE.md.tmp、runtime/electron.exe）→ 全部拦截。
+> **插曲**：测试「干净工作区跳过」时，因脚本文件本身刚被编辑、工作区非空，产生了一个消息为「测试：应跳过」的提交；已核验其仅含 auto-commit.ps1 +14 行（禁入校验本身），用 `git commit --amend` 修正消息为正式轮次说明（纯本地、未 push）。
+> **结论**：入库脚本安全性增强完成，无需发版（脚本不进 asar、不在源码一致性清单）；交付态保持 v1.7.36 运行。

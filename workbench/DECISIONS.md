@@ -2916,3 +2916,10 @@ D:\code\usou\workbench-electron\out\
 > **实证（CDP `setTheme('light')` + `auditContrast()`）**：六视图 failCount 全 0 —— overview 4.64 / projects 4.66 / recent 4.64 / disk 5.07 / system 4.89 / settings 4.89；**新增的项目对比弹窗（含 9 行并排表 + 差异高亮单元格）failCount 0 / min 4.66**。与 v1.7.8 浅色基线（4.67~5.11）一致 = 零回归。
 > **最低值溯源**：overview min=4.64 来自 `.btool` 次要文字（复制/复制/周报三按钮共用 `rgb(77,95,120)` 压浅底 `rgb(243,247,252)`），是 v1.7.8 既有样式、非新引入，且 4.64 > AA 4.5 达标，无需修复。
 > **结论**：本轮**无真实缺陷**，浅色主题新 UI 全部达标。READY 仍空 ⇒ 下一轮换角度或直接处理 IDEA 剩余项。
+
+# 第五十轮：QA 基建健康审计（里程碑轮 · 无真实缺陷）
+
+> **选题依据**：第 49 轮收藏闭环审计也无缺陷（切换落盘 + 跨重启保留 + 置顶正确，测试后已恢复空）。第 50 轮作为里程碑，做一件有长期价值的事——审计 50+ 轮积累的 QA 钩子基建是否仍可靠（历史上第 45/46 轮都出现过「新钩子 CLI 透传遗漏」的腐化）。
+> **静态审计**：app.js 共 22 个 `qs.get` 钩子派发，main.js 全部注册透传（含早期 `--brief`/`--detail`/`--view` 的不同写法）；无重名函数、无新增内联 onclick（5 处均为标题栏静态绑定，既有）。
+> **动态冒烟（8 个关键钩子逐个启动实测 evidence）**：全部 PASS —— weekqa / compareqa / histlegacyqa / deadbriefqa / palqa / briefsync / histqa / histdiffqa。证明多轮改动后治理工具链未腐化、阴性对照仍成立。
+> **结论**：本轮及第 49 轮均**无真实缺陷**，不强行立项。里程碑：第 28→50 轮共 23 轮，修 15 项遗留 + 3 个功能增量 + 2 轮证伪巡检 + QA 基建审计；每轮全门禁发版、只 commit 不 push，本地累计 33+ commit 待用户自行推送。

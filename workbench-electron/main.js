@@ -339,6 +339,8 @@ function createWindow() {
   if (deadBriefQaArg) q.deadbriefqa = deadBriefQaArg.slice('--deadbriefqa='.length);
   const actRootQaArg = process.argv.find(a => a.startsWith('--actrootqa='));
   if (actRootQaArg) q.actrootqa = actRootQaArg.slice('--actrootqa='.length);
+  const briefSyncQaArg = process.argv.find(a => a.startsWith('--briefsync='));
+  if (briefSyncQaArg) q.briefsync = briefSyncQaArg.slice('--briefsync='.length);
   const qaShotArg = process.argv.find(a => a.startsWith('--qashot='));
   if (qaShotArg) qaShotDir = qaShotArg.slice('--qashot='.length); // 目录由主进程直接消费，不透传渲染层
   const trayQaArg = process.argv.find(a => a.startsWith('--trayqa='));

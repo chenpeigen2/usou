@@ -13,16 +13,15 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第三十五轮 / v1.7.25 · **「简报活动条目把两个根目录的变动全归给 D:\code（陈述不实）」**
-- **本轮主题一句话**：`buildActivity()` 同时扫 `D:\code` 与 `E:\workspace` 并合并计数，简报却硬编码「D:\code 下有 N 个文件在动」⇒ 实证 E:\workspace 近 90 天 795 文件被错误归属（19.6%）⇒ 文案改为同时点名两个根目录，与扫描器实际范围严格一致；同时修正 `--dayqa` finder 的附带假 FAIL
-- **版本**：v1.7.25
-- **交付态**：`out\Workbench-Setup-1.7.25.exe`（83.56 MB）+ `out\Workbench-1.7.25-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.25.0**）；1.7.24 产物已清除
-- **最后巡检**：2026-11-17 13:01 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.25）`
-- **核心实证**：双钩子同跑均 PASS —— `ACTROOTQA 文案=昨天 D:\code 与 E:\workspace 下有 306 个文件在动 | 含两根目录=true 日标签保留=true 旧文案含E=false | PASS`、`DAYQA … | PASS`；真实简报文案正确、仍 9 条
-- **本轮改动面**：2 文件 —— `renderer/app.js`（活动文案 1 行 + `--actrootqa=` 钩子 + `--dayqa` finder 语义锚点）、`main.js`（CLI 透传 2 行）；**扫描器/数据结构一行不动、零新增 IPC、零外部依赖、零数据改动**
-- **教训沉淀**：改用户可见文案时必须同步清点所有依赖该文案字符串做匹配的 QA 钩子（本轮 `--dayqa` finder 曾因此假 FAIL，已当场修正）
-- **已知遗留（其余审计发现）**：屏幕简报标签不随时间刷新而复制导出会重算 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步
-- **下一轮指针**：READY 仍空 ⇒ 第三十六轮按遗留清单造活；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
+- **本轮状态**：DONE · 第三十六轮 / v1.7.26 · **「长开窗口后屏幕简报标签与复制/导出内容不一致（同屏两答案）」**
+- **本轮主题一句话**：`buildBrief()` 时间标签以 now 求值但只在 renderOverview 落 DOM、clockTick 只刷标题栏、briefMarkdown 每次重算 ⇒ 跨小时后屏幕「12 分钟前」vs 剪贴板「于 11-16 13:35」⇒ 修：签名门控的 `refreshBrief()` 局部重绘 #daily-list、导出复用同一份 items
+- **版本**：v1.7.26
+- **交付态**：`out\Workbench-Setup-1.7.26.exe`（83.56 MB）+ `out\Workbench-1.7.26-portable.zip`（113.22 MB）+ blockmap；打包版运行中（4 进程，ProductVersion **1.7.26.0**）；1.7.25 产物已清除
+- **最后巡检**：2026-11-17 13:14 —— `[renderer]`=0 / error=0、六视图审计 failCount 全 0 / min 4.73:1、`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.26）`
+- **核心实证**：`BRIEFSYNC 新鲜=分钟前 陈旧DOM=于/分钟前=true/false 陈旧MD=于/分钟前=true/false 旧行为会不一致=true | PASS`；scanTime 精确恢复、屏幕无假时间戳；旧行为不可能通过
+- **本轮改动面**：2 文件 —— `renderer/app.js`（`refreshBrief()` + `#daily-list` + clockTick 接线 + briefMarkdown 复用 + `--briefsync=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**
+- **已知遗留（其余审计发现）**：`disk:analyze` 缓存命中清互斥锁 ⇒ 可并发分析 / 最大化窗重启后标题栏图标不同步
+- **下一轮指针**：READY 仍空 ⇒ 第三十七轮按遗留清单造活（优先 `disk:analyze` 互斥锁）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

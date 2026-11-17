@@ -569,6 +569,7 @@ async function init() {
   if (qs.get('histdiffqa')) triggerHistDiffQa(); // v1.7.23：name-key→path-key 混合快照 diff 匹配修复取证
   if (qs.get('deadbriefqa')) triggerDeadBriefQa(); // v1.7.24：buildBrief 未提交条目剔除失效项目取证
   if (qs.get('actrootqa')) triggerActRootQa(); // v1.7.25：简报活动条目两根目录归属修复取证
+  if (qs.get('briefsync')) triggerBriefSyncQa(); // v1.7.26：长开窗口简报文案漂移修复取证
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，
@@ -1255,6 +1256,78 @@ function triggerTimeQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.26）：--briefsync=1 → 证明长开窗口简报文案漂移已修复。
+   屏幕 #daily-list 与 briefMarkdown() 在扫描时刻由「新鲜→陈旧」时必须同步切换：
+   新鲜态两处都含「分钟前」，陈旧态两处都含「于 」且都不含「分钟前」；
+   负对照复现旧行为（tick 从不重绘 DOM ⇒ DOM 仍新鲜、MD 已陈旧）证明旧逻辑不可能通过。
+   仅临时改 DATA.meta.scanTime 与 freshest 项目 lastCommitTime（控制成可复现的新鲜提交，
+   真实快照的提交可能已很旧，否则「分钟前」无法稳定复现），二者均在 finally 精确恢复
+   并 refreshBrief() 还原屏幕；纯本地：零 IPC / 零路径操作。 */
+function triggerBriefSyncQa() {
+  setTimeout(() => {
+    if (!DATA) return;
+    if (view !== 'overview') setView('overview', true);
+    const p2 = x => String(x).padStart(2, '0');
+    const stampOf = msAgo => {
+      const d = new Date(Date.now() - msAgo);
+      return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' +
+        p2(d.getHours()) + ':' + p2(d.getMinutes()) + ':' + p2(d.getSeconds());
+    };
+    const origMeta = DATA.meta;
+    const meta = DATA.meta || (DATA.meta = {});
+    const origScan = meta.scanTime;
+    const projects = DATA.projects || [];
+    const freshest = projects.filter(p => p && p.isGit && p.lastCommitTime)
+      .sort((a, b) => String(b.lastCommitTime).localeCompare(String(a.lastCommitTime)))[0] || null;
+    const origCommit = freshest ? freshest.lastCommitTime : null;
+
+    let freshDom = '', freshMd = '', staleDom = '', staleMd = '';
+    try {
+      // (a) 新鲜态：scan=now-5min + 受控提交=now-15min → refreshBrief() 定向出新鲜 #daily-list；抓 DOM 与 Markdown
+      meta.scanTime = stampOf(5 * 60000);
+      if (freshest) freshest.lastCommitTime = stampOf(15 * 60000);
+      refreshBrief();
+      const dlFresh = $('#daily-list');
+      freshDom = dlFresh ? dlFresh.textContent : '';
+      freshMd = briefMarkdown();
+      // (b) 陈旧态：scan=now-22h → refreshBrief() 定向重绘；抓 DOM 与 Markdown
+      meta.scanTime = stampOf(22 * 3600000);
+      refreshBrief();
+      const dlStale = $('#daily-list');
+      staleDom = dlStale ? dlStale.textContent : '';
+      staleMd = briefMarkdown();
+    } finally {
+      // (d) 精确恢复 scanTime（含 meta 原本不存在）与提交时间，并还原屏幕
+      meta.scanTime = origScan;
+      if (!origMeta) delete DATA.meta;
+      if (freshest) freshest.lastCommitTime = origCommit;
+      refreshBrief();
+    }
+
+    const hasMin = s => String(s || '').indexOf('分钟前') >= 0;
+    const hasYu = s => String(s || '').indexOf('于 ') >= 0;
+    const freshOk = hasMin(freshDom) && hasMin(freshMd);
+    const staleDomYu = hasYu(staleDom), staleDomMin = hasMin(staleDom);
+    const staleMdYu = hasYu(staleMd), staleMdMin = hasMin(staleMd);
+    const staleOk = staleDomYu && !staleDomMin && staleMdYu && !staleMdMin;
+    // (c) 负对照：旧行为 tick 不重绘 DOM ⇒ DOM 仍停在新鲜「分钟前」，而 MD 已陈旧「于 」⇒ 不一致必然成立
+    const oldMismatch = hasMin(freshDom) && staleMdYu && !staleMdMin;
+    const pass = freshOk && staleOk && oldMismatch;
+
+    const el = document.createElement('div');
+    el.id = 'briefsync-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = 'BRIEFSYNC 新鲜=分钟前' +
+      ' 陈旧DOM=于/分钟前=' + String(staleDomYu) + '/' + String(staleDomMin) +
+      ' 陈旧MD=于/分钟前=' + String(staleMdYu) + '/' + String(staleMdMin) +
+      ' 旧行为会不一致=' + String(oldMismatch) +
+      ' | ' + (pass ? 'PASS' : 'FAIL');
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
 /* QA 钩子（v1.7.22）：--palqa=1 → 证明命令面板点击「按过滤后下标解析」已修复。
    零副作用：临时把全局 doAct 换成只记录 {act,p} 的 recorder（绝不碰 window.wb / 不调 openPath 等）；
    视图项 run() 直接调 setView(v)，故同样临时换成记录 goto 的 stub —— 两个 stub 都在 finally 精确还原。
@@ -1370,6 +1443,11 @@ function clockTick() {
   // 长开窗口也要显示真实「距今」时长：每 30s 空闲态重算标题栏新鲜度（不覆盖扫描进度/完成态）
   const st = $('#tb-status');
   if (st && DATA && DATA.meta && !/^[⏳✔✘]/.test(st.textContent)) idleStatus();
+  // v1.7.26：长开窗口每 30s 顺带同步简报文案（签名门控，仅 #daily-list 变）；
+  // 任何 DOM 异常都不能打断 30s 定时器 —— setTimeout 调度保持原样。
+  if (view === 'overview' && DATA) {
+    try { refreshBrief(); } catch (_e) { /* 同步失败不影响标题栏时钟 */ }
+  }
   setTimeout(clockTick, 30000 - (Date.now() % 30000) + 500);
 }
 
@@ -1615,6 +1693,33 @@ function buildBrief() {
   return out.slice(0, 9);
 }
 
+/* v1.7.26：简报文案长开窗口漂移修复 —— 屏幕与复制/导出共用同一份已计算条目。
+   lastBriefItems / lastBriefSig 记录屏幕当前渲染所用条目及其文案签名；
+   签名 = 各条目 text 以 '|' 拼接（与 briefMarkdown 的纯文本内容同源）。 */
+let lastBriefItems = null, lastBriefSig = '';
+
+// 纯函数：把 buildBrief() 的条目渲染为 .d-item.brief-item 行（逐字等价于原内联渲染）
+function briefItemsHtml(items) {
+  return items.map(it =>
+    '<div class="d-item brief-item" data-act="' + esc(it.act) + '" data-p="' + esc(it.p) + '" title="' + esc(it.tip || '点击查看详情') + '">' +
+    '<span class="di" style="background:' + it.color + ';color:' + it.color + '"></span>' +
+    '<span class="di-text">' + it.html + '</span>' +
+    '<span class="di-go" aria-hidden="true">↗</span></div>').join('');
+}
+
+// 签名门控的定向更新：文案真的变了才重绘 #daily-list，不触碰其他 DOM、不触发整页 render()。
+function refreshBrief() {
+  if (!DATA) return false;
+  const items = buildBrief();
+  const sig = items.map(i => i.text).join('|');
+  if (sig === lastBriefSig) return false;
+  lastBriefItems = items;
+  lastBriefSig = sig;
+  const el = $('#daily-list');
+  if (el) el.innerHTML = briefItemsHtml(items);
+  return true;
+}
+
 /* ---------- 简报导出（v1.7.7） ----------
    复制与导出共用同一份 briefMarkdown() 产物 ⇒ 两条通道内容必然一致。
    · 复制走主进程 clipboard（与窗口焦点无关），主进程写完立即 readText() 回读自证
@@ -1631,7 +1736,9 @@ function mdPath(s) {
   return '`' + String(s == null ? '' : s).replace(/`/g, '\\`').replace(/\r?\n/g, ' ') + '`';
 }
 function briefMarkdown() {
-  const items = buildBrief();
+  // v1.7.26：导出前先按当前时刻同步一次缓存，屏幕与导出共用同一份条目（杜绝长开窗口文案漂移）
+  refreshBrief();
+  const items = lastBriefItems || buildBrief();
   const m = (DATA && DATA.meta) || {};
   const d = new Date(), p2 = n => String(n).padStart(2, '0');
   const now = d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + ' ' + p2(d.getHours()) + ':' + p2(d.getMinutes());
@@ -1998,6 +2105,9 @@ function miniStat(icon, cls, id, val, lbl, goto) {
 }
 
 function renderOverview() {
+  const briefItems = buildBrief();  // v1.7.26：只算一次；屏幕与复制/导出共用同一份条目
+  lastBriefItems = briefItems;
+  lastBriefSig = briefItems.map(i => i.text).join('|');
   const m = DATA.meta;
   const projects = DATA.projects || [];
   const gitN = projects.filter(p => p.isGit).length;
@@ -2027,11 +2137,7 @@ function renderOverview() {
     '<button class="btool" data-act="brief:export" title="导出今日简报为 Markdown 文件">⬇ 导出 Markdown</button>' +
     '<span class="brief-export-tip" id="brief-export-tip">' + briefExportTipHtml() + '</span>' +
     '</div>' +
-    '<div class="daily-list">' + buildBrief().map(it =>
-      '<div class="d-item brief-item" data-act="' + esc(it.act) + '" data-p="' + esc(it.p) + '" title="' + esc(it.tip || '点击查看详情') + '">' +
-      '<span class="di" style="background:' + it.color + ';color:' + it.color + '"></span>' +
-      '<span class="di-text">' + it.html + '</span>' +
-      '<span class="di-go" aria-hidden="true">↗</span></div>').join('') +
+    '<div class="daily-list" id="daily-list">' + briefItemsHtml(briefItems) +
     '</div></div>' +
 
     '<div class="b b-heat">' + heatCard() + '</div>' +

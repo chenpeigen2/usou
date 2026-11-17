@@ -2546,3 +2546,38 @@ D:\code\usou\workbench-electron\out\
 - **BACKLOG**：本项 → DONE（v1.7.25）；**STATE / README 已更新**；临时物（`%TEMP%\r35shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
 - **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
 - **下一轮**：READY 仍空 ⇒ 第三十六轮按遗留清单造活（候选：屏幕简报标签不随时间刷新 / `disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。
+
+# 第三十六轮：长开窗口后屏幕简报标签与复制/导出内容不一致（同屏两答案）（P2 · 深度巡检造活 · 编排侧第 81 轮 · v1.7.26）
+
+> **选题依据**：第三十二轮跨进程审计员发现；代码实证：`buildBrief()` 内 `commitWhenLabel()` / `activityDayLabel()` 以 `now=Date.now()` 求值，但只在 `renderOverview()` 落 DOM；`clockTick()`（每 30s）只刷标题栏新鲜度；`briefMarkdown()`（复制/导出）每次重算 `buildBrief()`。
+
+### 自问自答（备选 → 结论 → 理由）
+
+  - **Q1 为什么必须主动重绘，不能只在导出时用屏幕的旧 items？**
+    - 备选：A. `briefMarkdown()` 复用上次渲染的 items（屏幕旧、剪贴板也旧）｜B. 定时重绘简报、导出复用同一份｜C. 导出时重绘屏幕再导出。
+    - 结论：**B**（C 等价但只在点击时生效，用户在屏幕前看到的整个小时仍是旧标签）。
+    - 理由：① A 让 v1.7.20 / v1.7.21 的「今天/昨天」「于 MM-DD HH:mm」修复在长开场景下**完全失效** —— 屏幕和剪贴板一致地错，比不一致更隐蔽；② B 让屏幕随时间自动收敛到正确标签（标题栏已经在每 30s 收敛，简报不该掉队）；③ B 用**文本签名**避免每 30s 无谓重绘（只有标签真的变了才改 DOM），零布局位移、零焦点风险（总览视图无输入框）。
+
+  - **Q2 局部重绘怎么做到不破坏用户状态？**
+    - 结论：仅替换 `#daily-list` 的 innerHTML；保留卡片头、复制/导出按钮与其上的「已导出」提示（那些在 `.daily-list` 之外）。
+    - 理由：① 简报条目是 `data-act` 事件委托、绑在 `#view` 上（不在 `.daily-list` 上），替换子容器不会丢事件；② `.daily-list` 自带滚动，innerHTML 替换会重置 `scrollTop` —— 用签名门控后**只在标签跨越阈值时**发生（一天最多几次），可接受；③ 总览视图内零 `<input>`，不会重犯 v1.7.12 的失焦事故。
+
+  - **Q3 阴性对照怎么设计？**
+    - 结论：`--briefsync=1` 临时改 `DATA.meta.scanTime` 模拟时间流逝（等价但可控）。
+    - 理由：① 先把 scanTime 设为 `now-5min`（新鲜态）⇒ 屏幕与 Markdown 都含「分钟前提交」；② 再设为 `now-22h`（陈旧态）并调用同步 ⇒ 屏幕与 Markdown **都应**含「于 」且都**不含**「分钟前提交」；③ 旧行为下屏幕从不重绘 ⇒ 仍含「分钟前提交」而 Markdown 含「于 」⇒ **不可能通过**；④ `finally` 精确恢复原 scanTime 并再同步一次复原屏幕（沿用前三轮零数据泄漏原则）。
+
+  - **Q4 改动面与风险边界？**
+    - 结论：仅 **2 文件** —— `renderer/app.js`（`refreshBrief()` + `#daily-list` id + `clockTick` 接线 + `briefMarkdown` 复用）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**。
+    - 理由：① 根因是「同一事实在两个时刻求值」，修的是同步策略而非任何业务判定；② `buildBrief()` 的条目内容/排序/上限一行不动；③ 与 v1.7.19~v1.7.25 同样的分工与门禁。
+
+### 本轮收尾（第三十六轮完成）
+
+- **交付态**：`Workbench-Setup-1.7.26.exe`（83.56 MB）+ `Workbench-1.7.26-portable.zip`（113.22 MB）+ blockmap；1.7.25 旧产物按绝对路径核验后全清；打包版 4 进程 v1.7.26.0、`[renderer]`=0 / error=0；`verify-delivery.ps1` **12 项全 PASS** ⇒ `✔ 交付态验收全过（v1.7.26）`。
+- **核心实证（CDP）**：`#briefsync-evidence` = `BRIEFSYNC 新鲜=分钟前 陈旧DOM=于/分钟前=true/false 陈旧MD=于/分钟前=true/false 旧行为会不一致=true | PASS`；模拟时间流逝后**屏幕与 Markdown 同步**：DOM 与导出都含「于 」且都不含「分钟前」；`DATA.meta.scanTime` 精确恢复为原始 2026-11-16 13:47:54；屏幕未被假时间戳污染（greet-sub 仍「数据 23 小时前更新」、卡头仍「11-16 13:47 扫描」）。
+- **阴性对照**：旧行为下屏幕从不重绘 ⇒ 陈旧态 DOM 仍含「分钟前」而 Markdown 含「于 」⇒ `旧行为会不一致=true`，不可能通过。
+- **附带回归（QA 复核发现并当场修正）**：`--briefsync=1` 钩子步骤(a) 原用全量 `render()` 配假 scanTime，finally 只做目标刷新 ⇒ greet-sub / 卡头 / 页脚残留假「刚刚更新」。已把步骤(a) 改为目标 `refreshBrief()`；生产路径（clockTick / briefMarkdown / renderOverview / refreshBrief）一行未动。
+- **六视图审计**：failCount 全 0 / min 4.73:1（与 v1.7.25 基线一致）。
+- **改动面**：2 文件 —— `renderer/app.js`（`lastBriefItems/lastBriefSig` + 纯 `briefItemsHtml()` + 签名门控 `refreshBrief()` + `clockTick` try/catch 接线 + `briefMarkdown` 复用 + `--briefsync=` 钩子）、`main.js`（CLI 透传 2 行）；**零新增 IPC、零外部依赖、零数据改动**。
+- **BACKLOG**：本项 → DONE（v1.7.26）；**STATE / README 已更新**；临时物（`%TEMP%\r36shots\`、CDP 探针）已删除 ⇒ `pm\` 只含 4 治理文件。
+- **Git**：`auto-commit.ps1` 入库（**只 commit 不 push**）。
+- **下一轮**：READY 仍空 ⇒ 第三十七轮按遗留清单造活（候选：`disk:analyze` 缓存命中清互斥锁 / 最大化窗重启后图标不同步）；用户指令「继续迭代直到 token 消耗完成」⇒ 不停止。

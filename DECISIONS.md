@@ -3319,3 +3319,8 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 3 项「QA 深化」——第 101 轮新增 data:import IPC（含 dialog 模块）只在 dev 验证，打包版未测。
  > **实证（CDP 连打包版）**：16 脚本全部加载、window.wb.dataImport / dataExport 均为 function、设置页导入按钮存在。因 data:import 会弹原生文件对话框（CDP 无法自动选择文件），未实际触发，仅验证 IPC 暴露与 UI 接线（核心校验逻辑已在第 101 轮隔离环境实测）。dialog 模块与新 IPC 正确打进 asar，无环境差异。无缺陷。
+
+ # 第一百零三轮：文档治理——README/DELIVERY 补数据导入导出与无障碍（纯文档轮）
+
+ > **选题依据**：造活源第 7 项「文档治理」——第 98/101 轮的导出导入、第 96 轮的键盘无障碍未在 README/DELIVERY 功能表体现（第 95 轮文档治理在它们之前），避免漂移累积。
+ > **做法**：README 顶部加 v1.7.40 累计摘要（数据可移植 + 无障碍）+ 100+ 轮说明；DELIVERY 设置行补「数据备份导出/导入」。纯文档轮，不改业务代码、不重建。

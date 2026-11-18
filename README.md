@@ -3,7 +3,9 @@
 本机项目管理 / 空间分析 / 快速启动的桌面应用。**零 npm 运行时依赖**——Electron 运行时已内置
 （v33.4.11），数据全部本地、操作全部只读。
 
-> **项目结构**：仓库已铺平到根（无嵌套目录），renderer/ 下 17 个平铺 JS 文件各司其职（app.js 仅入口 22 行）。自驱迭代架构见 `pm/PM.md` 第五节：三层机制 + 7 造活源，持续迭代直到 token 耗尽。
+> **项目结构**：仓库已铺平到根（无嵌套目录），renderer/ 下 17 个平铺 JS 文件各司其职（app.js 仅入口 22 行）。自驱迭代架构见 `pm/PM.md` 第五节：三层机制 + 7 造活源，持续迭代直到 token 耗尽。已连续自驱迭代 100+ 轮（STATE.md 记录最新轮次）。
+
+v1.7.40（近期累计另含）「数据可移植 + 无障碍」：① **导出/导入数据备份**——设置页一键导出全部本地数据（scan-cache/history/settings）为带版本号的 JSON（实测 59 项目/103KB），导入时严格校验格式、覆盖前自动备份现有数据（`.preimport-<stamp>`）、需确认后才执行，两端均在打包版 asar 实测生效；② **键盘无障碍**——修复 `outline:none` 导致键盘用户看不到焦点的问题，加 `:focus-visible` 焦点环（Tab 实测 `outline: solid 2px`），Ctrl+K/Esc 面板与弹窗键盘操作全通；③ 里程碑第 100 轮全量健康审计全绿。
 
 v1.7.40（近期累计）「通用化 + 配置 UI + 代码平铺」：① **消除全部机器特异性**——扫描根目录/强制目录/快捷入口从硬编码改为 settings.json 配置，源码零写死盘符/项目名/主机名（实测空配置仍能发现 28 项目、正常配置 68 项目）；② **设置页新增扫描范围可视化配置**（扫描根目录/强制纳入/额外根三个 textarea，保存后跨重启持久化实测通过）；③ **renderer 彻底平铺拆分**——app.js 从 3249 行降至 22 行入口，按职责拆为 state/theme/contrast/format/search/history/brief/visual/interaction/detail/system/overview/lists/views/qa 等平铺模块；④ **新功能**——项目视图「已删除 N」筛选 chip、最近视图「仅看已删除」开关（60→36 行）；⑤ 打包版 asar 端到端验证新功能全生效、深浅双主题对比度 fail 0；⑥ 每轮 verify-delivery 12 项全 PASS。六视图审计 failCount 全 0（min 4.64:1）。
 

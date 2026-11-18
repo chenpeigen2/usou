@@ -3492,3 +3492,10 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 1 项「高疑点角度」——第 109 轮嵌套去重用 projPathKey（\→/、去尾随、小写）+ indexOf(key+'/')，边界情况（UNC/大小写/尾随符）若错会误判嵌套关系、导致体量多算或少算。
  > **实证（Node vm 加载真实 format.js）**：用实际 sizeTotals 构造 7 组边界用例——边界非子目录(D:\a vs D:\ab)=不嵌套、尾随符=嵌套、大小写=嵌套、正斜杠=嵌套、UNC(\\srv\share)=嵌套、根目录=嵌套、相同路径=不嵌套——7/7 全部符合预期。健壮性无缺陷。
  > **探针纠错**：首测用自写复现逻辑（endsWith('\\')）得 5/7 失败，实际实现是 indexOf(key+'/')（projPathKey 已统一为 /）——探针未对齐实现导致误判，按 QA 范式第 10 条自查纠正。
+
+ # 第一百三十轮：门禁强化——新增「源码无机器特异性硬编码」检查项（13 项）
+
+ > **选题依据**：造活源第 7 项「治理」+ 架构自身质量——第 81 轮花大量工作消除了机器特异性，但 verify-delivery 没有对应门禁守卫，未来 iteration 可能重新引入。
+ > **做法**：verify-delivery.ps1 新增 Check '源码无机器特异性硬编码'（扫描 JS/ps1/html 的 8 个机器关键词）；新门禁立刻抓出 format.js 注释里第 109 轮写的真实项目名案例（D:\CLAUNCER2 ⊃ TclLauncher 等）——泛化为通用描述。
+ > **实证**：新门禁先 FAIL（format.js 2 处）→ 泛化注释后 PASS；重新打包 v1.7.47（清理旧产物）→ verify-delivery 全过（现 13 项）。期间遇到打包版启动失败（4 个 dev electron 进程残留持有单实例锁）——杀净后恢复正常，已固化为「每次启动前杀净 electron/工作台 进程」的既有红线。
+ > **交付**：v1.7.47 重新构建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。

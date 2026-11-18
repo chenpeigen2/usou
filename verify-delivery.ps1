@@ -76,6 +76,16 @@ $srcFiles = @('main.js','preload.js','run-scan.js','src\scanner.js','src\store.j
 $newest = ($srcFiles | Get-Item | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
 $built = (Get-Item $exe -EA SilentlyContinue).LastWriteTime
 Check '源码不新于打包产物' ($newest -le $built) ("最新源码 $newest / 打包 $built")
+# v1.7.47：机器特异性硬门禁——第 81 轮花了大量工作消除硬编码，加此检查防止未来回归
+$machineHits = @()
+$badPatterns = 'SZ-13041587|TCT-HQ|peigen1|D:\\code\\usou|D:\\wt-|TclLauncher|3d娃娃|fcm-helper'
+foreach ($sf in @($jsFiles) + @('scan.ps1','workbench.html','workbench.template.html')) {
+  $fp = Join-Path $APP $sf
+  if (-not (Test-Path $fp)) { continue }
+  $m = Select-String -Path $fp -Pattern $badPatterns -EA SilentlyContinue
+  if ($m) { $machineHits += "$sf($($m.Count))" }
+}
+Check '源码无机器特异性硬编码' ($machineHits.Count -eq 0) ($(if ($machineHits.Count) { $machineHits -join ', ' } else { '' }))
 
 Write-Host ""
 if ($fail.Count -eq 0) {

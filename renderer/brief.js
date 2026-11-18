@@ -39,7 +39,7 @@ function commitWhenLabel(commitTime, scanTime, now) {
   try {
     const n = toDate(now == null ? new Date() : now);
     const s = toDate(scanTime);
-    if (!isNaN(s) && !isNaN(n) && (n - s) <= 3600000) return relTime(commitTime) + '前';
+    if (!isNaN(s) && !isNaN(n) && (n - s) <= 3600000) return relTimeAgo(commitTime);
     const c = toDate(commitTime);
     if (isNaN(c)) return String(commitTime);
     const ymd = (!isNaN(n) && c.getFullYear() !== n.getFullYear() ? c.getFullYear() + '-' : '') +

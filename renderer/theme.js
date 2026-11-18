@@ -74,6 +74,9 @@ function relTime(s) {
   if (d < 43200) return Math.floor(d / 1440) + ' 天';
   return Math.floor(d / 43200) + ' 个月';
 }
+/* v1.7.47：相对时间 + 「前」的后缀封装 —— relTime 对 <1 分钟返回「刚刚」，直接拼「前」会变成
+   「刚刚前」（第 127 轮真实文案 bug）。此处统一处理：刚刚不加前，其余加前。 */
+function relTimeAgo(s) { const r = relTime(s); return r === '刚刚' ? '刚刚' : r + '前'; }
 /* 数据新鲜度（v1.7.5）：以「当前时刻」为基准，返回完整「数据…更新」文案。
    relTime(scanTime) 的 base() 本身就是扫描时刻 → self 比较恒为 0 → 永远「刚刚」，
    故标题栏 / 侧栏 / 概览的「数据…更新」不能复用 relTime，必须走本函数（以 Date.now() 为基准）。

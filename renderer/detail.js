@@ -239,7 +239,7 @@ async function openProject(p) {
     (d.git
       ? '<span class="chip"><b>分支</b> ' + esc(g.branch || '—') + '</span>' +
         '<span class="chip">' + (g.dirty ? '<b style="color:var(--amber)">未提交 ' + esc(g.dirty) + ' 个文件</b>' : '<b style="color:var(--green)">工作区干净</b>') + '</span>' +
-        '<span class="chip"><b>最近提交</b> ' + (g.commitTime ? esc(relTime(g.commitTime)) + '前' : '—') + '</span>'
+        '<span class="chip"><b>最近提交</b> ' + (g.commitTime ? esc(relTimeAgo(g.commitTime)) : '—') + '</span>'
       : '') +
     '<span class="chip"><b>体量</b> ' + (meta.sizeMB ? fmtMB(meta.sizeMB) : '—') + '</span>' +
     '<span class="chip"><b>文件数</b> ' + (meta.fileCount ? meta.fileCount.toLocaleString() : '—') + '</span>' +

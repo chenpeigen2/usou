@@ -105,8 +105,8 @@ function prow(p) {
     ? '<span class="deadhint">该路径已不存在（可能已被删除或移动）</span>'
     : (p.isGit
       ? '<b>' + esc(p.branch) + '</b>' + (p.dirty ? ' <span class="dmark">●' + p.dirty + '</span>' : '') +
-        ' · ' + esc((p.lastCommitSubject || '').slice(0, 70)) + ' · ' + relTime(p.lastCommitTime) + '前'
-      : '非 git 目录 · 修改于 ' + relTime(p.rootMTime) + '前');
+        ' · ' + esc((p.lastCommitSubject || '').slice(0, 70)) + ' · ' + relTimeAgo(p.lastCommitTime)
+      : '非 git 目录 · 修改于 ' + relTimeAgo(p.rootMTime));
   const starTip = fav ? '取消收藏' : '收藏并置顶';
   const typeCell = dead
     ? '<span class="deadtag" title="该路径在磁盘上已不存在（可能已被删除或移动）">已删除</span>'

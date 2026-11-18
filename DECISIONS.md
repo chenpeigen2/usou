@@ -3471,3 +3471,12 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 7 项「文档治理」——架构信息散落在 AGENTS/DELIVERY/DECISIONS/各文件头，无"一图流"模块地图；看门狗唤醒的新 agent 需快速理解 16 个平铺模块的数据流，理解成本高。
  > **做法**：新增 ARCHITECTURE.md——16 模块职责表（行数/职责/全局导出）+ 数据流图（主进程→preload→renderer、scan:done/data:imported 广播刷新）+ 6 条关键不变量（单一事实源/口径成对/动态文本转义/IPC 只增不改/零机器特异性/加载顺序）+ IPC 契约清单 + 自驱架构指针。README 顶部加入口链接。纯文档轮，不改业务代码、不重建。
+
+ # 第一百二十七轮：修复真实文案 bug「最近提交 刚刚前」（用户可见缺陷）
+
+ > **选题依据**：造活源第 1 项「深度巡检」——测试嵌套弹窗 ESC 时，从项目详情弹窗文本里发现「最近提交 刚刚前」——"刚刚"与"前"叠用，是用户可见的真实文案 bug。
+ > **根因**：`relTime()` 对 <1 分钟返回"刚刚"（theme.js L71），而 3 处调用点了 `relTime(x)+'前'` ⇒ "刚刚前"。影响：detail.js L242（详情弹窗）、lists.js L108/L109（项目行）、brief.js L42（简报提交标签）。
+ > **修复**：theme.js 新增 `relTimeAgo(s)` 封装（"刚刚"不加前、其余加前），3 处调用点改用该函数；qa.js 里 `relTime(COMMIT)+'前'` 是故意复现旧逻辑的负对照，保留不动。
+ > **实证（CDP）**：relTimeAgo 函数可用、`relTime(scanTime)`="刚刚"、`relTimeAgo(scanTime)`="刚刚"（无"前"）、页面无"刚刚前"字样。六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：初测嵌套弹窗 ESC 时多次因"项目详情 IPC 需 1.65s、探针等待不足"误判"目录按钮不存在"——QA 探针范式第 10 条，延长等待后确认弹窗正常（closeModal/open/redirs/dirsdrill）。
+ > **交付**：v1.7.47 本地重建（清理 1.7.46 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

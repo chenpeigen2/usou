@@ -3388,3 +3388,9 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：第 109/110 轮由看门狗会话发现了 4 条新踩坑（截图挂起/缓存帧/冻结 bridge/数据自证），但只写在 DECISIONS，未进常驻规范——后续看门狗会话会重踩。按造活源第 7 项固化。
  > **做法**：AGENTS.md QA 探针范式新增第 13-16 条：captureScreenshot 遮挡挂起（硬超时+置顶）、PrintWindow 返回缓存帧（验 sha256 变化）、window.wb 冻结对象（静态 DOM 断言 + 证据注入 body）、巡检要「算」不要只看（数据自证发现 5.4GB 重复计数真实缺陷）。
  > **价值**：把看门狗会话的教训回灌进主会话治理层，保证 L3 唤醒的任何新会话都带着完整陷阱清单。纯治理轮，不改业务代码、不重建。
+
+ # 第一百一十三轮：「已知空间大头」面板数据自证（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项 + 新固化第 16 条「巡检要算不要只看」——对第 110 轮新上线的面板做独立数据对账。
+ > **实证（Node 独立重算 vs DOM）**：独立重算 scan-cache 得 69 项目/5 嵌套/Top5 = u_aio_resources 28.87GB / TclLauncher 23.15 / apps 15.08 / WellLovw 13.09 / VClauncher 2.59；面板 DOM Top5 逐位一致、chip「已合并 5 个嵌套/未列 3 个失效」与重算吻合（nested=5）。面板数据可信。
+ > **口径澄清（非缺陷）**：面板 chip「体量不含 node_modules/build」经查码确认正确（walkSize 传 SIZE_EXCLUDE，src/scanner.js L426）；与空间分析副标题「含 node_modules 等全部内容」是**不同数据源**（快照 vs 实时 disk:analyze），各自准确，不构成同屏矛盾，不立项。

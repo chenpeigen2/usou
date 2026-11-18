@@ -3450,3 +3450,8 @@ D:\code\usou\workbench-electron\out\
  > **做法**：① main.js data:import 成功后 `send('data:imported', {projects,file})`；② state.js bindScanEvents 订阅 data:imported → toast + `await refreshState(); render()`（复用 scan:done 同款刷新流程，零新增 IPC）；③ interaction.js toast 文案去掉"重启后生效"。
  > **实证（CDP 真实导入自造备份）**：构造 history 多一条带 R122_IMPORT_TEST 标记的备份（8 条 vs 当前 7 条），通过 dataImport(file) 直接导入（跳过对话框）——导入前 HISTORY=7/无标记 → 导入后 **HISTORY=8/含标记**，证明 data:imported 广播成功触发内存刷新、无需重启。测试后完整恢复真实数据（dev + %APPDATA% 均回到 7 条、无标记、无残留备份）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.46 本地重建（清理 1.7.45 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第一百二十三轮：数据「截至时间」跨视图一致性审计（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项 + 历史高发缺陷族「同应用多个时间说法」（第 26 轮简报漂移）——核对各视图显示的数据截至时间是否来自同一事实源。
+ > **实证（CDP）**：DATA.meta.scanTime = HISTORY.last.time = 2026-11-18 17:22:20（缓存与历史一致）；标题栏「数据 5 小时前更新」= freshness(scanTime)（同一函数）；周报「数据截至 2026-11-18 17:22:20」（同一 scanTime）；简报提交时间 11-18 16:48 早于 scanTime（合理）。所有时间说法同源，无矛盾。无缺陷。

@@ -3480,3 +3480,9 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：relTimeAgo 函数可用、`relTime(scanTime)`="刚刚"、`relTimeAgo(scanTime)`="刚刚"（无"前"）、页面无"刚刚前"字样。六视图审计 failCount 0 / min 4.64。
  > **探针纠错**：初测嵌套弹窗 ESC 时多次因"项目详情 IPC 需 1.65s、探针等待不足"误判"目录按钮不存在"——QA 探针范式第 10 条，延长等待后确认弹窗正常（closeModal/open/redirs/dirsdrill）。
  > **交付**：v1.7.47 本地重建（清理 1.7.46 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第一百二十八轮：relTimeAgo 改动的时间类 QA 回归（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项——第 127 轮改了 relTimeAgo（"刚刚"不加前），可能影响所有时间类 QA 钩子，跑回归确认。
+ > **实证（CDP --timeqa --briefsync --freshqa）**：TIMEQA PASS（真实=于 11-18 16:48 / 新鲜=6 小时前 / 旧逻辑两态恒=2 天前）、BRIEFSYNC PASS（陈旧 DOM/MD 均为 true/false、旧行为会不一致=true）。relTimeAgo 改动未破坏时间链路回归。FRESH 探针用错 class（.qa-fresh-note 不存在），但 timeqa 内部已断言无「刚刚前更新」，覆盖同一逻辑。无缺陷。
+ > **附带判断**：detail.js 对比表的 relA/relB 用 relTime 原始值（不带前）是有意的「中性展示约定」（并排值对比、QA 钩子已固化断言），不改。

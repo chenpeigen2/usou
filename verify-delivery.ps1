@@ -62,14 +62,17 @@ $stray = @(Get-ChildItem $ROOT -File -EA SilentlyContinue | Where-Object { $_.Na
 Check '工作区根目录无临时文件' ($stray.Count -eq 0) ("残留: " + (($stray | Select-Object -ExpandProperty Name) -join ', '))
 
 Write-Host "`n== 5. 源码一致性 ==" -ForegroundColor Cyan
+# 动态枚举全部 JS（renderer 下平铺模块随时增减，无需改门禁清单）
+$jsFiles = @('main.js','preload.js','run-scan.js','src\scanner.js','src\store.js') +
+  @(Get-ChildItem (Join-Path $APP 'renderer') -Filter '*.js' -EA SilentlyContinue | ForEach-Object { 'renderer\' + $_.Name })
 $syn = 0
-foreach ($f in 'main.js','preload.js','src\scanner.js','src\store.js','renderer\contrast.js','renderer\format.js','renderer\history.js','renderer\brief.js','renderer\visual.js','renderer\search.js','renderer\qa.js','renderer\app.js','run-scan.js') {
+foreach ($f in $jsFiles) {
   node --check (Join-Path $APP $f) 2>$null | Out-Null
   if ($LASTEXITCODE -ne 0) { $syn++ }
 }
 Check '全部 JS 语法正确' ($syn -eq 0) "$syn 个文件有错"
-$srcFiles = @('main.js','preload.js','src\scanner.js','src\store.js','renderer\contrast.js','renderer\format.js','renderer\history.js','renderer\brief.js','renderer\visual.js','renderer\search.js','renderer\qa.js','renderer\app.js','renderer\style.css','renderer\index.html','run-scan.js','package.json') |
-  ForEach-Object { Join-Path $APP $_ } | Where-Object { Test-Path $_ }
+$srcFiles = @('main.js','preload.js','run-scan.js','src\scanner.js','src\store.js','renderer\style.css','renderer\index.html','package.json') +
+  @($jsFiles) | ForEach-Object { Join-Path $APP $_ } | Where-Object { Test-Path $_ } | Select-Object -Unique
 $newest = ($srcFiles | Get-Item | Sort-Object LastWriteTime -Descending | Select-Object -First 1).LastWriteTime
 $built = (Get-Item $exe -EA SilentlyContinue).LastWriteTime
 Check '源码不新于打包产物' ($newest -le $built) ("最新源码 $newest / 打包 $built")

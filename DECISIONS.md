@@ -3165,3 +3165,13 @@ D:\code\usou\workbench-electron\out\
  > **规模**：app.js 1698 → **1607 行**（相对最初 3249 行减少 51%）；renderer/ 现有 8 个平铺 JS：contrast 135 / format 35 / history 102 / brief 287 / visual 94 / search 115 / qa 979 / app 1607。
  > **实证（CDP）**：8 脚本顺序加载、drawPulse/heatCard/bindPulse/PULSE 全局可见；PULSE 采样 55 个且 started=true；heatCard 输出 95 个格子（90 天 + 图例）；canvas 397x98 正常；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push（本地 66 → 67，远端 59 不动）。
+
+ # 第八十轮：彻底按职责拆分 app.js —— app.js 仅剩 26 行入口（代码组织完成）
+
+ > **选题依据**：用户明确反馈「代码组织感觉不行没有分开来，全部都写成一团」—— 前几轮抽的都是小工具文件，app.js 主体仍 1520 行。本轮彻底拆：把 app.js 按职责分成 12 个平铺文件，app.js 只留 $/$$/esc + init() 调用。
+ > **拆分结果（renderer/ 全平铺，无子目录/package）**：state.js 215（全局状态+初始化）/ contrast.js 135 / format.js 36 / theme.js 189（主题引擎+通用工具+头像墨色）/ history.js 104 / brief.js 287 / visual.js 94 / search.js 120 / interaction.js 238（事件委托+命令面板）/ views.js 961（渲染分发+六视图+详情/对比）/ qa.js 1035（22 QA 钩子）/ app.js 26（入口）。
+ > **时序论证**：12 个普通 <script> 顺序加载（state 最先声明变量、app 最后调 init），所有函数在同一全局作用域、只在被调用时访问依赖 ⇒ init 执行时全部模块就绪。
+ > **本轮修复的两个自引入 bug（实测发现）**：① views.js 抽取时漏了 cacheAge() 的闭合 `}`（node --check 报 Unexpected end of input）→ 补上；② index.html 漏加 state.js 导致 `init is not defined` —— 用 CDP 逐项诊断（typeof init/refreshState undefined、window 上无 init 但 render/buildBrief 在）定位到 state.js 根本没加载 → 加到首位。两者都靠运行时实测发现，静态检查只抓到①。
+ > **门禁改进**：verify-delivery.ps1 的 JS 清单改为**动态枚举 renderer\*.js**（以后加/减文件不用改门禁），避免本轮漏加 state.js 类问题。
+ > **实证（CDP）**：12 脚本顺序加载、init/refreshState/render/buildBrief/drawPulse/doAct/palIndex 全挂 window、init 执行、六视图渲染（#view 16046 字符）、总览 KPI=59、buildBrief=9；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS（一次 0 进程是启动时序误报，重跑确认）。只 commit 不 push（本地 67 → 68，远端 59 不动）。

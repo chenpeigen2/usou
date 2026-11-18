@@ -1,6 +1,6 @@
 'use strict';
 process.env.UV_THREADPOOL_SIZE = '16'; // fs stat/readdir 并发容量，性能关键（必须在首次 IO 前）
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, shell, clipboard } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, shell, clipboard, dialog } = require('electron');
 const path = require('path');
 const os = require('os');
 const scanner = require('./src/scanner');
@@ -782,6 +782,40 @@ ipcMain.handle('data:export', () => {
     return { ok: true, path: file, bytes, projects: (payload.scan && payload.scan.projects || []).length };
   } catch (e) {
     log('data:export ERROR ' + ((e && e.stack) || e));
+    return { ok: false, reason: String((e && e.message) || e) };
+  }
+});
+
+/* v1.7.41：导入数据备份——选 JSON → 校验格式 → 先备份现有数据 → 写入。保守：版本不符/格式错一律拒绝。 */
+ipcMain.handle('data:import', async () => {
+  try {
+    const win = BrowserWindow.getFocusedWindow();
+    const r = await dialog.showOpenDialog(win, {
+      title: '选择工作台数据备份 JSON', filters: [{ name: 'JSON 备份', extensions: ['json'] }],
+      properties: ['openFile']
+    });
+    if (r.canceled || !r.filePaths.length) return { ok: false, canceled: true };
+    const file = r.filePaths[0];
+    const obj = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!obj || obj.format !== 'usou-workbench-backup' || Number(obj.version) !== 1) {
+      return { ok: false, reason: '备份格式/版本不匹配（需 usou-workbench-backup v1）' };
+    }
+    if (!obj.scan || !Array.isArray(obj.scan.projects)) return { ok: false, reason: '备份缺少扫描数据' };
+    // 先备份现有三类数据（带时间戳，失败即中止、绝不覆盖）
+    const dir = store.dataDir(), p2 = n => String(n).padStart(2, '0'), d = new Date();
+    const stamp = d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds());
+    const names = ['scan-cache.json', 'history.json', 'settings.json'];
+    for (const n of names) {
+      const src = path.join(dir, n);
+      if (fs.existsSync(src)) fs.copyFileSync(src, src + '.preimport-' + stamp);
+    }
+    store.setScan(obj.scan);
+    if (Array.isArray(obj.history)) fs.writeFileSync(path.join(dir, 'history.json'), JSON.stringify(obj.history, null, 2), 'utf8');
+    if (obj.settings && typeof obj.settings === 'object') store.setSettings(obj.settings);
+    log('data:import <- ' + file + ' (' + (obj.scan.projects || []).length + ' projects), backup .preimport-' + stamp);
+    return { ok: true, projects: (obj.scan.projects || []).length, backupTag: stamp, file };
+  } catch (e) {
+    log('data:import ERROR ' + ((e && e.stack) || e));
     return { ok: false, reason: String((e && e.message) || e) };
   }
 });

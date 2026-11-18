@@ -3307,3 +3307,10 @@ D:\code\usou\workbench-electron\out\
  > **里程碑**：自驱架构上线后连续迭代到第 100 轮（累计 commit 87，本地领先远端 28）。本轮不实现新功能，做系统性复检，确认前 99 轮累积无隐性回归。
  > **审计结果（全绿）**：① 工作区干净 ✓；② 源码机器特异性 0（仅 package.json author 署名保留）✓；③ 21 个 JS 语法全过 ✓；④ 治理文件恰好 4 个 ✓；⑤ renderer 16 个平铺模块、app.js 仅 22 行入口 ✓；⑥ 交付 4 进程 ✓；⑦ verify-delivery 12 项全 PASS ✓。
  > **结论**：架构运转健康——L1 微循环每轮完整 SOP、L2 链式未中断、L3 看门狗保活就位、7 造活源持续供给主题。继续按造活源推进下一轮。
+
+ # 第一百零一轮：新功能「导入数据备份」（data:import IPC，配套导出闭环）
+
+ > **选题依据**：造活源第 6 项「新功能」——第 98 轮做了数据导出，用户能导出却无法导回，功能闭环缺一半。
+ > **做法**：main.js 引入 dialog + 新增 `data:import` IPC（showOpenDialog 选 JSON → 校验 format=usou-workbench-backup/version=1 → 校验 scan.projects 存在 → **先备份现有 scan-cache/history/settings 成 .preimport-<stamp>** → 写入三类数据 → 返回项目数与备份 tag）；preload 暴露 dataImport；system.js 设置页加「📥 导入备份」按钮；interaction.js doAct 加 case（window.confirm 明确确认 + toast 回显）。保守策略：格式/版本不符或缺 scan 一律拒绝、覆盖前必备份。
+ > **实证**：CDP 确认 16 脚本加载、dataImport 可用、5 个按钮含新按钮；隔离临时目录测核心逻辑——正常导入成功(1 项目)、格式错误拒绝、缺 scan 拒绝、有现有数据时先备份 3 文件（绝不碰真实数据，测试目录已清理）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

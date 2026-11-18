@@ -35,6 +35,17 @@ function doAct(act, p) {
         toast(r && r.ok ? ('已导出备份：' + r.projects + ' 项目 · ' + Math.round(r.bytes / 1024) + ' KB') : ('导出失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
       } catch (e) { toast('导出失败：' + String((e && e.message) || e), 'err'); }
     })(); break;
+    case 'dataImport': (async () => {
+      const ok = typeof window.confirm === 'function'
+        ? window.confirm('导入备份会覆盖当前的扫描数据/历史/设置（覆盖前会自动备份现有数据）。确定继续吗？')
+        : true;
+      if (!ok) return;
+      try {
+        const r = await window.wb.dataImport();
+        if (r && r.canceled) return;
+        toast(r && r.ok ? ('已导入 ' + r.projects + ' 项目，重启应用后生效（旧数据已备份 .preimport-' + r.backupTag + '）') : ('导入失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
+      } catch (e) { toast('导入失败：' + String((e && e.message) || e), 'err'); }
+    })(); break;
     case 'theme:set': setTheme(p); break;
     case 'compare:open': openCompare(); break;
     case 'compare:run': runCompare(); break;

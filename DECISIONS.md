@@ -3376,3 +3376,9 @@ D:\code\usou\workbench-electron\out\
  > **接手验证发现的 3 个半成品缺陷（均已修）**：① `triggerDiskQa` 证据行注入到 `#view`，会被视图重绘冲掉 ⇒ 实测 EVIDENCE=MISSING；改为注入 document.body（与其他钩子一致）。② 钩子用 `window.wb.analyze = 记录器` 做点击取证，但 contextBridge 对象是冻结的（实测 `Object.isFrozen(window.wb)=true`、analyze `writable:false/configurable:false`）⇒ 替换无效、断言恒 FAIL；改为零副作用静态 DOM 断言（drill/open 按钮 data-p 与行路径一致）。③ state.js L113 派发行末有中断残留的重复注释 `// v1.7.41...`；清理。
  > **实证（CDP --diskqa=1）**：`DISKQA 行数=15 递减=true 无嵌套=true 无失效=true 首行=最大=true 按钮接线=true | 前5名=... | PASS`；面板 15 行、`#anprogress` 为空（证明零副作用、没真跑 28GB 分析）。产物版本 1.7.41→1.7.42。
  > **交付**：接手发版 v1.7.42，全门禁验证后 commit（含看门狗的 4 文件 + 本轮修复）。只 commit 不 push。
+
+ # 第一百一十一步：治理强化——接手协议加「工作区脏」最强信号（纯治理轮）
+
+ > **选题依据**：第 110 轮接手暴露架构真实问题——看门狗唤醒的新会话若也中断，半成品会跨会话累积。按造活源第 7 项强化 PM.md 接手协议。
+ > **做法**：PM.md 第一节加「最强信号 = git status --porcelain 非空，每次唤醒第一步必查；脏则先看 git diff 判断完整性、实跑 QA 钩子（半成品可能有隐藏缺陷）、补发版，再开新轮」；PROMPT.md L2 同步「工作区脏先接手」。
+ > **价值**：把第 110 轮的接手经验（3 处半成品缺陷靠接手实跑才发现）固化为制度，任何后续看门狗唤醒都先清半成品再前进，保证自驱架构在中断频发时仍不积累脏状态。纯治理轮，不改业务代码、不重建。

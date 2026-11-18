@@ -49,6 +49,10 @@
 10. **DOM 选择器要跟实际类名走，不要凭记忆猜**（第 106 轮）：总览 KPI 用 `.mini .big` 不是 `.stat .big`；类型筛选按钮用 `.chipbtn` 不是 `.chip`。取 0 时先 dump `Array.from(...).map(e=>e.className)` 看真实结构，再判断是否缺陷。
 11. **跨文件抽取后必须重新定位行号**（第 86/87 轮）：从大文件抽走一段后，后续段的起始行号全变；按旧行号截取会截断函数 IIFE ⇒ `node --check` 报 Unexpected end of input。每次抽取前用 `Select-String` 重新确认边界，抽完先 `node --check` 新文件。
 12. **打包版 CDP 不要调会弹原生对话框的 IPC**（第 102 轮）：`data:import` 会弹 `showOpenDialog` 阻塞测试；这类 IPC 只验证函数暴露（`typeof window.wb.dataImport`）与 UI 接线，核心逻辑在隔离临时目录用 Node 实测。
+13. **`Page.captureScreenshot` 在窗口被遮挡时 Promise 永不 resolve**（第 109 轮，非报错非空图）：必须加硬超时（60s）；`fromSurface:false` 无效；解法是先把窗口置顶（`SetWindowPos HWND_TOPMOST`）再截，或用「DOM 断言 + PrintWindow」双通道。
+14. **`PrintWindow(PW_RENDERFULLCONTENT)` 对 Chromium 返回最后一帧缓存**（第 109 轮）：两张不同视图截图 sha256 完全相同 ⇒ **每张截图必须验哈希变化**，否则会把旧画面当新证据。
+15. **contextBridge 暴露的 window.wb 是冻结对象**（第 110 轮）：`Object.isFrozen(window.wb)=true`，方法 `writable:false/configurable:false`，**无法替换做记录器**（如 `wb.analyze=spy` 静默失败）；QA 钩子验证点击接线改用静态 DOM 断言（按钮 `data-p` 与行路径一致）。证据行注入到 `document.body` 而非 `#view`（视图重绘会冲掉内部节点）。
+16. **巡检要「算」不要只看**（第 109 轮真实缺陷来源）：把 59 个项目体量相加与界面数字对账，才发现嵌套目录重复计 5.4GB——四种视图全都「显示正常」。数据自证是发现同族「陈述不成立」缺陷的最高产手段。
 
 > 疑似缺陷先按上述清单自查探针（尤其第 9/10 条的"选择器错误"是近期最高频误判源），确认不是测试方式问题后再立项 —— BACKLOG 攒满假线索会消耗后续判断力。
 

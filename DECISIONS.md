@@ -3486,3 +3486,9 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 3 项——第 127 轮改了 relTimeAgo（"刚刚"不加前），可能影响所有时间类 QA 钩子，跑回归确认。
  > **实证（CDP --timeqa --briefsync --freshqa）**：TIMEQA PASS（真实=于 11-18 16:48 / 新鲜=6 小时前 / 旧逻辑两态恒=2 天前）、BRIEFSYNC PASS（陈旧 DOM/MD 均为 true/false、旧行为会不一致=true）。relTimeAgo 改动未破坏时间链路回归。FRESH 探针用错 class（.qa-fresh-note 不存在），但 timeqa 内部已断言无「刚刚前更新」，覆盖同一逻辑。无缺陷。
  > **附带判断**：detail.js 对比表的 relA/relB 用 relTime 原始值（不带前）是有意的「中性展示约定」（并排值对比、QA 钩子已固化断言），不改。
+
+ # 第一百二十九轮：路径边界健壮性审计（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项「高疑点角度」——第 109 轮嵌套去重用 projPathKey（\→/、去尾随、小写）+ indexOf(key+'/')，边界情况（UNC/大小写/尾随符）若错会误判嵌套关系、导致体量多算或少算。
+ > **实证（Node vm 加载真实 format.js）**：用实际 sizeTotals 构造 7 组边界用例——边界非子目录(D:\a vs D:\ab)=不嵌套、尾随符=嵌套、大小写=嵌套、正斜杠=嵌套、UNC(\\srv\share)=嵌套、根目录=嵌套、相同路径=不嵌套——7/7 全部符合预期。健壮性无缺陷。
+ > **探针纠错**：首测用自写复现逻辑（endsWith('\\')）得 5/7 失败，实际实现是 indexOf(key+'/')（projPathKey 已统一为 /）——探针未对齐实现导致误判，按 QA 范式第 10 条自查纠正。

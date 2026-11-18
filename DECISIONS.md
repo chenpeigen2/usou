@@ -3329,3 +3329,8 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 1 项「深度巡检」新角度——长开稳定性（定时器/事件订阅累积）。软件有 1s 脉搏、60s 托盘菜单、30s 时钟、防抖窗口状态等定时器。
  > **实证（静态审计）**：main.js 的 pulse:start 有 `if(pulseTimer)return` 防重复、pulse:stop 清理；trayMenuTimer 在 will-quit clearInterval；winStateTimer 用「先 clearTimeout 再 set」防抖（L47-50）——均正确。渲染层 addEventListener / wb.on 全部在初始化函数一次性绑定、事件委托绑固定容器（#view/#modal/#nav），重渲染 innerHTML 不累积监听器。无泄漏点，不立项。
+
+ # 第一百零五轮：winStateTimer 退出清理边界核对（证伪轮）
+
+ > **选题依据**：造活源第 4 项「健壮性」——静态审计发现 scheduleSaveWinState 的 600ms 防抖定时器在 will-quit 时未显式清理，怀疑窗口关闭后触发异常。
+ > **实证（读码）**：saveWinState() 内部有 `if(!win||win.isDestroyed())return` 守卫（main.js L35）——定时器即使在窗口销毁后触发也会安全返回，无异常。will-quit 后进程即退出，定时器自然消失，无需显式清理。无缺陷。

@@ -3394,3 +3394,11 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 1 项 + 新固化第 16 条「巡检要算不要只看」——对第 110 轮新上线的面板做独立数据对账。
  > **实证（Node 独立重算 vs DOM）**：独立重算 scan-cache 得 69 项目/5 嵌套/Top5 = u_aio_resources 28.87GB / TclLauncher 23.15 / apps 15.08 / WellLovw 13.09 / VClauncher 2.59；面板 DOM Top5 逐位一致、chip「已合并 5 个嵌套/未列 3 个失效」与重算吻合（nested=5）。面板数据可信。
  > **口径澄清（非缺陷）**：面板 chip「体量不含 node_modules/build」经查码确认正确（walkSize 传 SIZE_EXCLUDE，src/scanner.js L426）；与空间分析副标题「含 node_modules 等全部内容」是**不同数据源**（快照 vs 实时 disk:analyze），各自准确，不构成同屏矛盾，不立项。
+
+ # 第一百一十四轮：修复总览数字条长体积值换行（真实 UI 缺陷 · BACKLOG IDEA 升级）
+
+ > **选题依据**：不再随机巡检，直接从 BACKLOG IDEA 区取真实待办——「总览数字条源码总体量在 150px 卡片里换行」（v1.7.40 即存在）。按造活源第 1 项 + 用户可见 UI 缺陷。
+ > **实证（几何量测，改前）**：DOM 注入长值实测 `101.85 GB` / `107.25 GB` 的 `.big` = 92.8×48px、**lines=2**（断成两行），而当前 `95.43 GB` = 84×24 lines=1 ⇒ 缺陷真实存在，只是当前数据未达阈值；体积涨到 100GB+ 必然复现。
+ > **修复**：`style.css` 的 `.mini .big` 加 `white-space:nowrap`、字号 20→19px。
+ > **实证（改后）**：三个值全部 lines=1、overflow=false（未溢出卡片）、六张卡高度全 67px 等高；六视图审计 failCount 0 / min 4.73。
+ > **交付**：v1.7.43 本地重建（清理 1.7.42 旧产物）、4 进程、verify-delivery 12 项全 PASS。BACKLOG 同步标记 4 项已实现 IDEA。只 commit 不 push。

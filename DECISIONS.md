@@ -3324,3 +3324,8 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 7 项「文档治理」——第 98/101 轮的导出导入、第 96 轮的键盘无障碍未在 README/DELIVERY 功能表体现（第 95 轮文档治理在它们之前），避免漂移累积。
  > **做法**：README 顶部加 v1.7.40 累计摘要（数据可移植 + 无障碍）+ 100+ 轮说明；DELIVERY 设置行补「数据备份导出/导入」。纯文档轮，不改业务代码、不重建。
+
+ # 第一百零四轮：长运行资源泄漏静态审计（证伪轮）
+
+ > **选题依据**：造活源第 1 项「深度巡检」新角度——长开稳定性（定时器/事件订阅累积）。软件有 1s 脉搏、60s 托盘菜单、30s 时钟、防抖窗口状态等定时器。
+ > **实证（静态审计）**：main.js 的 pulse:start 有 `if(pulseTimer)return` 防重复、pulse:stop 清理；trayMenuTimer 在 will-quit clearInterval；winStateTimer 用「先 clearTimeout 再 set」防抖（L47-50）——均正确。渲染层 addEventListener / wb.on 全部在初始化函数一次性绑定、事件委托绑固定容器（#view/#modal/#nav），重渲染 innerHTML 不累积监听器。无泄漏点，不立项。

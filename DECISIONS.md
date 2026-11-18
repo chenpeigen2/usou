@@ -3265,3 +3265,8 @@ D:\code\usou\workbench-electron\out\
  > **探针纠错**：首测用 CSS `[data-act=recent:deadonly]`（冒号未加引号）导致选择器失效误判"按钮不存在"，改用 `Array.from(...).find(b=>b.dataset.act===...)` 后确认功能正常——QA 探针范式自查。
  > **附带修正**：最近视图副标题里写死的 `D:\code / E:\workspace` 改为通用「已配置项目根」（第 81 轮通用化遗漏的文案）。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第九十四轮：新筛选按钮浅色对比度 + 跨视图状态审计（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项「QA 深化」——第 93 轮新增「仅看已删除」按钮只在深色验证过，且切视图后筛选状态是否泄漏未测。
+ > **实证（CDP --themeqa=light）**：浅色主题对比度 total=192 / min=4.64 / fail=0；开启筛选后依次切 overview/projects/settings/recent，`rqDeadOnly` 均为 true（状态跨视图保持=用户意图不丢失，符合预期），各视图渲染正常，切回 recent 仍 36 行。无缺陷。

@@ -3284,3 +3284,8 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP Input.dispatchKeyEvent Tab）**：规则 1 条生效、Tab 后焦点在 #tb-refresh、计算样式 `outline: solid 2px`（焦点环可见）、对比度 fail 0 / min 4.89、六视图审计 failCount 0 / min 4.64。
  > **未立项项**：项目视图 350 个按钮的 Tab 负担是设计权衡（每个项目操作按钮都需可访问），skip-link/roving tabindex 复杂度高收益不明确，暂不处理。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第九十七轮：键盘可操作性审计（证伪轮）
+
+ > **选题依据**：造活源第 1 项「深度巡检」延续无障碍维度——第 96 轮修了焦点可见性，本轮验证键盘能否真正操作关键功能（Enter/Esc/Ctrl+K）。
+ > **实证（CDP Input.dispatchKeyEvent）**：Ctrl+K 打开命令面板（PAL_OPEN=true）、Esc 关闭面板（PAL_CLOSED=true）、Esc 关闭项目详情弹窗（MODAL_CLOSED=true）。键盘可达性完整，无缺陷。

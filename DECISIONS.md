@@ -3235,3 +3235,10 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：16 脚本全部加载、六视图渲染全正常、项目视图 59 行 + 7 个 chipbtn（筛选文案完整：全部 59/未提交 3/Web 20 等）、导航 6 按钮；六视图审计 failCount 0 / min 4.64。
  > **探针纠错**：PROJ_CHIPS 用 `.chip` 选择器得 0 是探针错误——实际用 `.chipbtn`（7 个），非产品缺陷（QA 探针范式自查）。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 16 个平铺 JS（app.js 22 行入口，views.js 108 行仅剩渲染分发+空间分析）。只 commit 不 push。
+
+ # 第八十九轮：打包版配置跨重启持久化闭环（QA 深化 · 证伪轮）
+
+ > **选题依据**：自驱造活源第 3 项「QA 深化」——新功能「扫描范围可视化配置」只在 dev 验证了保存读回，打包版 asar + 跨重启的持久化未验证。
+ > **实证（CDP 连打包版）**：① UI 改 scanRoots（追加测试路径）→ saveSettings → 落盘 settings.json 含测试路径 ✓；② 关闭并重启打包版 → 设置页 prefill 显示测试路径 ✓ ⇒ 跨重启持久化成立。测试后从 r89bak 恢复配置并**立即验证**测试路径已清除、无残留备份（遵循第 57 轮「恢复后必须验证」教训）。
+ > **探针纠错**：AFTER_RESTART_STATE 用 `window.wb.getState()` 直接 await 得 {}（缺 async IIFE 包装，QA 探针范式第 2 条）—— 但设置页 prefill 已足够证明持久化，非产品缺陷。
+ > **结论**：无产品缺陷，不立项。

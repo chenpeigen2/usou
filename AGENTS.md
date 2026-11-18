@@ -45,8 +45,12 @@
 6. **改用户可见文案时同步清点依赖该字符串的 QA 钩子 finder**（第 35/36 轮 `--dayqa` finder 假 FAIL）。
 7. **零副作用**：绝不在真实实例里调 `openPath(存在路径)` / `openIn(存在路径)`（会拉起外部窗口），改用 stub recorder（第 24/32 轮）。
 8. **PowerShell 函数名不要与外部命令同名**（第 72 轮真实 bug）：`auto-commit.ps1` 里 `function Git` + `$git='git'` ⇒ `& $git` 匹配到同名函数自身 → **无限递归溢出**。改用 `RunGit` 这类不会撞命令名的前缀。脚本路径一律从 `$PSScriptRoot` 推导，不写死本机目录。
+9. **CDP CSS 选择器里冒号值要转义或用属性匹配**（第 93/107 轮）：`[data-act=recent:deadonly]` 的冒号被当作伪类 ⇒ 选择器失效误判「按钮不存在」；改用 `Array.from(document.querySelectorAll('.chipbtn')).find(b=>b.dataset.act==='recent:deadonly')` 或 `querySelector('[data-act=compare\\:open]')`。
+10. **DOM 选择器要跟实际类名走，不要凭记忆猜**（第 106 轮）：总览 KPI 用 `.mini .big` 不是 `.stat .big`；类型筛选按钮用 `.chipbtn` 不是 `.chip`。取 0 时先 dump `Array.from(...).map(e=>e.className)` 看真实结构，再判断是否缺陷。
+11. **跨文件抽取后必须重新定位行号**（第 86/87 轮）：从大文件抽走一段后，后续段的起始行号全变；按旧行号截取会截断函数 IIFE ⇒ `node --check` 报 Unexpected end of input。每次抽取前用 `Select-String` 重新确认边界，抽完先 `node --check` 新文件。
+12. **打包版 CDP 不要调会弹原生对话框的 IPC**（第 102 轮）：`data:import` 会弹 `showOpenDialog` 阻塞测试；这类 IPC 只验证函数暴露（`typeof window.wb.dataImport`）与 UI 接线，核心逻辑在隔离临时目录用 Node 实测。
 
-> 疑似缺陷先按上述清单自查探针，确认不是测试方式问题后再立项 —— BACKLOG 攒满假线索会消耗后续判断力。
+> 疑似缺陷先按上述清单自查探针（尤其第 9/10 条的"选择器错误"是近期最高频误判源），确认不是测试方式问题后再立项 —— BACKLOG 攒满假线索会消耗后续判断力。
 
 ## PM 自驱层（第十轮起，lead 只做验收）
 
@@ -59,10 +63,11 @@
 | `pm/BACKLOG.md` | 待办池：READY / DOING / DONE / IDEA，含验收标准；巡检发现的新问题自行补充 |
 | `pm/PROMPT.md` | 定时任务投喂的唤醒提示词全文（可审计） |
 
-- 触发器：`schedule_create` 定时任务「工作台 PM 自驱迭代」，target `new_once`，`FREQ=HOURLY;INTERVAL=6`（每 6 小时一次，首触发 2026-11-15 22:00 本地）。
+- 触发器：`schedule_create` 定时任务「工作台 PM 自驱迭代」，target 当前会话，`FREQ=HOURLY;INTERVAL=6`（每 6 小时，仅会话中断后保活；正常由 L2 链式连续跑）。
+- 三层自驱架构（持续到 token 耗尽）见 `pm/PM.md` 第五节：L1 微循环（7 步 SOP）/ L2 链式续轮 / L3 看门狗；**待办枯竭时按 7 造活源找下一主题，不停止迭代**。
 - 每轮由 PM agent 自主执行：巡检 → 选 1 个 READY 项 → 决策留痕 → 实现 → QA 门禁 → 发版 → 更新治理文件。
-- **一轮一主题**；QA 不过不硬发版；待办枯竭时只写巡检报告；结束保留打包版运行态。
-- 用户已永久授权全部自主决策，PM agent 禁止提问或等待确认。
+- **一轮一主题**；QA 不过不硬发版（回滚该轮、记录、继续下一轮）；结束保留打包版运行态。
+- 用户已永久授权全部自主决策，PM agent 禁止提问或等待确认。唯一正常终止 = token 耗尽或用户显式打断。
 
 ## 版本入库（每轮收尾）
 

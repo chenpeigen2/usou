@@ -3219,3 +3219,11 @@ D:\code\usou\workbench-electron\out\
  > **做法**：抽到平铺 `renderer/system.js`（renderSystem/historyTrendHtml/drawTrend + renderSettings/saveSettings/clearScanErrors/autoCheckHtml），在 app.js 前加载、全局可见。中途中因截取范围不足（L502-668 截断了 renderSettings 的 IIFE）导致语法错，修正为完整 L502-708 后通过。
  > **实证（CDP）**：14 脚本全部加载、5 个函数全局可见、四视图渲染正常（system 16072 / settings 3124 / overview 22953 / projects 63863 chars）、设置页 3 个新配置字段都在、导航 6 按钮；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 14 个平铺 JS（app.js 22 行入口）。只 commit 不 push。
+
+ # 第八十七轮：抽总览视图+共用辅助为平铺 overview.js（views.js 507→267 行）
+
+ > **选题依据**：自驱造活源第 2 项「代码组织」——views.js 仍 507 行，总览视图（L55-296）含磁盘环 hover、存在性检查、失效沉底排序等共用辅助，是独立内聚块。
+ > **做法**：抽到平铺 `renderer/overview.js`（renderOverview/磁盘环 hover/checkRecentExistence/checkProjectExistence/partitionDead），在 app.js 前加载、全局可见——被项目/最近视图共用的辅助在同一全局作用域可见，调用点零改动。
+ > **实证（CDP）**：15 脚本全部加载、6 个关键函数全局可见、六视图全部渲染（overview 22953 / projects 63836 / recent 30265 / disk 2351 / system 16072 / settings 3124 chars）、导航 6 按钮；六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：测试中 `partitionDead(...).map` 报 TypeError 是探针误用——该函数签名为 `partitionDead(list, deadSet)`、返回 `{live,dead}` 对象而非数组，非产品缺陷（按 QA 探针范式第 1 条自查确认）。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 15 个平铺 JS（app.js 22 行入口）。只 commit 不 push。

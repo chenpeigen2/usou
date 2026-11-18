@@ -762,6 +762,30 @@ ipcMain.handle('brief:export', (_e, md, prefix) => {
   }
 });
 
+/* v1.7.41：导出全部本地数据为 JSON 备份（scan-cache / history / settings）。只读打包、不改动原数据。 */
+ipcMain.handle('data:export', () => {
+  try {
+    const dir0 = (() => { try { const d = app.getPath('documents'); return d && fs.existsSync(d) ? path.join(d, '工作台') : ''; } catch (_e) { return ''; } })();
+    const dir = dir0 || path.join(store.dataDir(), 'exports');
+    fs.mkdirSync(dir, { recursive: true });
+    const d = new Date(), p2 = n => String(n).padStart(2, '0');
+    const stamp = d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes());
+    const payload = {
+      format: 'usou-workbench-backup', version: 1,
+      exportedAt: d.toISOString(),
+      scan: store.getScan(), history: store.getHistory(), settings: store.getSettings()
+    };
+    const file = path.join(dir, '工作台数据备份-' + stamp + '.json');
+    fs.writeFileSync(file, JSON.stringify(payload, null, 2), 'utf8');
+    const bytes = fs.statSync(file).size;
+    log('data:export -> ' + file + ' (' + bytes + ' bytes)');
+    return { ok: true, path: file, bytes, projects: (payload.scan && payload.scan.projects || []).length };
+  } catch (e) {
+    log('data:export ERROR ' + ((e && e.stack) || e));
+    return { ok: false, reason: String((e && e.message) || e) };
+  }
+});
+
 /* ---------- 项目详情（git 深信息 + README 摘要 / 目录体量分析） ---------- */
 
 const README_CANDIDATES = ['README.md', 'readme.md', 'Readme.md', 'README.TXT', 'readme.txt'];

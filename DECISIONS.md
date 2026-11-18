@@ -3289,3 +3289,10 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 1 项「深度巡检」延续无障碍维度——第 96 轮修了焦点可见性，本轮验证键盘能否真正操作关键功能（Enter/Esc/Ctrl+K）。
  > **实证（CDP Input.dispatchKeyEvent）**：Ctrl+K 打开命令面板（PAL_OPEN=true）、Esc 关闭面板（PAL_CLOSED=true）、Esc 关闭项目详情弹窗（MODAL_CLOSED=true）。键盘可达性完整，无缺陷。
+
+ # 第九十八轮：新功能「导出全部数据 JSON 备份」（数据可移植性）
+
+ > **选题依据**：造活源第 6 项「新功能」——软件数据全在本地、用户无法备份/迁移。复用现有 brief:export 的落盘模式做数据导出。
+ > **做法**：① main.js 新增 `data:export` IPC，只读打包 scan-cache/history/settings 成带 format/version/exportedAt 的 JSON，落盘「文档\工作台\工作台数据备份-<时间戳>.json」（与 brief:export 同目录策略）；② preload.js 暴露 dataExport；③ system.js 设置页按钮行加「💾 导出数据备份」+ 说明；④ interaction.js doAct 加 case，toast 回显项目数与 KB。全程只读原数据、不改结构。
+ > **实证（CDP）**：window.wb.dataExport() 返回 ok=true / projects=59；落盘文件 103.5 KB、格式 usou-workbench-backup v1、59 项目/6 历史/11 设置键（含 scanRoots/forceDirs/links 等通用化配置）全部包含；测试文件已清理。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

@@ -29,6 +29,12 @@ function doAct(act, p) {
     case 'reforce': { if (p) { const el = $('#an-path'); if (el) el.value = p; } startAnalyze(true); break; }
     case 'saveSettings': saveSettings(); break;
     case 'clearScanErrors': clearScanErrors(); break;
+    case 'dataExport': (async () => {
+      try {
+        const r = await window.wb.dataExport();
+        toast(r && r.ok ? ('已导出备份：' + r.projects + ' 项目 · ' + Math.round(r.bytes / 1024) + ' KB') : ('导出失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
+      } catch (e) { toast('导出失败：' + String((e && e.message) || e), 'err'); }
+    })(); break;
     case 'theme:set': setTheme(p); break;
     case 'compare:open': openCompare(); break;
     case 'compare:run': runCompare(); break;

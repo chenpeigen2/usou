@@ -176,7 +176,9 @@ function renderSettings() {
     '<button class="btn" data-act="saveSettings">💾 保存设置</button>' +
     '<button class="btn ghost" data-act="scan">🔄 全量重扫</button>' +
     '<button class="btn ghost" data-act="scan" data-fast="1">⚡ 快速重扫（跳过体量）</button>' +
+    '<button class="btn ghost" data-act="dataExport">💾 导出数据备份</button>' +
     '</div>' +
+    '<div class="hint" style="margin-top:6px">导出全部本地数据（扫描缓存 / 历史快照 / 设置）为 JSON 备份，落盘至「文档\\工作台」；只读取、不改动原数据。</div>' +
     '<h2>扫描错误诊断<span class="sub">扫描 / 空间分析失败原因持久保存，重启后仍可查看</span></h2>' +
     '<div id="scan-errors">' + scanErrorsHtml() + '</div>' +
     '<div class="field" style="margin-top:16px"><label>扫描日志（本次运行）</label><div id="scan-log"></div></div>' +

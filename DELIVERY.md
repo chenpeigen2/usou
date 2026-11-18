@@ -116,6 +116,22 @@
 
 > 本地仍用 `npm run dist`（复用 vendored runtime，零下载）；CI 走标准下载路径。两条路产物命名/结构相同。
 
+## 五·六、自驱迭代架构（持续到 token 耗尽）
+
+本仓库由 PM agent **自驱迭代**，无需人参与。三层架构（详见 `pm/PM.md` 第五节）：
+
+| 层 | 机制 | 职责 |
+|---|---|---|
+| L1 微循环 | 7 步 SOP | 一轮一主题：巡检→决策→实现→QA→发版→收尾 |
+| L2 链式续轮 | goal 自动 continuation | 收尾立即进下一轮，不等定时器 |
+| L3 看门狗 | `schedule` 每 6h 唤醒当前会话 | 会话中断后读 `pm/STATE.md`/`BACKLOG.md` 接手 |
+
+- **永不因待办枯竭而停**：READY 清空时按 7 个造活源（深度巡检/代码组织/QA 深化/健壮性/性能/新功能/文档治理）找下一主题。
+- **异常不终止**：QA/发版失败回滚该轮继续；agent 无输出先自查现场接手。
+- **唯一正常终止**：token 耗尽或用户显式打断。
+- **状态机**：`pm/STATE.md`（当前版本/下一轮指针）、`pm/BACKLOG.md`（READY/DOING/DONE/IDEA）、`pm/DECISIONS.md`（决策留痕）、`pm/PROMPT.md`（看门狗投喂词镜像）。
+- **每轮收尾**：`verify-delivery.ps1` 全过 + `auto-commit.ps1` 只 commit（push 由用户手动）。
+
 ## 六、开发与验收约定（必读）
 
 1. **先杀净所有实例再构建**（否则 EBUSY），构建前清 `ELECTRON_RUN_AS_NODE`。

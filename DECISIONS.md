@@ -3242,3 +3242,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP 连打包版）**：① UI 改 scanRoots（追加测试路径）→ saveSettings → 落盘 settings.json 含测试路径 ✓；② 关闭并重启打包版 → 设置页 prefill 显示测试路径 ✓ ⇒ 跨重启持久化成立。测试后从 r89bak 恢复配置并**立即验证**测试路径已清除、无残留备份（遵循第 57 轮「恢复后必须验证」教训）。
  > **探针纠错**：AFTER_RESTART_STATE 用 `window.wb.getState()` 直接 await 得 {}（缺 async IIFE 包装，QA 探针范式第 2 条）—— 但设置页 prefill 已足够证明持久化，非产品缺陷。
  > **结论**：无产品缺陷，不立项。
+
+ # 第九十轮 + 第九十一轮：空配置鲁棒性证伪 + 新功能「已删除」筛选 chip
+
+ > **第九十轮（健壮性证伪）**：验证空配置（scanRoots/forceDirs/links 全空）下 scanner 仍可用 —— 实测发现 28 项目 / 3 默认链接 / 60 最近 / 4 盘符，证明通用化设计在无任何本机配置时依然工作。无缺陷。
+ > **第九十一轮（新功能）**：用户痛点 —— 失效项目沉底后要点开第 50+ 行才能看到，无法快速定位。项目视图类型 chip 栏新增「已删除 N」，点击后列表精确收敛到失效项。
+ > **做法**：`renderer/lists.js` 的 renderTypeChips 加 counts['已删除']（>0 时才显示 chip，位于 chip 栏末尾）；renderProjectList 的 filter 加 `filterType==='已删除'` 分支。复用既有 `typefilter` 事件委托，零新增 IPC/依赖。时序：`checkProjectExistence()` 完成后 overview.js L205 会重绘 chips ⇒ PROJ_DEAD 到位后 chip 自动出现。
+ > **实证（CDP）**：DEAD_SET_SIZE=2、chips 含「已删除 2」、点击后 filterType='已删除'、列表从 59 行收敛到 2 行（wt-demo/wt-prev）；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

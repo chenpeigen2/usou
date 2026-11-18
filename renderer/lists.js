@@ -30,7 +30,10 @@ function renderTypeChips() {
   projects.forEach(p => { counts[p.type] = (counts[p.type] || 0) + 1; });
   // v1.7.18：chip 口径与列表统计行、总览数字条、托盘严格一致 —— 必须剔除失效项目
   counts['未提交'] = projects.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
+  // v1.7.41：新增「已删除」筛选 —— 失效项目沉底后要点开第 50+ 行才能看到，一键筛选直达
+  counts['已删除'] = projects.filter(p => PROJ_DEAD.has(p.path)).length;
   const order = ['全部', '未提交'].concat(types);
+  if (counts['已删除'] > 0) order.push('已删除');
   $('#type-chips').innerHTML = order.map(t =>
     '<button class="chipbtn' + (t === filterType ? ' on' : '') + '" data-act="typefilter" data-t="' + esc(t) + '">' + esc(t) + ' ' + (counts[t] || 0) + '</button>').join('');
 }
@@ -57,6 +60,7 @@ function renderProjectList() {
   const list = projects.filter(p => {
     // v1.7.18：与 chip「未提交 N」同一口径 —— 失效项目不算未提交（否则 chip 写 3、点进去列 5 行，又一屏内自相矛盾）
     if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0) || PROJ_DEAD.has(p.path)) return false; }
+    else if (filterType === '已删除') { if (!PROJ_DEAD.has(p.path)) return false; }
     else if (filterType !== '全部' && p.type !== filterType) return false;
     return hitSet.has(p);
   });

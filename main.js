@@ -848,6 +848,7 @@ ipcMain.handle('data:import', async (_e, chosenFile) => {
     if (Array.isArray(obj.history)) fs.writeFileSync(path.join(dir, 'history.json'), JSON.stringify(obj.history, null, 2), 'utf8');
     if (obj.settings && typeof obj.settings === 'object') store.setSettings(obj.settings);
     log('data:import <- ' + file + ' (' + (obj.scan.projects || []).length + ' projects), backup .preimport-' + stamp);
+    send('data:imported', { projects: (obj.scan.projects || []).length, file: file });
     return { ok: true, projects: (obj.scan.projects || []).length, backupTag: stamp, file };
   } catch (e) {
     log('data:import ERROR ' + ((e && e.stack) || e));

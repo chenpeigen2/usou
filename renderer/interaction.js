@@ -47,7 +47,7 @@ function doAct(act, p) {
         if (typeof window.confirm === 'function' && !window.confirm(msg)) return;
         const r = await window.wb.dataImport(pv.file);
         if (r && r.canceled) return;
-        toast(r && r.ok ? ('已导入 ' + r.projects + ' 项目，重启后生效（旧数据已备份 .preimport-' + r.backupTag + '）') : ('导入失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
+        toast(r && r.ok ? ('已导入 ' + r.projects + ' 项目（旧数据已备份 .preimport-' + r.backupTag + '）') : ('导入失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
       } catch (e) { toast('导入失败：' + String((e && e.message) || e), 'err'); }
     })(); break;
     case 'theme:set': setTheme(p); break;

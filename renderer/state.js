@@ -169,6 +169,12 @@ function bindScanEvents() {
     await refreshState();
     render();
   });
+  // v1.7.46：导入成功后主进程广播 —— 立即重载内存态并重绘，无需重启应用
+  window.wb.on('data:imported', async d => {
+    toast('已导入 ' + (d && d.projects || 0) + ' 个项目，数据已刷新', 'ok');
+    await refreshState();
+    render();
+  });
   window.wb.on('scan:error', e => {
     tbStatus('✘ 扫描失败');
     toast('扫描失败：' + e, 'err');

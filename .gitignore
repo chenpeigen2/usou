@@ -34,6 +34,9 @@ qa-*.png
 shot-*.png
 screen-*.png
 
+# ---- 本地变更汇总（生成物，push 后过时；不入库）----
+CHANGELOG-LOCAL.md
+
 # ---- 系统 / 编辑器 ----
 .DS_Store
 Thumbs.db

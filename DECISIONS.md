@@ -3438,3 +3438,8 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 3 项——第 119 轮新增的对比导出在 dev 验证过，打包版 asar 未测。
  > **实证（CDP 连打包版 v1.7.45）**：16 脚本全部加载、compareMarkdown/copyCompare/exportCompare 三个函数可用、执行对比得 9 行、两个导出按钮（compare:copy/compare:export）在位、Markdown 输出 485 字符。渲染层新功能正确打进 asar，无环境差异。无缺陷。
  > **里程碑**：第 92→120 轮连续自主迭代 29 轮（其中看门狗中断 1 次自动接手），版本 1.7.40→1.7.45，本地 commit 108（远端 59，按用户要求不 push）。
+
+ # 第一百二十一轮：本地变更汇总 CHANGELOG-LOCAL.md（治理辅助，不入库）
+
+ > **选题依据**：本地积压 50 个 commit（用户约定不 push、自己来）——diff 庞大、review 负担重。生成按主题归类的变更汇总，方便用户掌控全貌。
+ > **做法**：新增根目录 CHANGELOG-LOCAL.md（50 commit 按「审计证伪16/代码组织13/新功能8/缺陷修复4/治理文档7/其他2」归类 + 版本脉络 1.7.40→1.7.45 + 里程碑 + push 指引）；加入 .gitignore 不入库（标注 push 后过时，避免污染远端仓库）。纯治理轮，不改业务代码、不重建。

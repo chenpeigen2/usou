@@ -3314,3 +3314,8 @@ D:\code\usou\workbench-electron\out\
  > **做法**：main.js 引入 dialog + 新增 `data:import` IPC（showOpenDialog 选 JSON → 校验 format=usou-workbench-backup/version=1 → 校验 scan.projects 存在 → **先备份现有 scan-cache/history/settings 成 .preimport-<stamp>** → 写入三类数据 → 返回项目数与备份 tag）；preload 暴露 dataImport；system.js 设置页加「📥 导入备份」按钮；interaction.js doAct 加 case（window.confirm 明确确认 + toast 回显）。保守策略：格式/版本不符或缺 scan 一律拒绝、覆盖前必备份。
  > **实证**：CDP 确认 16 脚本加载、dataImport 可用、5 个按钮含新按钮；隔离临时目录测核心逻辑——正常导入成功(1 项目)、格式错误拒绝、缺 scan 拒绝、有现有数据时先备份 3 文件（绝不碰真实数据，测试目录已清理）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第一百零二轮：打包版 asar 验证新 data:import IPC（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项「QA 深化」——第 101 轮新增 data:import IPC（含 dialog 模块）只在 dev 验证，打包版未测。
+ > **实证（CDP 连打包版）**：16 脚本全部加载、window.wb.dataImport / dataExport 均为 function、设置页导入按钮存在。因 data:import 会弹原生文件对话框（CDP 无法自动选择文件），未实际触发，仅验证 IPC 暴露与 UI 接线（核心校验逻辑已在第 101 轮隔离环境实测）。dialog 模块与新 IPC 正确打进 asar，无环境差异。无缺陷。

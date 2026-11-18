@@ -3408,3 +3408,8 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 1 项 + 第 16 条「数据自证」——BACKLOG IDEA 称「拼音表 419 字，覆盖本机数据用字」，从未实测。用户搜中文项目名的拼音首字母若缺字就搜不到，是真实功能风险。
  > **实证（独立重算）**：419 字表 vs 222 个数据汉字，缺 96 字；但按作用域细分——**项目名/路径仅缺 1 字「建」**（来自占位目录「新建文件夹」，非真实项目），其余 95 字全在 commit message / 最近文件名（拼音搜索的核心目标是项目名/路径，次要字段降级不影响）。⇒ 对用户实际搜索对象的覆盖率 100%，降级策略符合设计（表由 ICU 推断 + 355 ground-truth 断言生成，刻意只收录验证过的字，补字反而可能「搜错」）。无缺陷。
  > **探针纠错**：首测用正则取 PY_TABLE 单字键得 0（实际格式是 `{字母:'字串'}`，QA 范式第 10 条），改用 vm 加载真实表后得到正确结果。
+
+ # 第一百一十六轮：全视图交互接线审计（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项「深度巡检」换系统性角度——枚举六视图所有 `data-act` 交互（30 个），与 doAct 的 case 分支（29 个）交叉比对，找「按钮存在但没接线（点了没反应）」的残留缺陷。
+ > **实证（CDP 逐视图枚举）**：overview 8 种 / projects 8 / recent 3 / disk 4 / system 1 / settings 6，全部 data-act 都在 doAct 有对应 case（overview: brief:copy/export/weekly:export/detail/goto/open/brief:bysize/show；projects: typefilter/compare:open/fav/open/vscode/term/detail/copy；recent: recent:deadonly/open/show；disk: drill/open/analyze/reforce；system: open；settings: theme:set/saveSettings/scan/dataExport/dataImport/clearScanErrors）。doAct 另有 compare:run/dirsdrill/dirsup/git/redirs 供弹窗内部使用。零漏接，无缺陷。

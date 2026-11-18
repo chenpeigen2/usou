@@ -98,6 +98,11 @@ input,select,textarea{
   transition:border-color .15s, box-shadow .15s;
 }
 input:focus,select:focus,textarea:focus{border-color:var(--acc);box-shadow:0 0 0 3px rgba(77,159,255,.14)}
+/* v1.7.41 无障碍：button 的 outline:none 让键盘用户 Tab 时看不到焦点。
+   :focus-visible 只在键盘导航时显示焦点环（鼠标点击不触发，不影响视觉）。 */
+button:focus-visible,.chipbtn:focus-visible,.nav-item:focus-visible,[data-act]:focus-visible{
+  outline:2px solid var(--acc);outline-offset:2px;
+}
 textarea{width:100%;min-height:96px;resize:vertical;font-family:Consolas,monospace;line-height:1.7}
 ::selection{background:rgba(77,159,255,.32)}
 ::-webkit-scrollbar{width:10px;height:10px}

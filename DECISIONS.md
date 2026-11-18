@@ -3276,3 +3276,11 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 7 项「文档治理」——第 81~93 轮的新功能（通用化/扫描范围配置/代码平铺/双视图已删除筛选）只记在 DECISIONS，README 流水停在 v1.7.38、DELIVERY 功能表缺新项，接手人无法从主文档看到当前全貌。
  > **做法**：README 顶部加 v1.7.40 累计摘要（通用化/配置 UI/平铺架构/双筛选/asar 验证）+ 结构指引；DELIVERY 功能表补「已删除 N 筛选」「仅看已删除」「扫描范围可视化配置」+ 通用化说明；STATE 本轮状态已在第 93 轮更新。
  > **交付**：纯文档轮，不改业务代码、不重建。只 commit 不 push。
+
+ # 第九十六轮：无障碍审计——键盘 Tab 焦点环（真实缺陷修复）
+
+ > **选题依据**：造活源第 1 项「深度巡检」，换从未做过的角度「键盘可达性/无障碍」。CDP 扫描发现 `style.css` 有 `input,select,textarea{outline:none}` 且 button 无任何 focus 样式、`FOCUS_STYLE: 0 rules` —— 键盘用户 Tab 导航时看不到焦点在哪，是真实无障碍缺陷。
+ > **做法**：style.css 加 `:focus-visible` 全局规则（button/.chipbtn/.nav-item/[data-act]），`outline:2px solid var(--acc);outline-offset:2px`。用 `:focus-visible` 而非 `:focus` 是关键——只在键盘导航时显示焦点环、鼠标点击不触发，不影响现有视觉设计。
+ > **实证（CDP Input.dispatchKeyEvent Tab）**：规则 1 条生效、Tab 后焦点在 #tb-refresh、计算样式 `outline: solid 2px`（焦点环可见）、对比度 fail 0 / min 4.89、六视图审计 failCount 0 / min 4.64。
+ > **未立项项**：项目视图 350 个按钮的 Tab 负担是设计权衡（每个项目操作按钮都需可访问），skip-link/roving tabindex 复杂度高收益不明确，暂不处理。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

@@ -27,13 +27,24 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第一百零一轮 / v1.7.40 · **「新功能：导入数据备份（data:import IPC，配套导出闭环）」**
-- **版本**：v1.7.40
-- **交付态**：Workbench-Setup-1.7.38.exe + Workbench-1.7.38-portable.zip；打包版 4 进程；verify-delivery.ps1 12 项全 PASS
-- **第 62→64 轮概览**：62 周报 scanTime 转义修复（v1.7.38）· 63 简报导出转义体检（证伪）· 64 extraRoots 契约审计（证伪）
-- **累计成果（第 28→65 轮，38 轮）**：修真实缺陷 16 项 + 新增功能 3 个（周报/项目对比/导出前缀）+ 元审计 3 项（QA 基建/门禁假阳性/入库脚本）+ 证伪巡检 10+ 轮；本地 49+ commit，只 commit 不 push
-- **READY**：空；IDEA 池剩高改动面/碰红线项（多机器合并 / 看文件修改 / 全字库拼音）
-- **下一轮指针**：用户目标「继续迭代直到 token 消耗完成」⇒ 继续真实巡检或按 IDEA 造活；无用户参与
+- **本轮状态**：DONE · 第一百零九轮 / v1.7.41 · **「项目总体量的嵌套去重（真实缺陷：同一份磁盘空间被算两遍）」**
+- **版本**：v1.7.41
+- **交付态**：`out\Workbench-Setup-1.7.41.exe`（87,635,507 B）+ `out\Workbench-1.7.41-portable.zip`（118,739,420 B）+ blockmap；打包版 4 进程（ProductVersion 1.7.41.0）运行中，托盘在位；预置数据已刷新为 2026-11-18 17:22 真实扫描（69 项目 / 7 快照）
+- **累计成果**：真实缺陷修复 20+ 项；证伪/治理轮 15+；本地 commit 持续增长（只 commit 不 push）
+- **READY**：空；IDEA 池 7 项（多机器合并 / 看文件修改 / 全字库拼音 / 数字条换行 / 空间页空态 / +2 既有）
+- **下一轮指针**：造活源第 2/5/6 项（代码组织深化 / 性能实测 / 新功能）中任选，本轮 IDEA 已补充两条低风险候选
+- **巡检口径提醒**：窗口被遮挡时 `Page.captureScreenshot` 会**挂起不返回**（不是报错）⇒ 截图前先 `SetWindowPos HWND_TOPMOST`；`PrintWindow` 对 Chromium 只回最后一帧缓存（两张不同视图 sha256 相同）⇒ 截图必须验哈希
+
+## 最近一轮（第一百零九轮 / v1.7.41 · 真实缺陷）
+
+- 主题：**项目总体量的嵌套去重** —— 造活源第 1 项「深度巡检」换角度：**拿数据做数学自证**（把 59 个项目体量相加再与界面数字对账）
+- 决策：`DECISIONS.md` 第一百零九轮（选题依据 + 双份量化证据 + 实现取舍 + 验证与踩坑）
+- **根因**：项目 `sizeMB` 是「递归统计自己全部内容」，而项目发现规则允许父目录与其子目录同时成为项目（本机 5 对）⇒ 直接求和把同一份字节算两遍。旧缓存 59 项目：raw 107.25 GB / 重复 **5.4 GB（5.04%）**；新扫描 69 项目：raw 99.89 GB / 重复 4.46 GB。错值出现在总览数字条 / 项目统计行 / 系统页趋势表 / 折线 4 处。
+- 实现（6 文件 + main.js 一行透传，**零新增 IPC / 零 src 改动 / 零数据文件结构改动**）：`format.js` 纯函数 `sizeTotals()`（只累加不在其他项目目录内的项目、三层链只计最外层、路径按 Windows 语义 + 路径边界）；`overview.js` 数字条用去重值 + 悬停说明（`miniStat` 新增 tip 参数）；`lists.js` 统计行「体量 95.43 GB（已去重 5 个嵌套项目 · 4.46 GB）」；`history.js` 对新格式（路径键）快照重算去重、旧格式保留原值 + 口径说明；`qa.js` 新增 `--sizeqa=1`；`state.js`/`main.js` 接线。
+- 验证：`node --check` 21/21；`--sizeqa=1` **11/11 PASS**（合成 1500/2300/800 + 边界 3/3 + 历史口径 + 真实双视图）；**阴性对照**：临时改回直接相加 ⇒ `总览=false 旧值未出现=false | FAIL`，还原即 PASS；**数据侧独立互证**：Node 直读 `data\scan-cache.json` 重算与 DOM 逐位一致（102288.4/4563.5/97724.9 MB、5 对嵌套）；**端到端真实扫描**：69 项目/99.8s/7 快照，新快照存 `totalMB=102288`（原始和）而系统页显示 **95.43 GB**；深浅两套六视图对比度 failCount 全 0（深 4.73 / 浅 4.89）；**几何量测**：6 张数字条卡片恒 174×92、新旧数值串换行行为一致 ⇒ 零布局回归；打包版 v1.7.41 CDP 复测同样 PASS、页脚 v1.7.41。
+- 发版：`package.json` 1.7.40 → **1.7.41**；杀净实例（remaining=0）、`ELECTRON_RUN_AS_NODE` 不存在、镜像 npmmirror、`npx electron-builder` exit 0；`Compress-Archive` 出 zip；1.7.40 三产物按绝对路径核验 `underOut=True` 后删除（旧版本残留 = 0）；预置 `%APPDATA%\工作台\`（scan-cache + history 刷新为真实扫描）；打包版 4 进程、`app ready / window created / tray created / pulse started` 全 True、本次会话 `[renderer]` 错误 = 0。
+- **ACL 事故（本轮开头，已修复）**：会话启动时 `windows-acl workspace grant failed (Win32 5)` —— `D:\code\usou` 缺 `WRITE_OWNER`。用 `diagnose-windows-acl` 脚本一次跑完诊断+修复（备份 `D:\code\acl-recovery-20261118\`、GRANTED 并 verified），随后沙箱恢复正常。**副作用**：该恢复目录落在 `D:\code` 下，被下一次扫描识别为一个 0.1 MB 的非 git「项目」（无害，删目录后下一轮扫描即消失）。
+- **踩坑沉淀（3 条）**：① 窗口被遮挡时 `Page.captureScreenshot` **挂起不返回**（`fromSurface:false` 无效）⇒ 先置顶再截；② `PrintWindow(PW_RENDERFULLCONTENT)` 对 Chromium **只回最后一帧缓存**（不同视图 sha256 相同）⇒ 截图必须验哈希，否则把旧画面当新证据；③ **巡检要「算」不要只看**：本轮唯一真实缺陷在四个视图上全都「显示正常」，靠项目体量相加与界面数字对账才暴露。
 
 ## 最近一轮（第二十七轮 / v1.7.17 · 链式续批 · 编排侧第 72 轮）
 

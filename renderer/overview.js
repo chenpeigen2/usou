@@ -1,8 +1,8 @@
 /* 总览视图 + 共用辅助（v1.7.41 抽为独立文件）。renderOverview/磁盘环 hover/checkRecentExistence/checkProjectExistence/partitionDead 沉底排序。被项目/最近视图共用的辅助在同一全局作用域可见，调用点零改动。 */
 /* ---------- 总览（Bento） ---------- */
 
-function miniStat(icon, cls, id, val, lbl, goto) {
-  return '<div class="mini" data-act="goto" data-p="' + goto + '">' +
+function miniStat(icon, cls, id, val, lbl, goto, tip) {
+  return '<div class="mini" data-act="goto" data-p="' + goto + '"' + (tip ? ' title="' + esc(tip) + '"' : '') + '>' +
     '<div class="ico ' + cls + '">' + icon + '</div>' +
     '<div><div class="big" id="' + id + '">' + val + '</div><div class="lbl">' + lbl + '</div></div></div>';
 }
@@ -17,7 +17,9 @@ function renderOverview() {
   // v1.7.18：剔除失效项目 —— 目录都没了还标未提交 = 陈述不成立的事实（同 renderProjectList/renderTypeChips 口径）
   const dirtyN = projects.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
   const favN = (FAVS || []).length;
-  const sizeSum = projects.reduce((s, p) => s + (p.sizeMB || 0), 0);
+  // v1.7.41：项目体量走「嵌套去重」口径 —— 子目录项目已含在父目录里，直接求和会把同一份
+  //   磁盘空间算两遍（本项目实测 5 对嵌套、多算 5.4 GB / 5.04%）。纯函数见 format.js sizeTotals()。
+  const sizeInfo = sizeTotals(projects);
   const n = new Date();
   const today = (n.getMonth() + 1) + '月' + n.getDate() + '日 · ' + WD[n.getDay()];
 
@@ -52,7 +54,10 @@ function renderOverview() {
     miniStat(ico('projects'), 'g1', 'ms-projects', projects.length, '个项目', 'projects') +
     miniStat(ico('git'), 'g2', 'ms-git', gitN, '个 git 仓库', 'projects') +
     miniStat(ico('dirty'), 'g3', 'ms-dirty', dirtyN, '个仓库未提交', 'projects') +
-    miniStat(ico('size'), 'g4', '', fmtMB(sizeSum), '源码总体量', 'projects') +
+    miniStat(ico('size'), 'g4', 'ms-size', fmtMB(sizeInfo.uniqueMB), '源码总体量', 'projects',
+      sizeInfo.nested.length
+        ? '各项目体量直接相加 = ' + fmtMB(sizeInfo.rawMB) + '；其中 ' + sizeInfo.nested.length + ' 个项目位于另一个项目目录之内（' + fmtMB(sizeInfo.dupMB) + '），已按父级合并去重 —— 避免同一份磁盘空间被算两次'
+        : '各项目体量之和（无嵌套目录，无需去重）') +
     miniStat(ico('recent'), 'g5', 'ms-recent', (DATA.recent || []).length, '条最近动态', 'recent') +
     miniStat(ico('star'), 'g6', 'ms-fav', favN, '个收藏项目', 'projects') +
     '</div>' +

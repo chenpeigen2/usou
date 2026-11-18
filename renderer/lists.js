@@ -82,11 +82,14 @@ function renderProjectList() {
   const dirtyN = list.filter(p => p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
   const favN = list.filter(p => isFav(p.path)).length;
   const deadN = list.filter(p => PROJ_DEAD.has(p.path)).length;
-  const sizeSum = list.reduce((s, p) => s + (p.sizeMB || 0), 0);
+  // v1.7.41：体量按「嵌套去重」口径 —— 子目录项目的体量已含在父目录里，直接求和会重复计算
+  //   （本机实测 5 对嵌套、多算 5.4 GB）；去重后的数字与总览数字条、系统页趋势表同口径。
+  const sizeInfo = sizeTotals(list);
   $('#proj-list').innerHTML =
     '<div class="stats" style="margin-bottom:8px">' + list.length + ' 项 · git ' + gitN + ' · 未提交 ' + dirtyN + ' · ★ 收藏 ' + favN +
     (deadN ? ' · <span class="deadstat">已删除 ' + deadN + '（已沉底）</span>' : '') +
-    ' · 体量 ' + fmtMB(sizeSum) + '</div>' +
+    ' · 体量 ' + fmtMB(sizeInfo.uniqueMB) +
+    (sizeInfo.nested.length ? '（已去重 ' + sizeInfo.nested.length + ' 个嵌套项目 · ' + fmtMB(sizeInfo.dupMB) + '）' : '') + '</div>' +
     (list.map(prow).join('') || '<div class="empty">无匹配项目</div>');
 }
 function prow(p) {

@@ -109,6 +109,7 @@ async function init() {
   if (qs.get('weekqa')) triggerWeekQa(); // v1.7.35：周报纯生成器取证（零副作用）
   if (qs.get('compareqa')) triggerCompareQa(); // v1.7.36：项目对比纯生成器取证（零副作用）
   if (qs.get('favdeadqa')) triggerFavDeadQa(); // v1.7.37：失效项目不占收藏置顶取证（纯只读）
+  if (qs.get('sizeqa')) triggerSizeQa(); // v1.7.41：项目总体量嵌套去重取证（纯只读）
   idleStatus();
   if (!DATA) startScan({});
   // v1.7.10：启动即检在主进程启动后 3s 触发 —— 页面若因加载慢错过该事件，

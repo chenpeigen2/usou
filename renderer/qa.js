@@ -1001,6 +1001,75 @@ function triggerFavDeadQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.41）：--sizeqa=1 → 证明「项目总体量」已按嵌套去重（子目录项目不再被算两遍）。
+   纯函数合成用例（零 IPC / 零文件写入 / 不改 DATA）：
+     · 父 1000 + 子 800 + 兄弟 500 ⇒ 直接相加 2300、去重后 1500、重复 800；
+     · 边界：大小写/分隔符/结尾斜杠等价、D:\ab 不算 D:\a 的子目录、三代链 A⊃B⊃C 只计 A。
+   真实数据：总览数字条（#ms-size）与项目视图统计行必须都是同一个去重值，且都不再出现「直接相加」的旧值。
+   负对照：旧口径（各项目直接相加）在合成用例上必然 ≠ 去重值 ⇒ 旧逻辑不可能通过。 */
+function triggerSizeQa() {
+  setTimeout(() => {
+    let line = 'SIZEQA 合成=PENDING | FAIL';
+    try {
+      const syn = [{ path: 'D:\\demoA', sizeMB: 1000 }, { path: 'D:\\demoA\\subB', sizeMB: 800 }, { path: 'D:\\demoC', sizeMB: 500 }];
+      const t = sizeTotals(syn);
+      const rawOk = Math.round(t.rawMB) === 2300;
+      const uniqOk = Math.round(t.uniqueMB) === 1500;
+      const dupOk = Math.round(t.dupMB) === 800;
+      const nestOk = t.nested.length === 1 && t.nested[0].path === 'D:\\demoA\\subB' && t.nested[0].parent === 'D:\\demoA';
+      // 边界 1：大小写 + 正斜杠 + 结尾斜杠 ⇒ 仍是子目录
+      const e1 = Math.round(sizeTotals([{ path: 'D:\\A', sizeMB: 100 }, { path: 'd:/a/b/', sizeMB: 60 }]).uniqueMB) === 100;
+      // 边界 2：前缀相同但不是子目录（D:\ab 不在 D:\a 之内）⇒ 两条都计
+      const e2t = sizeTotals([{ path: 'D:\\a', sizeMB: 100 }, { path: 'D:\\ab', sizeMB: 60 }]);
+      const e2 = Math.round(e2t.uniqueMB) === 160 && e2t.nested.length === 0;
+      // 边界 3：三代链只计最外层
+      const c3 = sizeTotals([{ path: 'D:\\x', sizeMB: 100 }, { path: 'D:\\x\\y', sizeMB: 70 }, { path: 'D:\\x\\y\\z', sizeMB: 40 }]);
+      const e3 = Math.round(c3.uniqueMB) === 100 && c3.nested.length === 2;
+      // 负对照：旧口径（直接相加）与去重值不同 ⇒ 旧逻辑必然输出 2300 而不是 1500
+      const oldDiffers = Math.round(t.rawMB) !== Math.round(t.uniqueMB);
+
+      // 历史快照：新格式（路径键）必须去重；旧格式（名称键，无路径）只能保留快照原值
+      const hOld = { time: 'T0', fast: false, totalMB: 1800, projects: { p: { dirty: 0, sizeMB: 1000 }, c: { dirty: 0, sizeMB: 800 } } };
+      const hNew = { time: 'T1', fast: false, totalMB: 1800, projects: { 'D:\\p': { name: 'p', dirty: 0, sizeMB: 1000 }, 'D:\\p\\c': { name: 'c', dirty: 0, sizeMB: 800 } } };
+      const hs = historyStatsFor([hOld, hNew]);
+      const histOk = hs.length === 2 && hs[0].legacy === true && hs[0].totalMB === 1800 &&
+        hs[1].legacy === false && hs[1].totalMB === 1000 && Math.round(hs[1].dupMB) === 800;
+
+      // 真实数据：两个视图必须给出同一个（去重后的）数字
+      const real = sizeTotals((DATA && DATA.projects) || []);
+      const uTxt = fmtMB(real.uniqueMB), rTxt = fmtMB(real.rawMB);
+      setView('overview', true);
+      const ovEl = $('#ms-size');
+      const ovTxt = ovEl ? ovEl.textContent : '';
+      setView('projects', true);
+      const statEl = $('.stats');
+      const statTxt = statEl ? statEl.textContent : '';
+      const ovOk = ovTxt.indexOf(uTxt) >= 0;
+      const statOk = statTxt.indexOf(uTxt) >= 0;
+      // 只在两值确实不同时才要求「旧值不出现」（防过度修法：无嵌套时两值本来相等）
+      const noRaw = rTxt === uTxt || (ovTxt.indexOf(rTxt) < 0 && statTxt.indexOf(rTxt) < 0);
+      setView('overview', true);
+      const pass = rawOk && uniqOk && dupOk && nestOk && e1 && e2 && e3 && oldDiffers && histOk && ovOk && statOk && noRaw;
+      line = 'SIZEQA 合成去重=' + Math.round(t.uniqueMB) + ' 直接相加=' + Math.round(t.rawMB) +
+        ' 重复=' + Math.round(t.dupMB) + ' 嵌套数=' + t.nested.length +
+        ' 边界=' + [e1, e2, e3].filter(Boolean).length + '/3' +
+        ' 旧口径不等=' + String(oldDiffers) + ' 历史口径=' + String(histOk) +
+        ' | 真实 raw=' + rTxt + ' uniq=' + uTxt + ' 嵌套=' + real.nested.length +
+        ' 总览=' + String(ovOk) + ' 项目行=' + String(statOk) + ' 旧值未出现=' + String(noRaw) +
+        ' | ' + (pass ? 'PASS' : 'FAIL');
+    } catch (_e) {
+      line = 'SIZEQA 异常：' + (_e && _e.message) + ' | FAIL';
+    }
+    const el = document.createElement('div');
+    el.id = 'sizeqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = line;
+    const v = $('#view');
+    if (v) v.insertBefore(el, v.firstChild);
+  }, 1200);
+}
+
 /* v1.7.4 目录构成弹窗内下钻：currentDetail.stack 路径栈，栈顶 = 当前层；
    下钻 push / 返回 pop，loadDirs 按栈顶取数（复用 project:dirs + dirs-cache.json 按路径缓存）。 */
 function curDirsPath() {

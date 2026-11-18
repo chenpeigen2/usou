@@ -38,7 +38,17 @@ function historyStatsFor(hist) {
     let origKeys = [];
     try { origKeys = Object.keys((h && h.projects) || {}); } catch (_e) { origKeys = []; }
     const legacy = origKeys.length > 0 && origKeys.every(k => !/[\\/]/.test(k));
-    return { time: (h && h.time) || '', fast: !!(h && h.fast), n: keys.length, dirty, totalMB: (h && h.totalMB) || 0, legacy };
+    // v1.7.41：体量走「嵌套去重」同一口径（与总览数字条 / 项目视图统计行一致）。
+    //   · 新格式快照带路径 ⇒ 能用 sizeTotals() 去重（覆盖本机 5 对嵌套项目多算的 5.4 GB）；
+    //   · 旧格式快照只有名称、没有路径 ⇒ 无法判断包含关系，保留快照里记录的 totalMB（原样、不重算）。
+    let totalMB = Number((h && h.totalMB) || 0);
+    let dupMB = 0;
+    if (!legacy) {
+      const t = sizeTotals(keys.map(k => ({ path: norm[k].path, sizeMB: norm[k].sizeMB })));
+      totalMB = Math.round(t.uniqueMB);
+      dupMB = t.dupMB;
+    }
+    return { time: (h && h.time) || '', fast: !!(h && h.fast), n: keys.length, dirty, totalMB, dupMB, legacy };
   });
 }
 function historyStats() {
@@ -99,6 +109,8 @@ function historyDiffItems(hist, projects) {
   });
   return out;
 }
-/* v1.7.29：旧格式（按项目名存储）快照提示文案 —— 角标 / 说明 / QA 共用常量，避免文案漂移 */
+/* v1.7.29：旧格式（按项目名存储）快照提示文案 —— 角标 / 说明 / QA 共用常量，避免文案漂移。
+   v1.7.41：补一句体量口径 —— 旧快照无路径、无法判断项目包含关系 ⇒ 体量只能保留当时记录的
+   「各项目直接相加」，而新快照与总览/项目视图已按父级去重 ⇒ 两者口径不同必须说明。 */
 const HIST_LEGACY_BADGE = '旧格式·名称去重';
-const HIST_LEGACY_NOTE = '⚠ 旧格式快照（按项目名存储）的项目数/未提交数可能低于真实值，仅供趋势参考；体量为全量统计。';
+const HIST_LEGACY_NOTE = '⚠ 旧格式快照（按项目名存储）：项目数/未提交数可能低于真实值；体量为当时各项目直接相加（未去嵌套）。v1.7.41 起新快照的体量按父级去重，与总览/项目视图同口径。仅供趋势参考。';

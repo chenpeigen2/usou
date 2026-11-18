@@ -3205,3 +3205,10 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：第 81 轮通用化改造后，只在功能层面验证了「能扫到项目」，未独立核对「路径唯一性/覆盖率/无缺失字段」。按造活源第 1 项「深度巡检」验证。
  > **实证（真实扫描 + 独立重算）**：68 项目、uniquePaths=68（**0 重复**）、noName=0、noType=0；按盘符分布 D:55 / E:11 / C:1 / F:1（C/F 来自配置的 forceDir 与链接，符合预期）；links=15、recent=60、driveCount=4。通用化后的项目发现完整、无遗漏、无重复。
  > **结论**：无产品缺陷，不立项。READY 仍空 ⇒ 继续按造活源推进。
+
+ # 第八十五轮：抽详情/对比为平铺 detail.js（views.js 972→712 行）
+
+ > **选题依据**：按自驱架构造活源第 2 项「代码组织」——views.js 仍 972 行，其中「项目详情弹窗 + 并排对比」（L711-end，约 251 行）是独立内聚块。
+ > **做法**：抽到平铺文件 `renderer/detail.js`（openModal/closeModal/openProject/projectDirs 下钻 + openCompare/runCompare/compareRows/compareHtml），在 app.js 前加载、全局可见；index.html 在 views.js 前加载 detail.js。依赖 DATA/SETTINGS/esc/ipc 均在调用时延迟访问。
+ > **实证（CDP）**：13 脚本全部加载、5 个关键函数全局可见、对比弹窗可打开（46 项目下拉）、closeModal 正常、六视图导航 6 按钮正常；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 13 个平铺 JS。只 commit 不 push。

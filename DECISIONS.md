@@ -3250,3 +3250,9 @@ D:\code\usou\workbench-electron\out\
  > **做法**：`renderer/lists.js` 的 renderTypeChips 加 counts['已删除']（>0 时才显示 chip，位于 chip 栏末尾）；renderProjectList 的 filter 加 `filterType==='已删除'` 分支。复用既有 `typefilter` 事件委托，零新增 IPC/依赖。时序：`checkProjectExistence()` 完成后 overview.js L205 会重绘 chips ⇒ PROJ_DEAD 到位后 chip 自动出现。
  > **实证（CDP）**：DEAD_SET_SIZE=2、chips 含「已删除 2」、点击后 filterType='已删除'、列表从 59 行收敛到 2 行（wt-demo/wt-prev）；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第九十二轮：新 chip 浅色主题对比度审计（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项「QA 深化」——第 91 轮新增「已删除」chip 只在深色主题审计过，新 UI 元素必须双主题验证。
+ > **实证（CDP --themeqa=light）**：浅色主题下 chip 正确显示（CHIP_PRESENT=true）、对比度审计 total=180 / min=4.66 / fail=0。深浅双主题均达标。
+ > **结论**：无产品缺陷，不立项。

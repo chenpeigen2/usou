@@ -3191,3 +3191,11 @@ D:\code\usou\workbench-electron\out\
  >   **结果**：源码中机器特异性从 ~120 处降到 0（仅 package.json 的 author 署名保留）。真实扫描验证：配置生效（2 根 + 7 强制 + 12 快捷）、发现 68 项目、功能完整。7 个关键 QA 钩子泛化后全 PASS。
  > **新功能（第 82 轮）**：设置页新增「扫描根目录」「强制纳入的目录」两个 textarea，与原有「额外项目根目录」并列，`saveSettings()` 一并保存 → 用户可在 UI 里配置扫描范围，不必手改 settings.json。CDP 实测：三个字段都在、预填当前配置、保存后 getState() 读回正确（闭环成立）。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS；六视图审计 failCount 0 / min 4.64。只 commit 不 push。
+
+ # 第八十三轮：打包版 asar 环境端到端验收（通用化 + 新功能）+ 治理漂移修正
+
+ > **选题依据**：第 81/82 轮做完通用化改造与设置页新功能，但都只在 dev 态验证；打包版（asar 只读）环境未验证——这是真实风险点（历史上「dev 过但打包挂」发生过多次，如托盘图标 build/ 不在 asar）。READY 空 ⇒ 按造活源第 1 项「深度巡检」选题。
+ > **实证（CDP 连打包版 out\win-unpacked\工作台.exe）**：12 个脚本全部加载（state/contrast/format/theme/history/brief/visual/search/interaction/views/qa/app —— 证明新拆分的平铺模块全部打进 asar）；VERSION=1.7.40；设置页三个新字段（scan-roots/force-dirs/extra-roots）全部可见、预填本机配置；DATA = 16 链接 / 59 项目 / 4 盘符（配置从 settings.json 正确注入）；六视图导航 6 个按钮正常。
+ > **结论**：通用化与新功能在真实交付产物中完整生效，无 asar 环境差异。本轮无代码改动，仅记录证据。
+ > **治理漂移修正**：STATE.md 本轮状态原停在第六十五轮 v1.7.38（第 66~82 轮只在 DECISIONS 追加、未同步 STATE 的「本轮状态/版本」字段）⇒ 修正为第八十三轮 v1.7.40。这违反「每轮更新 STATE」约定，本轮一并补正。
+ > **守护**：只 commit 不 push。

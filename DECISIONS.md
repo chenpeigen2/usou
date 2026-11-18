@@ -3149,3 +3149,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：6 脚本顺序加载、history 函数全局可见、historyStats 返回 6 快照、HISTQA PASS（旧命中 0/新命中 1/归因正确）、HISTLEGACYQA PASS（6/6）、六视图审计 failCount 0 / min 4.64。
  > **数据污染处理（教训复用）**：首测 HISTLEGACYQA FAIL（6/7）—— dev 缓存混入第 52 轮快速扫描的新格式快照，非代码问题；从交付态健康数据恢复后**立即验证** 6/6 PASS（遵循第 57 轮「恢复后必须验证」教训）。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push（本地 64 → 65，远端 59 不动）。
+
+ # 第七十八轮：抽出今日简报子系统为平铺 brief.js（app.js 降至 1698 行）
+
+ > **选题依据**：用户要求继续迭代、代码组织是重点；app.js 里「今日简报」段（活动/提交时间标签、buildBrief、屏幕与导出共用缓存、周报、导出提示，约 286 行）是一个完整内聚的子系统，被渲染/复制导出/QA 钩子共用。
+ > **做法**：抽到平铺文件 `renderer/brief.js`（不建子目录/package），在 app.js 前加载。时序论证：依赖 DATA/HISTORY/PROJ_DEAD/RECENT_DEAD/esc/relTime/toast 等均在**调用时**延迟访问，函数定义时不访问 ⇒ 安全。index.html 加载 7 脚本：contrast/format/history/brief/search/qa/app。verify-delivery 清单同步。
+ > **规模**：app.js 1983 → **1698 行**（相对最初 3249 行减少 48%）；renderer/ 现有 7 个平铺 JS：contrast 135 / format 35 / history 102 / brief 287 / search 115 / qa 979 / app 1698。
+ > **实证（CDP）**：7 脚本顺序加载、简报函数全局可见、buildBrief 输出 9 条正确；6 个依赖简报的 QA 钩子中 weekqa/briefsync/deadbriefqa/actrootqa/timeqa 全 PASS，dayqa 单独跑也 PASS（多钩子并发时取证行互相冲掉是已知现象，第 36 轮记录过）；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push（本地 65 → 66，远端 59 不动）。

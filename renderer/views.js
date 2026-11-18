@@ -66,17 +66,65 @@ function renderDisk() {
   const defaultPath = quick[0] || '';
   $('#view').innerHTML = '<div class="viewwrap">' +
     '<h2>空间分析<span class="sub">统计子项完整大小找空间大头 · 含 node_modules 等全部内容 · 点击目录下钻</span></h2>' +
+    // v1.7.42：本页此前打开即是一块空面板（必须自己记得路径）。先摆出「已知空间大头」——
+    //   数据全部来自最近一次扫描（DATA.projects 体量，零新增扫描、零 IPC），点行即分析该目录。
+    diskKnownBigHtml() +
     '<div class="toolbar"><input id="an-path" style="width:430px" placeholder="输入要分析的目录路径" value="' + esc(lastAnalysis ? lastAnalysis.root : defaultPath) + '">' +
     '<button class="btn" data-act="analyze">📊 分析</button>' +
     '<button class="btn ghost" data-act="reforce">↻ 强制重算</button></div>' +
     '<div class="chips" style="margin-bottom:12px">' + quick.map(p => '<button class="chipbtn link" data-act="drill" data-p="' + esc(p) + '">' + esc(p) + '</button>').join('') + '</div>' +
     '<div id="anprogress"></div><div id="an-result">' + (lastAnalysis ? analysisTable(lastAnalysis) : '<div class="empty">选择目录后点击「分析」</div>') + '</div></div>';
 }
+
+/* v1.7.42：空间页的「已知空间大头」面板 —— 打开本页立刻有内容，而不是一块空面板。
+   数据来源：最近一次扫描的项目体量（DATA.projects[].sizeMB / fileCount），零新增 IPC、零新增扫描。
+   口径：与 v1.7.41 的体量去重一致 —— **嵌套项目不单列**（其体量已含在上级项目里），
+       否则同一个目录会在列表里出现两次、把真实的大头挤到下面。失效项目（磁盘上已删除）同样不列。
+   交互：行名与 📊 都走既有 data-act="drill"（预填路径 + 立即分析），📂 走既有 data-act="open"。
+   复用 .an-row 网格与 .card/.b-sec-t/.chip 既有样式 ⇒ 零新增 CSS。 */
+function diskKnownBigHtml() {
+  const projects = (DATA && DATA.projects) || [];
+  if (!projects.length) return '';
+  const totals = sizeTotals(projects);
+  const nestedKeys = {};
+  totals.nested.forEach(n => { nestedKeys[projPathKey(n.path)] = 1; });
+  const live = projects.filter(p => !PROJ_DEAD.has(p.path) && !nestedKeys[projPathKey(p.path)] && (p.sizeMB || 0) > 0);
+  if (!live.length) return '';
+  const sorted = live.slice().sort((a, b) => (b.sizeMB || 0) - (a.sizeMB || 0));
+  const top = sorted.slice(0, 15);
+  const maxMB = (top[0] && top[0].sizeMB) || 1;
+  const scanAt = String((DATA.meta && DATA.meta.scanTime) || '');
+  const hiddenN = projects.length - live.length;
+  return '<div class="card" id="known-big" style="margin-bottom:13px">' +
+    '<div class="b-sec-t"><span>已知空间大头 <span class="muted small">Top ' + top.length + '</span></span>' +
+    '<span class="muted small">' + esc(scanAt.slice(5, 16)) + ' 扫描 · 点行名或 📊 直接分析该目录</span></div>' +
+    '<div class="chips" style="margin:2px 0 9px">' +
+    '<span class="chip">体量来自扫描快照（不含 node_modules / build 等构建产物）</span>' +
+    (totals.nested.length ? '<span class="chip">已合并 ' + totals.nested.length + ' 个嵌套项目（体量含在上级）</span>' : '') +
+    (hiddenN - totals.nested.length > 0 ? '<span class="chip">未列 ' + (hiddenN - totals.nested.length) + ' 个失效项目</span>' : '') +
+    '</div>' +
+    '<div class="an-row head"><span>项目</span><span>相对最大</span><span class="num">体量</span><span class="num">文件数</span><span style="text-align:right">操作</span></div>' +
+    top.map(p => {
+      const pct = Math.max(1, Math.min(100, ((p.sizeMB || 0) / maxMB) * 100));
+      return '<div class="an-row">' +
+        '<span class="nm" data-act="drill" data-p="' + esc(p.path) + '" title="' + esc(p.path + ' · 点击分析该目录') + '">📦 ' + esc(p.name) + '</span>' +
+        '<span class="bar" style="height:7px;background:var(--bar-track);border-radius:4px;overflow:hidden"><i style="display:block;height:100%;border-radius:4px;width:' + pct.toFixed(1) + '%;background:var(--acc)"></i></span>' +
+        '<span class="num" style="color:var(--text)">' + fmtMB(p.sizeMB) + '</span>' +
+        '<span class="num">' + (p.fileCount ? p.fileCount.toLocaleString() : '—') + '</span>' +
+        '<span class="p-actions" style="opacity:1"><button class="ibtn" data-act="drill" data-p="' + esc(p.path) + '" title="分析该目录（含 node_modules 等全部内容）">📊</button>' +
+        '<button class="ibtn" data-act="open" data-p="' + esc(p.path) + '" title="在资源管理器打开">📂</button></span>' +
+        '</div>';
+    }).join('') + '</div>';
+}
 function startAnalyze(force) {
   const p = $('#an-path').value.trim();
   if (!p) { toast('请输入目录', 'err'); return; }
   window.wb.analyze(p, !!force).then(r => { if (!r.started) toast(r.reason, 'err'); });
   $('#anprogress').innerHTML = '<div class="chips"><span class="chip"><b>' + (force ? '强制重算中' : '分析中') + '</b> ' + esc(p) + ' …（大目录需要一点时间）</span></div>';
+  // v1.7.42：从「已知空间大头」面板点进来时，输入条与结果区在这块面板下方 ⇒
+  //   把进度/结果拉进视野，否则点了之后屏幕上看不到任何变化（点了没反应）。
+  const pr = $('#anprogress');
+  if (pr && pr.scrollIntoView) pr.scrollIntoView({ block: 'nearest' });
 }
 function analysisTable(res) {
   const top = res.items.slice(0, 50);

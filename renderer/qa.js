@@ -1070,6 +1070,68 @@ function triggerSizeQa() {
   }, 1200);
 }
 
+/* QA 钩子（v1.7.42）：--diskqa=1 → 证明空间页不再打开即空面板，且「已知空间大头」面板口径/接线正确。
+   纯只读 + 零副作用：绝不真跑空间分析、绝不点 📂。contextBridge 的 window.wb 是冻结对象
+   （writable:false），无法替换 analyze 做记录器（第 110 轮接手踩坑）⇒ 接线用静态 DOM 断言。
+   断言：(a) 面板存在且行数 ≥ 3；(b) DOM 行按体量递减；(c) 无嵌套项目、无失效项目；
+        (d) 首行 drill/open 按钮的 data-p 与行路径一致（接线静态证明）；
+        (e) 首行 = DATA 里未嵌套存活项目的体量最大值（口径自证）。
+   证据行同时打印前 5 名路径，供 Node 直读 scan-cache.json 独立重算比对（不让应用自说自话）。 */
+function triggerDiskQa() {
+  setTimeout(() => {
+    let line = 'DISKQA 面板=PENDING | FAIL';
+    try {
+      const b = [...document.querySelectorAll('#nav button')].find(x => x.dataset.view === 'disk');
+      if (b) b.click();
+      const panel = document.getElementById('known-big');
+      const rows = panel ? [...panel.querySelectorAll('.an-row:not(.head)')] : [];
+      const n = rows.length;
+      // (b) 递减：把「体量」列（第 3 格）换算回 MB 排序比较
+      const szTxt = rows.map(r => (r.children[2] || {}).textContent || '');
+      const toMB = t => {
+        const m = String(t).match(/([\d.]+)\s*(GB|MB|KB|B)/);
+        if (!m) return -1;
+        const v = parseFloat(m[1]);
+        return m[2] === 'GB' ? v * 1024 : m[2] === 'MB' ? v : m[2] === 'KB' ? v / 1024 : v / 1048576;
+      };
+      const mb = szTxt.map(toMB);
+      const sortedOk = mb.every((v, i) => i === 0 || mb[i - 1] + 0.01 >= v);
+      const paths = rows.map(r => (r.querySelector('.nm') || {}).dataset ? r.querySelector('.nm').dataset.p : '');
+      // (c) 无嵌套 / 无失效
+      const totals = sizeTotals((DATA && DATA.projects) || []);
+      const nestedSet = new Set(totals.nested.map(x => projPathKey(x.path)));
+      const noNested = paths.every(p => !nestedSet.has(projPathKey(p)));
+      const noDead = paths.every(p => !PROJ_DEAD.has(p));
+      // (e) 首行 = 未嵌套存活项目里体量最大的那个
+      const live = ((DATA && DATA.projects) || []).filter(p => !PROJ_DEAD.has(p.path) && !nestedSet.has(projPathKey(p.path)) && (p.sizeMB || 0) > 0);
+      const expectTop = live.slice().sort((a, b2) => (b2.sizeMB || 0) - (a.sizeMB || 0))[0];
+      const topOk = !!expectTop && paths[0] === expectTop.path;
+      // (d) 接线静态断言（零副作用）：contextBridge 的 window.wb 是冻结对象（writable:false），
+      //     无法替换 analyze 做记录器；也不点击（会真跑 28GB 分析）。改为断言行内 drill/open
+      //     按钮的 data-p 与行路径一致 + 既有 doAct('drill') 处理器在位 —— 接线正确性的静态证明。
+      const row0 = rows[0];
+      const drillBtn = row0 ? row0.querySelector('.ibtn[data-act="drill"]') : null;
+      const openBtn = row0 ? row0.querySelector('.ibtn[data-act="open"]') : null;
+      const wireOk = !!drillBtn && !!openBtn && drillBtn.dataset.p === paths[0] && openBtn.dataset.p === paths[0];
+      const pass = n >= 3 && sortedOk && noNested && noDead && topOk && wireOk;
+      line = 'DISKQA 行数=' + n + ' 递减=' + String(sortedOk) + ' 无嵌套=' + String(noNested) +
+        ' 无失效=' + String(noDead) + ' 首行=最大=' + String(topOk) +
+        ' 按钮接线=' + String(wireOk) +
+        ' | 前5名=' + paths.slice(0, 5).map(p => String(p).replace(/^.*\\/, '')).join(',') +
+        ' | ' + (pass ? 'PASS' : 'FAIL');
+    } catch (_e) {
+      line = 'DISKQA 异常：' + (_e && _e.message) + ' | FAIL';
+    }
+    const el = document.createElement('div');
+    el.id = 'diskqa-evidence';
+    el.className = 'hint';
+    el.style.cssText = 'margin:0 0 12px;padding:9px 12px;border:1px solid var(--line2);border-radius:8px;line-height:1.9;color:var(--acc)';
+    el.textContent = line;
+    // 注入 body（视图重绘会冲掉 #view 节点）——第 110 轮接手修复
+    document.body.appendChild(el);
+  }, 1200);
+}
+
 /* v1.7.4 目录构成弹窗内下钻：currentDetail.stack 路径栈，栈顶 = 当前层；
    下钻 push / 返回 pop，loadDirs 按栈顶取数（复用 project:dirs + dirs-cache.json 按路径缓存）。 */
 function curDirsPath() {

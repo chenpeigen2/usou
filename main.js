@@ -351,6 +351,8 @@ function createWindow() {
   if (favDeadQaArg) q.favdeadqa = favDeadQaArg.slice('--favdeadqa='.length);
   const sizeQaArg = process.argv.find(a => a.startsWith('--sizeqa='));
   if (sizeQaArg) q.sizeqa = sizeQaArg.slice('--sizeqa='.length);
+  const diskQaArg = process.argv.find(a => a.startsWith('--diskqa='));
+  if (diskQaArg) q.diskqa = diskQaArg.slice('--diskqa='.length);
   const qaShotArg = process.argv.find(a => a.startsWith('--qashot='));
   if (qaShotArg) qaShotDir = qaShotArg.slice('--qashot='.length); // 目录由主进程直接消费，不透传渲染层
   const trayQaArg = process.argv.find(a => a.startsWith('--trayqa='));

@@ -3369,3 +3369,10 @@ D:\code\usou\workbench-electron\out\
  > **端到端（真实扫描）**：跑一次真实全量扫描 ⇒ 69 项目 / 99.8s / history 7 条；新快照（路径键、`totalMB=102288` 即原始求和）在系统页显示 **95.43 GB**（渲染层重算生效）、总览数字条 95.43 GB、项目统计行 95.43 GB ⇒ 三处同口径、与独立重算一致；旧快照仍显示 107.25 GB 并带「旧格式·名称去重」角标 + 新说明。
  > **其他门禁**：`node --check` 21/21 通过；深浅两套六视图对比度审计 failCount 全 0（深色 min 4.73 / 浅色 min 4.89）；dev 日志本次会话新增 `[renderer]` 错误 = 0；**几何量测**：数字条 6 张卡均为 174×92（与 v1.7.40 一致）、`101.85 GB` 与 `107.25 GB` 两串在卡内换行行为完全相同 ⇒ **零布局回归**（该数字条在 v1.7.40 本就换行，非本轮引入，已记入 BACKLOG IDEA）；项目统计行单行 h=20px。
  > **踩坑沉淀（本轮 3 条）**：① **`Page.captureScreenshot` 在窗口被遮挡时会一直挂着**（不是报错、不是空图，是 Promise 永不 resolve）⇒ 60s 硬超时；`fromSurface:false` 也无效；可行解法 = 先把窗口置顶（`SetWindowPos HWND_TOPMOST`）再截，或改用「DOM 断言 + PrintWindow」双通道；② **`PrintWindow(PW_RENDERFULLCONTENT)` 对 Chromium 返回的是最后一帧缓存**（两张不同视图的截图 sha256 完全相同）⇒ **截图必须验哈希变化**，否则会把旧画面当新证据；③ **巡检要「算」不要只看** —— 这一轮唯一的真实缺陷是靠把 59 个项目的体量相加再和界面数字对账发现的，四种视图全都「显示正常」。
+
+ # 第一百一十轮：接手看门狗中断的半成品——空间页「已知空间大头」面板 + diskqa 钩子修复
+
+ > **场景**：会话中断期间看门狗触发（17:44 提交了第 109 轮主体 v1.7.41），但随后第 110 轮改了 main.js/qa.js/state.js/views.js（新增空间页「已知空间大头」面板 + --diskqa 钩子）却在收尾 commit 前中断，留下 4 个未提交文件。按 PM.md 第一节「agent 中途无输出≠失败，先自查现场接手、不重做主题」规则接手。
+ > **接手验证发现的 3 个半成品缺陷（均已修）**：① `triggerDiskQa` 证据行注入到 `#view`，会被视图重绘冲掉 ⇒ 实测 EVIDENCE=MISSING；改为注入 document.body（与其他钩子一致）。② 钩子用 `window.wb.analyze = 记录器` 做点击取证，但 contextBridge 对象是冻结的（实测 `Object.isFrozen(window.wb)=true`、analyze `writable:false/configurable:false`）⇒ 替换无效、断言恒 FAIL；改为零副作用静态 DOM 断言（drill/open 按钮 data-p 与行路径一致）。③ state.js L113 派发行末有中断残留的重复注释 `// v1.7.41...`；清理。
+ > **实证（CDP --diskqa=1）**：`DISKQA 行数=15 递减=true 无嵌套=true 无失效=true 首行=最大=true 按钮接线=true | 前5名=... | PASS`；面板 15 行、`#anprogress` 为空（证明零副作用、没真跑 28GB 分析）。产物版本 1.7.41→1.7.42。
+ > **交付**：接手发版 v1.7.42，全门禁验证后 commit（含看门狗的 4 文件 + 本轮修复）。只 commit 不 push。

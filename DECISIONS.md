@@ -3296,3 +3296,8 @@ D:\code\usou\workbench-electron\out\
  > **做法**：① main.js 新增 `data:export` IPC，只读打包 scan-cache/history/settings 成带 format/version/exportedAt 的 JSON，落盘「文档\工作台\工作台数据备份-<时间戳>.json」（与 brief:export 同目录策略）；② preload.js 暴露 dataExport；③ system.js 设置页按钮行加「💾 导出数据备份」+ 说明；④ interaction.js doAct 加 case，toast 回显项目数与 KB。全程只读原数据、不改结构。
  > **实证（CDP）**：window.wb.dataExport() 返回 ok=true / projects=59；落盘文件 103.5 KB、格式 usou-workbench-backup v1、59 项目/6 历史/11 设置键（含 scanRoots/forceDirs/links 等通用化配置）全部包含；测试文件已清理。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第九十九轮：打包版 asar 环境验证新 data:export IPC（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项「QA 深化」——第 98 轮新增 data:export IPC 只在 dev 验证，打包版 asar 环境未测（历史上 IPC handler 漏打进 asar 发生过）。
+ > **实证（CDP 连打包版）**：16 脚本全部加载（含新拆分的平铺模块）、window.wb.dataExport 可用、导出成功（59 项目 / 106 KB / 落盘文档目录）、测试文件已清理。新 IPC 正确打进 asar，无环境差异。无缺陷。

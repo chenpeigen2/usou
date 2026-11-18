@@ -3432,3 +3432,9 @@ D:\code\usou\workbench-electron\out\
  > **做法**：detail.js 加纯函数 compareMarkdown(pa,pb,rows)（所有动态文本经 mdEsc 转义、差异项加粗）、全局 lastCompare 缓存、runCompare 结果区加「📋 复制 / 💾 导出 Markdown」按钮；interaction.js 加 compare:copy/compare:export 两个 case；复用既有 brief:export IPC（prefix 白名单已支持中文「项目对比」），零新增 IPC。
  > **实证（CDP）**：三个新函数全局可见、50 项目下拉、执行对比得 9 行、两个按钮在位、Markdown 输出正确（标题/数据截至/9 行表格/差异加粗）。六视图审计 failCount 0 / min 4.73。
  > **交付**：v1.7.45 本地重建（清理 1.7.44 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第一百二十轮：打包版 asar 验证对比导出功能（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项——第 119 轮新增的对比导出在 dev 验证过，打包版 asar 未测。
+ > **实证（CDP 连打包版 v1.7.45）**：16 脚本全部加载、compareMarkdown/copyCompare/exportCompare 三个函数可用、执行对比得 9 行、两个导出按钮（compare:copy/compare:export）在位、Markdown 输出 485 字符。渲染层新功能正确打进 asar，无环境差异。无缺陷。
+ > **里程碑**：第 92→120 轮连续自主迭代 29 轮（其中看门狗中断 1 次自动接手），版本 1.7.40→1.7.45，本地 commit 108（远端 59，按用户要求不 push）。

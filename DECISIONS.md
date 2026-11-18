@@ -3256,3 +3256,12 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 3 项「QA 深化」——第 91 轮新增「已删除」chip 只在深色主题审计过，新 UI 元素必须双主题验证。
  > **实证（CDP --themeqa=light）**：浅色主题下 chip 正确显示（CHIP_PRESENT=true）、对比度审计 total=180 / min=4.66 / fail=0。深浅双主题均达标。
  > **结论**：无产品缺陷，不立项。
+
+ # 第九十三轮：新功能「最近视图仅看已删除」筛选
+
+ > **选题依据**：造活源第 6 项「新功能」——第 91 轮给项目视图加了「已删除」chip，最近视图只有统计行「已删除 36（已沉底）」却无法一键筛选，口径不一致。
+ > **做法**：`state.js` 加 `rqDeadOnly` 开关、`lists.js` renderRecent 工具栏加「🗑 仅看已删除 N」chipbtn、renderRecentList 里 `if (rqDeadOnly) parts.live=[]` 复用既有 partitionDead（零新增判定）、`interaction.js` 加 `case 'recent:deadonly'` 切换。文案在仅看模式下改为「仅看已删除 N 条」、去掉"以下…已沉底"分隔线（无活条目时该文案不成立）。
+ > **实证（CDP）**：按钮显示"🗑 仅看已删除 36"、点击后 rqDeadOnly=true、列表 60→36 行、文案"仅看已删除 36 条"、再点恢复 60 行；六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：首测用 CSS `[data-act=recent:deadonly]`（冒号未加引号）导致选择器失效误判"按钮不存在"，改用 `Array.from(...).find(b=>b.dataset.act===...)` 后确认功能正常——QA 探针范式自查。
+ > **附带修正**：最近视图副标题里写死的 `D:\code / E:\workspace` 改为通用「已配置项目根」（第 81 轮通用化遗漏的文案）。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

@@ -23,6 +23,7 @@ function doAct(act, p) {
     case 'weekly:export': exportWeekly(); break;
     case 'fav': toggleFav(p); break;
     case 'typefilter': filterType = p; render(); break;
+    case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
     case 'analyze': startAnalyze(); break;
     case 'reforce': { if (p) { const el = $('#an-path'); if (el) el.value = p; } startAnalyze(true); break; }

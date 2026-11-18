@@ -131,9 +131,11 @@ function prow(p) {
    与项目视图同款做法：搜索框放在 #view 里、结果列表放子容器 #recent-list，
    过滤时只重绘子容器 ⇒ 输入框不会被 innerHTML 重建而失焦。 */
 function renderRecent() {
+  const deadTotal = partitionDead(DATA.recent || [], RECENT_DEAD).dead.length;
   $('#view').innerHTML = '<div class="viewwrap">' +
-    '<h2>最近动态<span class="sub">桌面 / 文档 / 下载 / D:\\code / E:\\workspace 限深扫描 Top 60</span></h2>' +
-    '<div class="toolbar"><input id="rq" type="search" placeholder="搜索文件名 / 目录 / 类型…（空格分词）" value="' + esc(rq) + '"></div>' +
+    '<h2>最近动态<span class="sub">桌面 / 文档 / 下载 + 已配置项目根 · 限深扫描 Top 60</span></h2>' +
+    '<div class="toolbar"><input id="rq" type="search" placeholder="搜索文件名 / 目录 / 类型…（空格分词）" value="' + esc(rq) + '">' +
+    (deadTotal ? '<button class="chipbtn' + (rqDeadOnly ? ' on' : '') + '" data-act="recent:deadonly">🗑 仅看已删除 ' + deadTotal + '</button>' : '') + '</div>' +
     '<div id="recent-list"></div></div>';
   renderRecentList();
 }
@@ -152,12 +154,15 @@ function recentHits(query) {
 function renderRecentList() {
   const all = DATA.recent || [];
   const list = recentHits(rq);
-  // v1.7.16：失效条目沉底（活条目在前、失效条目在后，各自保持原序）
+  // v1.7.41：仅看已删除模式 —— 复用 partitionDead 的失效集合，零新增判定
   const parts = partitionDead(list, RECENT_DEAD);
+  if (rqDeadOnly) { parts.live = []; }
   const deadN = parts.dead.length;
-  const note = (rq ? ('匹配 ' + list.length + ' / ' + all.length + ' 条') : (all.length + ' 条')) +
-    (deadN ? ' · <span class="deadstat">已删除 ' + deadN + '（已沉底）</span>' : '');
-  const sep = deadN ? '<div class="deadsep">以下 ' + deadN + ' 条已从磁盘删除（已沉底 · 不再位于首屏）</div>' : '';
+  const note = rqDeadOnly
+    ? ('仅看已删除 ' + deadN + ' 条' + (rq ? '（搜索：' + esc(rq) + '）' : ''))
+    : (rq ? ('匹配 ' + list.length + ' / ' + all.length + ' 条') : (all.length + ' 条')) +
+      (deadN ? ' · <span class="deadstat">已删除 ' + deadN + '（已沉底）</span>' : '');
+  const sep = (!rqDeadOnly && deadN) ? '<div class="deadsep">以下 ' + deadN + ' 条已从磁盘删除（已沉底 · 不再位于首屏）</div>' : '';
   const body = parts.live.map(recentRow).join('') + sep + parts.dead.map(recentRow).join('');
   $('#recent-list').innerHTML =
     '<div class="stats" style="margin-bottom:8px">' + note + '</div>' +

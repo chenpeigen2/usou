@@ -3,6 +3,7 @@ let DATA = null, SETTINGS = { skipSizes: false, extraRoots: [] }, CAPS = { vscod
 let view = localStorage.getItem('wb.view') || 'overview';
 let filterType = '全部', q = '', sortBy = 'mtime';
 let rq = '';     // v1.7.12：最近视图搜索词（与项目视图的 q 分开保存，互不干扰）
+let rqDeadOnly = false; // v1.7.41：最近视图「仅看已删除」筛选开关
 let lastAnalysis = null;
 let QA_DETAIL = '';   // QA 钩子：URL ?detail=项目名，renderProjects 末尾消费
 let detailSeq = 0;    // 项目详情弹窗序号：接口慢返回时不覆盖已关闭/已切换的弹窗

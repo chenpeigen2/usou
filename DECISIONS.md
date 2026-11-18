@@ -3212,3 +3212,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：抽到平铺文件 `renderer/detail.js`（openModal/closeModal/openProject/projectDirs 下钻 + openCompare/runCompare/compareRows/compareHtml），在 app.js 前加载、全局可见；index.html 在 views.js 前加载 detail.js。依赖 DATA/SETTINGS/esc/ipc 均在调用时延迟访问。
  > **实证（CDP）**：13 脚本全部加载、5 个关键函数全局可见、对比弹窗可打开（46 项目下拉）、closeModal 正常、六视图导航 6 按钮正常；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 13 个平铺 JS。只 commit 不 push。
+
+ # 第八十六轮：抽系统+设置视图为平铺 system.js（views.js 712→507 行）
+
+ > **选题依据**：自驱造活源第 2 项「代码组织」——views.js 仍 712 行，系统（L503-598）+ 设置（L600-708）是两个独立管理视图，共 201 行。
+ > **做法**：抽到平铺 `renderer/system.js`（renderSystem/historyTrendHtml/drawTrend + renderSettings/saveSettings/clearScanErrors/autoCheckHtml），在 app.js 前加载、全局可见。中途中因截取范围不足（L502-668 截断了 renderSettings 的 IIFE）导致语法错，修正为完整 L502-708 后通过。
+ > **实证（CDP）**：14 脚本全部加载、5 个函数全局可见、四视图渲染正常（system 16072 / settings 3124 / overview 22953 / projects 63863 chars）、设置页 3 个新配置字段都在、导航 6 按钮；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 14 个平铺 JS（app.js 22 行入口）。只 commit 不 push。

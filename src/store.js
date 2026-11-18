@@ -34,7 +34,9 @@ function write(f, o) {
   fs.renameSync(tmp, f);
 }
 
-const DEFAULTS = { skipSizes: false, extraRoots: [], trayMinimize: true, autoScanHours: 0, winBounds: null, winMaximized: false, favorites: [], theme: 'dark' }; // autoScanHours: 自动扫描间隔（小时），0=关闭；favorites: 项目绝对路径数组（收藏/置顶）；theme: 'dark'|'light'（v1.7.8 浅色主题，旧配置无此键即回落深色）
+// scanRoots/forceDirs：要扫描的根目录 / 强制纳入的目录，均为绝对路径数组；默认空 = 通用（只扫用户目录）。
+// 本机值写在 settings.json（不入库），源码不含任何机器特定的盘符/目录名。
+const DEFAULTS = { skipSizes: false, extraRoots: [], scanRoots: [], forceDirs: [], links: [], trayMinimize: true, autoScanHours: 0, winBounds: null, winMaximized: false, favorites: [], theme: 'dark' };
 
 function getScan() {
   const c = read(path.join(dataDir(), 'scan-cache.json'));
@@ -56,7 +58,7 @@ function appendHistory(data) {
     time: data.meta.scanTime,
     fast: !!data.meta.fast,
     totalMB: Math.round(data.projects.reduce((s, p) => s + (p.sizeMB || 0), 0)),
-    // v1.7.19 改用绝对路径作 key（唯一）：此前按 name 作 key，4 个同名 TclLauncher 被 reduce 后写覆盖、只剩最旧一个，致历史快照项目数/dirty 数少于扫描缓存；旧快照仍是 name-keyed，读取侧已做归一化兼容。
+    // v1.7.19 改用绝对路径作 key（唯一）：此前按 name 作 key，4 个同名 同名项目 被 reduce 后写覆盖、只剩最旧一个，致历史快照项目数/dirty 数少于扫描缓存；旧快照仍是 name-keyed，读取侧已做归一化兼容。
     projects: data.projects.reduce((o, p) => {
       const key = p.path || ('name:' + p.name);
       o[key] = { name: p.name, dirty: p.dirty || 0, sizeMB: p.sizeMB || 0, commitTime: p.lastCommitTime || '' };

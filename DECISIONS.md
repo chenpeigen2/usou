@@ -3175,3 +3175,19 @@ D:\code\usou\workbench-electron\out\
  > **门禁改进**：verify-delivery.ps1 的 JS 清单改为**动态枚举 renderer\*.js**（以后加/减文件不用改门禁），避免本轮漏加 state.js 类问题。
  > **实证（CDP）**：12 脚本顺序加载、init/refreshState/render/buildBrief/drawPulse/doAct/palIndex 全挂 window、init 执行、六视图渲染（#view 16046 字符）、总览 KPI=59、buildBrief=9；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS（一次 0 进程是启动时序误报，重跑确认）。只 commit 不 push（本地 67 → 68，远端 59 不动）。
+
+ # 第八十一轮+八十二轮：消除机器特异性 + 新功能「扫描范围可视化配置」
+
+ > **选题依据**：用户明确要求「做新功能，还有不要有与这台机器特异性词汇」。源码里硬编码了 `D:\code`/`E:\workspace`/各 launcher 项目名/主机名/用户名，软件换台机器就不对。
+ > **通用化改造（第 81 轮）**：
+ >   · `src/store.js` DEFAULTS 新增 `scanRoots`/`forceDirs`/`links`（默认空 = 通用）。
+ >   · `src/scanner.js`：FORCE_DIRS/LINK_PATHS 硬编码删除，改从 opts（← settings）读取；discoverRoots 枚举所有盘符根 + 用户常见项目目录（不再写死 D 盘）；buildActivity/recent 遍历所有项目根（不再硬编码两个基础根）；D_ROOT_SKIP 只留通用排除项。
+ >   · `main.js`：startScanRun 把 settings 的 scanRoots/forceDirs/links 传给 scanner。
+ >   · `scan.ps1`（静态版）：同样参数化，从 data/settings.json 读取，盘符用 Get-PSDrive 枚举。
+ >   · `renderer/views.js`：空间分析快捷入口从 DATA.links 读取（不再写死路径）、placeholder 通用化。
+ >   · `workbench.html`（静态产物）：内嵌的真实主机/用户/项目名泛化为 WORKSTATION-01/LOCAL\user/示例名（JSON 结构保持有效）。
+ >   · 注释与 QA 合成样本中的机器名泛化；`--searchqa` 改为**从当前数据动态取样本**（ASCII 名 + 中文名），彻底不依赖任何写死的项目名 —— 任何机器上都能自证。
+ >   · 本机值全部写入本地 settings.json（dev + %APPDATA% 各一份，不入库），功能不丢失。
+ >   **结果**：源码中机器特异性从 ~120 处降到 0（仅 package.json 的 author 署名保留）。真实扫描验证：配置生效（2 根 + 7 强制 + 12 快捷）、发现 68 项目、功能完整。7 个关键 QA 钩子泛化后全 PASS。
+ > **新功能（第 82 轮）**：设置页新增「扫描根目录」「强制纳入的目录」两个 textarea，与原有「额外项目根目录」并列，`saveSettings()` 一并保存 → 用户可在 UI 里配置扫描范围，不必手改 settings.json。CDP 实测：三个字段都在、预填当前配置、保存后 getState() 读回正确（闭环成立）。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS；六视图审计 failCount 0 / min 4.64。只 commit 不 push。

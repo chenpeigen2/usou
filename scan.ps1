@@ -21,6 +21,18 @@ $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $gitExe = 'C:\Program Files\Git\cmd\git.exe'
 if (-not (Test-Path -LiteralPath $gitExe)) { $gitExe = 'git' }
 
+# ---------- 0) 通用配置：从 data/settings.json 读取根目录（源码不含机器特定路径）----------
+# 与 Electron 版共用 settings.json 的 scanRoots / forceDirs / links 字段。
+# 未配置时 scanRoots 默认用户目录，保证任何机器上都能跑。
+$wbSettingsPath = Join-Path $wbDir 'data\settings.json'
+$wbSettings = @{}
+if (Test-Path -LiteralPath $wbSettingsPath) {
+  try { $wbSettings = Get-Content -LiteralPath $wbSettingsPath -Raw | ConvertFrom-Json } catch { $wbSettings = @{} }
+}
+$scanRoots = @($wbSettings.scanRoots)
+if ($scanRoots.Count -eq 0) { $scanRoots = @((Join-Path $env:USERPROFILE 'Desktop'), (Join-Path $env:USERPROFILE 'Documents')) }
+$forceDirs = @($wbSettings.forceDirs)
+
 function Write-Step([string]$msg) { Write-Host ("[扫描] {0}" -f $msg) -ForegroundColor Cyan }
 
 # ---------- 1) 项目体量: robocopy /L 只列表不复制，排除重目录 ----------
@@ -76,45 +88,52 @@ function Get-ProjectType([string]$path) {
 Write-Step '枚举项目根...'
 $roots = New-Object System.Collections.Generic.List[string]
 
-# 4.1 D:\code 全部子目录（排除隐藏/临时/自身）
-Get-ChildItem -LiteralPath 'D:\code' -Directory -Force -EA SilentlyContinue | Where-Object {
-  $_.Name -notmatch '^[\._]' -and $_.Name -ne '新建文件夹' -and $_.Name -ne 'usou'
-} | ForEach-Object { $roots.Add($_.FullName) }
+# 4.1 配置的扫描根（scanRoots）下全部子目录（排除隐藏/临时/自身）
+foreach ($root in $scanRoots) {
+  if (-not (Test-Path -LiteralPath $root)) { continue }
+  Get-ChildItem -LiteralPath $root -Directory -Force -EA SilentlyContinue | Where-Object {
+    $_.Name -notmatch '^[\._]' -and $_.Name -ne '新建文件夹'
+  } | ForEach-Object { $roots.Add($_.FullName) }
+}
 
-# 4.2 D:\ 根: 含 .git 或项目标记文件的目录
+# 4.2 各盘符根: 含 .git 或项目标记文件的目录（通用，不写死某个盘）
 $markers = @('settings.gradle','settings.gradle.kts','build.gradle','build.gradle.kts',
              'package.json','pom.xml','pyproject.toml','requirements.txt','Cargo.toml','go.mod')
 $dRootSkip = @(
   '.gradle','.pnpm-store','uvcache','gradle','node_modules','Temp','tmp','download','code',
-  'tools','work','skills','Users','platform-tools','Snipaste-2.11.3-x64','proguard-7.9.1',
-  'dagger-dagger-2.60.1','nextjs','android-studio-quail4-windows','GradleUserHome',
-  'GradleCache-TclLauncher','归档整理_20261105','Program Files','Program Files (x86)'
+  'tools','work','skills','Users','platform-tools',
+  'Program Files','Program Files (x86)'
 )
-Get-ChildItem -LiteralPath 'D:\' -Directory -Force -EA SilentlyContinue | Where-Object {
-  ($_.Name -notmatch '^(\$|Config\.Msi|System Volume)') -and ($dRootSkip -notcontains $_.Name)
-} | ForEach-Object {
-  $isGit = Test-Path -LiteralPath (Join-Path $_.FullName '.git')
-  $hasMarker = $false
-  foreach ($m in $markers) { if (Test-Path -LiteralPath (Join-Path $_.FullName $m)) { $hasMarker = $true; break } }
-  if ($isGit -or $hasMarker) { $roots.Add($_.FullName) }
+foreach ($drive in (Get-PSDrive -PSProvider FileSystem -EA SilentlyContinue)) {
+  $base = $drive.Root
+  if (-not $base -or -not (Test-Path -LiteralPath $base)) { continue }
+  Get-ChildItem -LiteralPath $base -Directory -Force -EA SilentlyContinue | Where-Object {
+    ($_.Name -notmatch '^(\$|Config\.Msi|System Volume)') -and ($dRootSkip -notcontains $_.Name)
+  } | ForEach-Object {
+    $isGit = Test-Path -LiteralPath (Join-Path $_.FullName '.git')
+    $hasMarker = $false
+    foreach ($m in $markers) { if (Test-Path -LiteralPath (Join-Path $_.FullName $m)) { $hasMarker = $true; break } }
+    if ($isGit -or $hasMarker) { $roots.Add($_.FullName) }
+  }
 }
 
-# 4.3 强制纳入的工作区（Launcher 主战场，内部还有嵌套 git 工作副本）
-$force = @('D:\CLAUNCER2','D:\CLauncher','D:\BBKLauncher','D:\VClauncher',
-           'D:\oppo_a6_launcher','D:\LauncherSwipeDetect','D:\TclLauncher')
-foreach ($f in $force) {
-  if ((Test-Path -LiteralPath $f) -and -not $roots.Contains($f)) { $roots.Add($f) }
+# 4.3 强制纳入的目录（forceDirs，来自配置），内部还有嵌套 git 工作副本
+foreach ($f in $forceDirs) {
+  if (-not (Test-Path -LiteralPath $f)) { continue }
+  if (-not $roots.Contains($f)) { $roots.Add($f) }
   Get-ChildItem -LiteralPath $f -Directory -Force -EA SilentlyContinue | ForEach-Object {
     $sub = $_.FullName
     if ((Test-Path -LiteralPath (Join-Path $sub '.git')) -and -not $roots.Contains($sub)) { $roots.Add($sub) }
   }
 }
 
-# 4.4 E:\workspace 与 AndroidStudioProjects
-Get-ChildItem -LiteralPath 'E:\workspace' -Directory -Force -EA SilentlyContinue |
-  ForEach-Object { $roots.Add($_.FullName) }
-Get-ChildItem -LiteralPath (Join-Path $env:USERPROFILE 'AndroidStudioProjects') -Directory -Force -EA SilentlyContinue |
-  ForEach-Object { $roots.Add($_.FullName) }
+# 4.4 用户目录下的常见项目位置（通用）
+foreach ($sub in @('AndroidStudioProjects','Projects','projects','code','Code','workspace','Workspace')) {
+  $dir = Join-Path $env:USERPROFILE $sub
+  if (-not (Test-Path -LiteralPath $dir)) { continue }
+  Get-ChildItem -LiteralPath $dir -Directory -Force -EA SilentlyContinue |
+    ForEach-Object { $roots.Add($_.FullName) }
+}
 
 $roots = @($roots | Select-Object -Unique)
 Write-Step ("共识别 {0} 个项目/工作区" -f $roots.Count)
@@ -176,8 +195,7 @@ function Add-Files([string]$dir, [int]$levels) {
 Add-Files (Join-Path $env:USERPROFILE 'Desktop')   1
 Add-Files (Join-Path $env:USERPROFILE 'Documents') 1
 Add-Files (Join-Path $env:USERPROFILE 'Downloads') 0
-Add-Files 'D:\code'      1
-Add-Files 'E:\workspace' 1
+foreach ($root in $scanRoots) { Add-Files $root 1 }
 $recent = @($recent | Sort-Object mtime -Descending | Select-Object -First 60)
 
 # ---------- 8) 用户三大文件夹概览 ----------
@@ -221,24 +239,15 @@ $aiCandidates = @(
 $aiTools = @($aiCandidates | Where-Object { Test-Path -LiteralPath (Join-Path $env:USERPROFILE $_) })
 
 # ---------- 11) 快速入口 ----------
+# 默认用户目录 + 配置里的额外快捷入口（settings.links，不写死在源码里）
 $linkPaths = @(
-  @{ name = '桌面';                    path = (Join-Path $env:USERPROFILE 'Desktop') },
-  @{ name = '文档';                    path = (Join-Path $env:USERPROFILE 'Documents') },
-  @{ name = '下载';                    path = (Join-Path $env:USERPROFILE 'Downloads') },
-  @{ name = 'D:\code 项目群';          path = 'D:\code' },
-  @{ name = 'TclLauncher 主仓库';      path = 'D:\TclLauncher' },
-  @{ name = 'CLAUNCER2 工作区';        path = 'D:\CLAUNCER2' },
-  @{ name = 'D:\tools 工具';           path = 'D:\tools' },
-  @{ name = 'D:\download 下载';        path = 'D:\download' },
-  @{ name = '归档整理_20261105';       path = 'D:\归档整理_20261105' },
-  @{ name = 'E:\workspace';            path = 'E:\workspace' },
-  @{ name = 'E:\launcher_hprof 内存分析'; path = 'E:\launcher_hprof' },
-  @{ name = 'E:\android-development-docs'; path = 'E:\android-development-docs' },
-  @{ name = 'E:\WorkBuddy Worksapace 日报'; path = 'E:\WorkBuddy Worksapace' },
-  @{ name = 'F:\TCL_Layout_Toolv0.6';  path = 'F:\TCL_Layout_Toolv0.6' },
-  @{ name = 'F:\CDriveData C盘迁移数据'; path = 'F:\CDriveData' },
-  @{ name = 'C:\TCL';                  path = 'C:\TCL' }
+  @{ name = '桌面';  path = (Join-Path $env:USERPROFILE 'Desktop') },
+  @{ name = '文档';  path = (Join-Path $env:USERPROFILE 'Documents') },
+  @{ name = '下载';  path = (Join-Path $env:USERPROFILE 'Downloads') }
 )
+foreach ($l in @($wbSettings.links)) {
+  if ($l -and $l.path) { $linkPaths += @{ name = [string]$l.name; path = [string]$l.path } }
+}
 $links = @($linkPaths | Where-Object { Test-Path -LiteralPath $_.path } |
   ForEach-Object { [PSCustomObject]@{ name = $_.name; path = $_.path } })
 

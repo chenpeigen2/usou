@@ -87,7 +87,7 @@ let trayQaSpec = '';
 
 /* v1.7.18：失效项目集合 —— 供托盘「未提交」口径剔除**已删除目录**的项目。
    背景：v1.7.15 已给失效项目行去掉「未提交 ●N」标记（目录都没了还标未提交 = 陈述不成立的事实），
-   但托盘 L128 的「未提交：N 个仓库 / M 个文件」仍在算它们 ⇒ 实测本机 `D:\wt-demo` / `D:\wt-prev`
+   但托盘 L128 的「未提交：N 个仓库 / M 个文件」仍在算它们 ⇒ 实测本机 `某已删除目录` / `某已删除目录`
    各带 dirty=1 ⇒ 托盘播报「5 个仓库 / 8 个文件」，真实应为「3 个仓库 / 6 个文件」，
    与同一屏上真正带标记的 3 行自相矛盾。
    设计（见 DECISIONS 第二十八轮 Q2）：
@@ -506,9 +506,13 @@ function pushScanError(kind, msg) {
 function startScanRun(opts) {
   if (scanning) return { started: false, reason: '扫描已在进行中' };
   scanning = true;
+  const s = store.getSettings();
   const merged = {
     skipSizes: !!(opts && opts.skipSizes),
-    extraRoots: (opts && opts.extraRoots) || store.getSettings().extraRoots || []
+    extraRoots: (opts && opts.extraRoots) || s.extraRoots || [],
+    scanRoots: s.scanRoots || [],   // 要扫描的根目录（本机值在 settings.json，源码通用）
+    forceDirs: s.forceDirs || [],   // 强制纳入的目录
+    links: s.links || []            // 快捷入口（用户目录之外的）
   };
   scanner.runScan(merged, p => {
     if (p.phase === 'projects') log('scan ' + p.current + '/' + p.total + ' ' + p.name);

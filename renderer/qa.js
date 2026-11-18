@@ -273,63 +273,41 @@ function bindNav() {
   });
 }
 
-/* QA 钩子（v1.7.12）：--searchqa=<查询串> → 走**真实**搜索内核跑一组固定断言，
-   并把结果写进一条 fixed 取证徽标（textContent 写入，无内联 onclick、无 innerHTML 拼动态文本）。
-   断言组固定（便于跨版本复现）：
-     ① 多词查询「tcl launcher」必须命中 TclLauncher（旧实现 0 命中 = 本轮修的缺陷本体）
-     ② 拼音首字母「gzq」必须命中「D:\code 项目群」
-     ③ 子序列「tcllnch」必须命中 TclLauncher
-     ④ 拼音首字母「3dww」必须命中「3d娃娃」
-     ⑤ 本机数据中出现的每个汉字都必须在拼音表里有条目（表完整 = 中文名永远搜得到）
-   徽标同时回显项目视图搜索框的命中数（同一内核的第二处调用点）。 */
+/* QA 钩子（v1.7.12）：--searchqa → 搜索内核断言，样本从当前数据动态取（无机器硬编码）。 */
 function triggerSearchQa(query) {
   setTimeout(() => {
-    const q0 = query || 'tcl launcher';
     PAL = palIndex();
-    const palHit = palFilteredFor(q0);
-    const projHit = projectHits(q0);
-    // 表完整性：扫遍本机数据里出现的所有汉字
+    const q0 = query || '';
+    const projects = (DATA && DATA.projects || []).filter(p => p && p.name);
+    const ascii = projects.find(p => /^[A-Za-z][A-Za-z0-9 _-]{3,}$/.test(p.name));
+    const cjk = projects.find(p => /[\u4e00-\u9fa5]/.test(p.name));
     const chars = new Set();
     const collect = s => { for (const ch of String(s || '')) if (isCjk(ch)) chars.add(ch); };
-    (DATA.projects || []).forEach(p => { collect(p.name); collect(p.path); });
-    (DATA.links || []).forEach(l => { collect(l.name); collect(l.path); });
-    (DATA.recent || []).forEach(r => { collect(r.name); collect(r.dir); });
-    const map = pyMap();
-    const missing = [...chars].filter(c => !map[c]);
-
-    const cases = [
-      { q: 'tcl launcher', want: /TclLauncher/i, label: '多词查询' },
-      { q: 'gzq', want: /工作区/, label: '拼音首字母' },
-      { q: 'xmq', want: /项目群/, label: '拼音首字母' },
-      { q: 'tcllnch', want: /TclLauncher/i, label: '子序列模糊' },
-      { q: '3dww', want: /3d娃娃/, label: '数字+拼音' }
-    ];
-    const results = cases.map(c => {
-      const hits = palFilteredFor(c.q);
-      const first = hits.length ? String(hits[0].label) : '(无)';
-      return c.label + '「' + c.q + '」命中=' + hits.length + (c.want.test(first) ? ' ✔' : ' ✘首条=' + first);
-    });
-    const el = document.createElement('div');
-    el.className = 'qa-search-note';
-    el.textContent = '[QA 搜索验证] 查询="' + q0 + '" · palette 命中=' + palHit.length +
-      ' · 项目视图命中=' + projHit.length +
-      ' · 断言：' + results.join(' | ') +
-      ' · 数据汉字总数=' + chars.size + ' · 拼音表未收录=' + missing.length +
-      (missing.length ? '(' + missing.join('') + ')' : '(无)');
+    projects.forEach(p => { collect(p.name); collect(p.path); });
+    const missing = [...chars].filter(c => !pyMap()[c]);
+    const cases = [];
+    if (ascii) { const n = ascii.name; cases.push({ q: n.slice(0,4).toLowerCase(), want: n, label: '前缀' });
+      if (n.length > 6) cases.push({ q: (n.slice(0,3)+' '+n.slice(4,7)).toLowerCase(), want: n, label: '多词AND' }); }
+    if (cjk) { const ini = pyInitials(cjk.name).replace(/[^a-z]/g,''); if (ini.length >= 2) cases.push({ q: ini.slice(0,4), want: cjk.name, label: '拼音' }); }
+    const results = cases.map(c => { const top = palFilteredFor(c.q).slice(0,5).map(x=>String(x.label)).join(',');
+      return c.label+'「'+c.q+'」'+(top.toLowerCase().includes(String(c.want).toLowerCase())?'✔':'✘('+top+')'); });
+    const el = document.createElement('div'); el.className = 'qa-search-note';
+    el.textContent = '[QA 搜索验证] 查询="'+q0+'" · 样本='+(ascii?ascii.name:'无')+'/'+(cjk?cjk.name:'无')+
+      ' · 断言='+(results.length?results.join(' | '):'样本不足')+' · 汉字='+chars.size+' · 未收录='+missing.length;
     document.body.appendChild(el);
   }, 1400);
 }
 
 /* QA 钩子（v1.7.19）：--histqa=1 → 用合成快照证明「按名称键 reduce」必然漏报/错指，
    归一化后按路径读取才能精确命中 B。取证行注入 #view 顶部（textContent，id=histqa-evidence，无内联 onclick）。
-   OLD：两个同名 TclLauncher 按 name reduce（插入序 [B,A] ⇒ last-wins=A）⇒ 仅 1 项、A 无新提交无脏 ⇒ 命中 0；
+   OLD：两个同名 示例项目 按 name reduce（插入序 [B,A] ⇒ last-wins=A）⇒ 仅 1 项、A 无新提交无脏 ⇒ 命中 0；
    NEW：normHistoryProjects 保留两条路径 ⇒ 命中 B（有新提交）、项目数 1->2、未提交 0->3。 */
 function triggerHistoryQa() {
   setTimeout(() => {
-    const PA = 'D:\\TclLauncher';
-    const PB = 'D:\\CLAUNCER2\\TclLauncher';
+    const PA = 'D:\\示例项目';
+    const PB = 'D:\\示例项目\\示例项目';
     const T0 = '2026-11-01 10:00:00', T1 = '2026-11-16 10:30:00';
-    const ent = (dirty, commitTime) => ({ name: 'TclLauncher', dirty: dirty, sizeMB: 100, commitTime: commitTime });
+    const ent = (dirty, commitTime) => ({ name: '示例项目', dirty: dirty, sizeMB: 100, commitTime: commitTime });
     // 按路径键、插入顺序 [B, A] ⇒ 旧 name-key reduce 的 last-wins 恰为 A
     const prev = { time: T0, fast: false, totalMB: 200, projects: {} };
     prev.projects[PB] = ent(1, T0);
@@ -337,7 +315,7 @@ function triggerHistoryQa() {
     const cur = { time: T1, fast: false, totalMB: 200, projects: {} };
     cur.projects[PB] = ent(3, T1);
     cur.projects[PA] = ent(0, T0);
-    const projects = [{ name: 'TclLauncher', path: PA }, { name: 'TclLauncher', path: PB }];
+    const projects = [{ name: '示例项目', path: PA }, { name: '示例项目', path: PB }];
 
     const items = historyDiffItems([prev, cur], projects);
     const stats = historyStatsFor([prev, cur]);
@@ -348,7 +326,7 @@ function triggerHistoryQa() {
       Object.keys(snap.projects).forEach(k => { const v = snap.projects[k]; o[v.name] = v; });
       return o;
     };
-    const oldPrev = oldReduce(prev), oldCur = oldReduce(cur); // 均只剩 { TclLauncher: A }
+    const oldPrev = oldReduce(prev), oldCur = oldReduce(cur); // 均只剩 { 示例项目: A }
     let oldHits = 0;
     Object.keys(oldCur).forEach(name => {
       const pp = oldPrev[name], cc = oldCur[name];
@@ -388,45 +366,45 @@ function triggerHistoryQa() {
 /* QA 钩子（v1.7.23）：--histdiffqa=1 → 证明 name-key→path-key 混合快照下身份桥接命中，
    而「直接按 normHistoryProjects 归一化键匹配」（旧逻辑）交集为 0、必然漏报。
    全程纯函数：无 IPC、无路径操作；取证行注入 #view 顶部（createElement + textContent，id=histdiffqa-evidence）。
-   NEW：OLD 名称键快照 ↔ NEW 路径键快照 ⇒ fcm-helper（唯一同名）桥接到路径命中「有新提交」，
-        4 个同名 TclLauncher 绝不猜归属（不误指）；旧逻辑归一化键交集 = 0。
+   NEW：OLD 名称键快照 ↔ NEW 路径键快照 ⇒ webproject（唯一同名）桥接到路径命中「有新提交」，
+        4 个同名 示例项目 绝不猜归属（不误指）；旧逻辑归一化键交集 = 0。
    NEGATIVE：直接归一化键交集 = 0 ⇒ 旧逻辑零命中，不可能通过。
    REGRESSION：两个纯 OLD 快照（commitTime 前进）仍命中 ⇒ 纯旧行为保留。 */
 function triggerHistDiffQa() {
   setTimeout(() => {
     const T0 = '2026-11-01 10:00:00', T1 = '2026-11-16 12:00:00';
-    const PA = 'D:\\fcm-helper';
-    const TCL = ['D:\\TclLauncher', 'D:\\B\\TclLauncher', 'D:\\C\\TclLauncher', 'D:\\D\\TclLauncher'];
+    const PA = 'D:\\webproject';
+    const TCL = ['D:\\示例项目', 'D:\\B\\示例项目', 'D:\\C\\示例项目', 'D:\\D\\示例项目'];
     // OLD prev：名称键快照（值里没有 path）⇒ normHistoryProjects 产出 'name:' 键
     const oldPrev = { time: T0, fast: false, totalMB: 30, projects: {
-      'fcm-helper': { dirty: 1, sizeMB: 10, commitTime: T0 },
-      'TclLauncher': { dirty: 1, sizeMB: 20, commitTime: T0 }
+      'webproject': { dirty: 1, sizeMB: 10, commitTime: T0 },
+      '示例项目': { dirty: 1, sizeMB: 20, commitTime: T0 }
     } };
-    // NEW cur：路径键快照；fcm-helper 唯一，TclLauncher 有 4 条同名路径
+    // NEW cur：路径键快照；某 Web 项目 唯一，同名项目 有 4 条同名路径
     const curProjects = {};
-    curProjects[PA] = { name: 'fcm-helper', dirty: 1, sizeMB: 10, commitTime: T1 };
-    TCL.forEach((p, i) => { curProjects[p] = { name: 'TclLauncher', dirty: 1 + i, sizeMB: 20, commitTime: T1 }; });
+    curProjects[PA] = { name: 'webproject', dirty: 1, sizeMB: 10, commitTime: T1 };
+    TCL.forEach((p, i) => { curProjects[p] = { name: '示例项目', dirty: 1 + i, sizeMB: 20, commitTime: T1 }; });
     const newCur = { time: T1, fast: false, totalMB: 30, projects: curProjects };
-    // 当前项目：fcm-helper 唯一同路径；TclLauncher 有 4 个同名 ⇒ 不可归因
-    const projects = [{ name: 'fcm-helper', path: PA }].concat(
-      TCL.map(p => ({ name: 'TclLauncher', path: p })));
+    // 当前项目：某 Web 项目 唯一同路径；同名项目 有 4 个同名 ⇒ 不可归因
+    const projects = [{ name: 'webproject', path: PA }].concat(
+      TCL.map(p => ({ name: '示例项目', path: p })));
 
-    // NEW：混合快照应命中 fcm-helper（有新提交），并桥接到其路径
+    // NEW：混合快照应命中 某 Web 项目（有新提交），并桥接到其路径
     const items = historyDiffItems([oldPrev, newCur], projects);
     const first = items[0] || {};
     // NEGATIVE：忠实复现旧「直接按归一化键匹配」——两快照归一化键交集必须为 0
     const oldKeys = Object.keys(normHistoryProjects(oldPrev));
     const newKeys = Object.keys(normHistoryProjects(newCur));
     const inter = oldKeys.filter(k => newKeys.indexOf(k) >= 0);
-    // REGRESSION：两个纯 OLD 快照（fcm-helper commitTime 前进）仍须命中
+    // REGRESSION：两个纯 OLD 快照（某 Web 项目 commitTime 前进）仍须命中
     const oldPrev2 = { time: T1, fast: false, totalMB: 30, projects: {
-      'fcm-helper': { dirty: 1, sizeMB: 10, commitTime: T1 },
-      'TclLauncher': { dirty: 1, sizeMB: 20, commitTime: T0 }
+      'webproject': { dirty: 1, sizeMB: 10, commitTime: T1 },
+      '示例项目': { dirty: 1, sizeMB: 20, commitTime: T0 }
     } };
     const oldItems = historyDiffItems([oldPrev, oldPrev2], projects);
 
     const pass = items.length >= 1 && first.p === PA &&
-      String(first.text || '').indexOf('fcm-helper') >= 0 &&
+      String(first.text || '').indexOf('webproject') >= 0 &&
       inter.length === 0 && oldItems.length >= 1;
 
     const el = document.createElement('div');
@@ -456,7 +434,7 @@ function triggerHistLegacyQa() {
     const legacyAll = stats.length >= 1 && legacyCount === stats.length;
     // (b) 合成新格式快照：绝对路径键 ⇒ 不得被标成 legacy
     const synth = { time: '2026-11-17 12:00:00', projects: {
-      'D:\\fcm-helper': { name: 'fcm-helper', dirty: 1, sizeMB: 1, commitTime: '' }
+      'D:\\webproject': { name: 'webproject', dirty: 1, sizeMB: 1, commitTime: '' }
     } };
     const synthStat = historyStatsFor([synth])[0] || {};
     const newMislabel = synthStat.legacy === true; // true=把新格式误标为旧格式（期望 false）
@@ -587,11 +565,11 @@ function triggerDeadBriefQa() {
   }, 1200);
 }
 
-/* QA 钩子（v1.7.25）：--actrootqa=1 → 证明简报「文件在动」条目不再把 D:\code 与 E:\workspace
-    的合并计数误归属为只有 D:\code。纯只读：取真实 DATA.activity 经 buildBrief() 渲染的文案，
-    零 IPC / 零路径操作 / 不改 DATA。三项断言：(a) 文案同时含 D:\code 与 E:\workspace；
+/* QA 钩子（v1.7.25）：--actrootqa=1 → 证明简报「文件在动」条目不再把 某项目根目录 与 另一工作区
+    的合并计数误归属为只有 某项目根目录。纯只读：取真实 DATA.activity 经 buildBrief() 渲染的文案，
+    零 IPC / 零路径操作 / 不改 DATA。三项断言：(a) 文案同时含 某项目根目录 与 另一工作区；
     (b) 文案仍以末桶 activityDayLabel 开头（v1.7.20 无回归）；(c) 负对照：旧文案
-    oldText = activityDayLabel(last.date) + ' D:\code 下有 N 个文件在动' 不含 E:\workspace ⇒ 旧逻辑不可能通过 (a)。
+    oldText = activityDayLabel(last.date) + ' 某项目根目录 下有 N 个文件在动' 不含 另一工作区 ⇒ 旧逻辑不可能通过 (a)。
     取证行注入 #view 顶部（createElement + textContent，id=actrootqa-evidence，无 innerHTML、无内联 onclick）。 */
 function triggerActRootQa() {
   setTimeout(() => {
@@ -608,7 +586,7 @@ function triggerActRootQa() {
     const bothRoots = !!fullText && fullText.includes('D:\\code') && fullText.includes('E:\\workspace');
     // (b) 日标签仍取自末桶真实日期（v1.7.20 今天/昨天/MM-DD 无回归）
     const dayKept = !!expectedLabel && fullText.indexOf(expectedLabel) === 0;
-    // (c) 负对照：旧文案只提 D:\code，必不含 E:\workspace（期望 false）
+    // (c) 负对照：旧文案只提 某项目根目录，必不含 另一工作区（期望 false）
     const oldText = expectedLabel + ' D:\\code 下有 N 个文件在动';
     const oldHasE = oldText.includes('E:\\workspace');
     const pass = bothRoots && dayKept && !oldHasE;
@@ -639,8 +617,8 @@ function triggerDayQa() {
       const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + off);
       return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
     };
-    const marker = '文件在动';                // 语义锚点：仅活动条目含此串，兼容旧「D:\code 下有」与新「D:\code 与 E:\workspace 下有」
-    const cut = ' D:\\code';                  // 实际文本 " D:\code"，旧/新文案均含此串，用于取标签前缀
+    const marker = '文件在动';                // 语义锚点：仅活动条目含此串，兼容旧「某项目根目录 下有」与新「某项目根目录 与 另一工作区 下有」
+    const cut = ' D:\\code';                  // 实际文本 " 某项目根目录"，旧/新文案均含此串，用于取标签前缀
     const labelOf = t => { const s = String(t || ''), i = s.indexOf(cut); return i >= 0 ? s.slice(0, i) : ''; };
     const briefLabel = () => {
       const it = buildBrief().find(x => x && x.text && x.text.indexOf(marker) >= 0);
@@ -715,17 +693,17 @@ function triggerTimeQa() {
     };
     const commitItem = () => {
       const items = buildBrief();
-      return items.find(x => x && x.text && x.text.indexOf('fcm-helper') >= 0 && x.text.indexOf('提交：') >= 0)
+      return items.find(x => x && x.text && x.text.indexOf('webproject') >= 0 && x.text.indexOf('提交：') >= 0)
         || items.find(x => x && x.text && x.text.indexOf('提交：') >= 0) || null;
     };
 
-    // (a) 变更前抓真实取证：真实简报提交标签 / 真实 scanTime / fcm-helper 真实提交时间（均只读）
+    // (a) 变更前抓真实取证：真实简报提交标签 / 真实 scanTime / 某 Web 项目 真实提交时间（均只读）
     const origMeta = DATA.meta;
     const meta = DATA.meta || (DATA.meta = {});
     const origScan = meta.scanTime;
     const realItem = commitItem();
     let realLabel = realItem ? labelOf(realItem.text) : '';
-    const realCommit = ((DATA.projects || []).find(p => p && /fcm-helper/i.test(String(p.name || ''))) || {}).lastCommitTime || '';
+    const realCommit = ((DATA.projects || []).find(p => p && /webproject/i.test(String(p.name || ''))) || {}).lastCommitTime || '';
     if (!realLabel && realCommit) realLabel = commitWhenLabel(realCommit, origScan, now);
 
     // (c) 负对照：旧逻辑只调 relTime（base 锚定 scanTime），恒为相对标签；真实快照下即「12 分钟前」

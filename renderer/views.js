@@ -459,10 +459,13 @@ function renderRecentList() {
 /* ---------- 空间分析 ---------- */
 
 function renderDisk() {
-  const quick = (DATA.drives || []).map(d => d.root).concat(['D:\\code', 'D:\\TclLauncher', 'D:\\CLAUNCER2']);
+  // 快捷入口 = 所有盘符 + 用户配置的快捷路径（DATA.links，来自 settings），无机器硬编码
+  const quick = (DATA.drives || []).map(d => d.root)
+    .concat(((DATA && DATA.links) || []).map(l => l.path));
+  const defaultPath = quick[0] || '';
   $('#view').innerHTML = '<div class="viewwrap">' +
     '<h2>空间分析<span class="sub">统计子项完整大小找空间大头 · 含 node_modules 等全部内容 · 点击目录下钻</span></h2>' +
-    '<div class="toolbar"><input id="an-path" style="width:430px" placeholder="输入要分析的目录，如 D:\\code" value="' + esc(lastAnalysis ? lastAnalysis.root : 'D:\\code') + '">' +
+    '<div class="toolbar"><input id="an-path" style="width:430px" placeholder="输入要分析的目录路径" value="' + esc(lastAnalysis ? lastAnalysis.root : defaultPath) + '">' +
     '<button class="btn" data-act="analyze">📊 分析</button>' +
     '<button class="btn ghost" data-act="reforce">↻ 强制重算</button></div>' +
     '<div class="chips" style="margin-bottom:12px">' + quick.map(p => '<button class="chipbtn link" data-act="drill" data-p="' + esc(p) + '">' + esc(p) + '</button>').join('') + '</div>' +
@@ -650,8 +653,12 @@ function renderSettings() {
     '<button class="chipbtn' + (themeIsLight() ? ' on' : '') + '" data-act="theme:set" data-p="light">☀️ 浅色</button>' +
     '</div><div class="hint">浅色主题对六个视图（总览 / 项目 / 最近 / 空间 / 系统 / 设置）整体换肤，含标题栏、侧栏、卡片、弹窗、命令面板与图表。</div></div>' +
     '<h2>扫描设置</h2>' +
+    '<div class="field"><label>扫描根目录（每行一个路径；其下子目录会被发现为项目。留空 = 扫描各盘符根与用户目录）</label>' +
+    '<textarea id="scan-roots" placeholder="每行一个绝对路径">' + esc((SETTINGS.scanRoots || []).join('\n')) + '</textarea></div>' +
+    '<div class="field"><label>强制纳入的目录（每行一个路径；即使无项目标记也纳入项目雷达）</label>' +
+    '<textarea id="force-dirs" placeholder="每行一个绝对路径">' + esc((SETTINGS.forceDirs || []).join('\n')) + '</textarea></div>' +
     '<div class="field"><label>额外项目根目录（每行一个路径，会纳入项目雷达）</label>' +
-    '<textarea id="extra-roots" placeholder="D:\\some\\project">' + esc((SETTINGS.extraRoots || []).join('\n')) + '</textarea></div>' +
+    '<textarea id="extra-roots" placeholder="每行一个绝对路径">' + esc((SETTINGS.extraRoots || []).join('\n')) + '</textarea></div>' +
     '<div class="field"><label>自动扫描间隔（应用运行期间按间隔自动刷新项目数据）</label>' +
     '<select id="autoscan-hours">' +
     // 选项表里的值之外（如 24 小时）也要能正确回显 —— 此前下拉无匹配项时会回落显示「关闭」，
@@ -685,9 +692,12 @@ function renderSettings() {
     '· 所有操作均为只读，不会修改任何项目文件。· powered by dsh</div></div>';
 }
 async function saveSettings() {
-  const roots = $('#extra-roots').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const lines = id => ($(id) ? $(id).value.split('\n').map(s => s.trim()).filter(Boolean) : []);
+  const scanRoots = lines('#scan-roots');
+  const forceDirs = lines('#force-dirs');
+  const extraRoots = lines('#extra-roots');
   const autoScanHours = Number($('#autoscan-hours').value) || 0;
-  const patch = { extraRoots: roots, trayMinimize: $('#ck-tray').checked, autoScanHours };
+  const patch = { scanRoots, forceDirs, extraRoots, trayMinimize: $('#ck-tray').checked, autoScanHours };
   const res = await window.wb.saveSettings(patch);
   // settings:set 自 v1.7.2 起返回合并后的 settings 对象；历史版本返回布尔 true。
   // 绝不能把返回值整体赋给 SETTINGS（严格模式给布尔赋属性抛 TypeError，且会清空 favorites / winBounds）。
@@ -695,7 +705,7 @@ async function saveSettings() {
   SETTINGS = (res && typeof res === 'object') ? res : Object.assign({}, SETTINGS, patch);
   SETTINGS.autoScanHours = Number(SETTINGS.autoScanHours) || 0;
   if (window.wb.loginItemSet) await window.wb.loginItemSet($('#ck-login').checked);
-  toast('设置已保存，额外目录重扫后生效', 'ok');
+  toast('设置已保存，重扫后生效', 'ok');
 }
 
 /* ---------- 项目详情弹窗 ---------- */

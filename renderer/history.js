@@ -59,7 +59,7 @@ function historyDiffItems(hist, projects) {
   const byPath = p => list.find(x => x && x.path === p);
   const byName = n => list.find(x => x && x.name === n);
   // 纯函数身份解析器：有 path 直接用 path；旧名称键桥接到「唯一同名且带路径」的当前项目；
-  // 零个或多个同名（如 4 个 TclLauncher）退回 'name:'+name，绝不把变更错指到某个同名项目。
+  // 零个或多个同名（如 4 个 同名项目）退回 'name:'+name，绝不把变更错指到某个同名项目。
   const identityOf = e => {
     if (!e) return '';
     if (e.path) return e.path;

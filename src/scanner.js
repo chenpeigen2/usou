@@ -23,16 +23,24 @@ const PROJECT_MARKERS = ['settings.gradle', 'settings.gradle.kts', 'build.gradle
   'build.gradle.kts', 'package.json', 'pom.xml', 'pyproject.toml',
   'requirements.txt', 'Cargo.toml', 'go.mod'];
 
+// 通用排除项：构建产物、缓存、系统目录。机器特定的目录名由 settings.scanRoots/forceDirs 配置，不写死在源码里。
 const D_ROOT_SKIP = new Set([
   '.gradle', '.pnpm-store', 'uvcache', 'gradle', 'node_modules', 'Temp', 'tmp',
-  'download', 'code', 'tools', 'work', 'skills', 'Users', 'platform-tools',
-  'Snipaste-2.11.3-x64', 'proguard-7.9.1', 'dagger-dagger-2.60.1', 'nextjs',
-  'android-studio-quail4-windows', 'GradleUserHome', 'GradleCache-TclLauncher',
-  '归档整理_20261105', 'Program Files', 'Program Files (x86)'
+  'download', 'tools', 'work', 'skills', 'Users', 'platform-tools',
+  'Program Files', 'Program Files (x86)'
 ]);
 
-const FORCE_DIRS = ['D:\\CLAUNCER2', 'D:\\CLauncher', 'D:\\BBKLauncher',
-  'D:\\VClauncher', 'D:\\oppo_a6_launcher', 'D:\\LauncherSwipeDetect', 'D:\\TclLauncher'];
+// 强制纳入的目录从 opts.forceDirs（来自 settings.forceDirs）读取 —— 默认空 = 不强制纳入任何目录。
+// 这样任何机器上都不会出现「写死别人项目路径」的问题。
+function forceDirsOf(opts) {
+  const v = opts && opts.forceDirs;
+  return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : [];
+}
+// 要扫描的根目录从 opts.scanRoots 读取 —— 默认空 = 不额外扫描（只扫用户目录）。
+function scanRootsOf(opts) {
+  const v = opts && opts.scanRoots;
+  return Array.isArray(v) ? v.filter(x => typeof x === 'string' && x) : [];
+}
 
 const AI_CANDIDATES = [
   '.claude', '.codex', '.codebuddy', '.codebuddycn', '.cursor', '.qoder', '.qoder-cn',
@@ -159,8 +167,8 @@ async function analyze(root, onProgress = () => {}) {
 }
 
 // 活动热力：聚合目录下近 N 天每日变动文件数（限深 3 层，排除构建产物目录）
-// v1.7.30：此前只扫 D:\code 与 E:\workspace 两个硬编码根，而实际发现 59 个项目 ——
-//   21 个在 D:\code 下、5 个在 E:\workspace 下被覆盖，其余 33 个（fcm-helper / launcher 系列等）
+// v1.7.30：此前只扫 某项目根目录 与 另一工作区 两个硬编码根，而实际发现 59 个项目 ——
+//   21 个在 某项目根目录 下、5 个在 另一工作区 下被覆盖，其余 33 个（某 Web 项目 / launcher 系列等）
 //   从未遍历 ⇒ 这些项目的文件改动不进任何活动桶，热力图系统性低估 56% 项目。
 //   修：接收已发现的项目根，对不在两基础根之下的额外项目补扫（去重 + 复用 SIZE_EXCLUDE / 深度3）。
 async function buildActivity(days, projectRoots) {
@@ -185,17 +193,11 @@ async function buildActivity(days, projectRoots) {
       }
     }
   }
-  const BASE = ['D:\\code', 'E:\\workspace'];
-  for (const r of BASE) await rec(r, 3);
-  // 补扫：项目根不在两基础根之下（避免重复遍历 D:\code\* 与 E:\workspace\* 下的 26 个项目）
-  const seen = BASE.slice();
-  for (const pr of (projectRoots || [])) {
-    if (!pr || typeof pr !== 'string') continue;
-    const p = String(pr);
-    if (seen.some(s => p === s || p.startsWith(s + '\\') || p.startsWith(s + '/'))) continue;
-    seen.push(p);
-    await rec(p, 3);
-  }
+  // 遍历所有已发现的项目根（由调用方传入），不再硬编码任何机器上的基础目录。
+  // 去重：跳过彼此嵌套的路径，只遍历最外层，避免重复计数。
+  const roots = (projectRoots || []).filter(p => typeof p === 'string' && p);
+  const outer = roots.filter(p => !roots.some(q => q !== p && p.startsWith(q.endsWith('\\') ? q : q + '\\')));
+  for (const r of outer) await rec(r, 3);
   const out = [];
   const now = new Date();
   for (let i = days - 1; i >= 0; i--) {
@@ -219,34 +221,48 @@ function detectType(p) {
   return null;
 }
 
-async function discoverRoots(extraRoots) {
+async function discoverRoots(opts) {
+  // 兼容旧签名（字符串数组 = extraRoots）与新签名（对象 { scanRoots, forceDirs, extraRoots }）
+  const o = Array.isArray(opts) ? { extraRoots: opts } : (opts || {});
+  const scanRoots = scanRootsOf(o);
+  const forceDirs = forceDirsOf(o);
+  const extraRoots = Array.isArray(o.extraRoots) ? o.extraRoots : [];
   const roots = [];
   const push = p => { if (p && existsSync(p) && !roots.includes(p)) roots.push(p); };
 
-  for (const e of await safeReaddir('D:\\code')) {
-    if (e.isDirectory() && !/^[._]/.test(e.name) && e.name !== '新建文件夹' && e.name !== 'usou') {
-      push(path.join('D:\\code', e.name));
+  // 1) 配置的扫描根（settings.scanRoots）：每个根下的子目录视为项目
+  for (const root of scanRoots) {
+    for (const e of await safeReaddir(root)) {
+      if (e.isDirectory() && !/^[._]/.test(e.name)) push(path.join(root, e.name));
     }
   }
-  for (const e of await safeReaddir('D:\\')) {
-    if (!e.isDirectory()) continue;
-    if (/^\$|^Config\.Msi|^System Volume/.test(e.name) || D_ROOT_SKIP.has(e.name)) continue;
-    const p = path.join('D:\\', e.name);
-    if (existsSync(path.join(p, '.git')) || PROJECT_MARKERS.some(m => existsSync(path.join(p, m)))) push(p);
-  }
-  for (const f of FORCE_DIRS) {
+  // 2) 强制纳入的目录（settings.forceDirs）及其下的 git 子目录
+  for (const f of forceDirs) {
     push(f);
     for (const e of await safeReaddir(f)) {
       if (e.isDirectory() && existsSync(path.join(f, e.name, '.git'))) push(path.join(f, e.name));
     }
   }
-  for (const e of await safeReaddir('E:\\workspace')) {
-    if (e.isDirectory()) push(path.join('E:\\workspace', e.name));
+  // 3) 各盘符根目录里带项目标记的目录（通用：枚举已知盘符，不写死某个盘）
+  for (const drive of await listDrives()) {
+    const base = drive.root || (drive.name ? drive.name + ':\\' : '');
+    if (!base) continue;
+    for (const e of await safeReaddir(base)) {
+      if (!e.isDirectory()) continue;
+      if (/^\$|^Config\.Msi|^System Volume/.test(e.name) || D_ROOT_SKIP.has(e.name)) continue;
+      const p = path.join(base, e.name);
+      if (existsSync(path.join(p, '.git')) || PROJECT_MARKERS.some(m => existsSync(path.join(p, m)))) push(p);
+    }
   }
-  for (const e of await safeReaddir(path.join(HOME, 'AndroidStudioProjects'))) {
-    if (e.isDirectory()) push(path.join(HOME, 'AndroidStudioProjects', e.name));
+  // 4) 用户目录下的常见项目位置（通用）
+  for (const sub of ['AndroidStudioProjects', 'Projects', 'projects', 'code', 'Code', 'workspace', 'Workspace']) {
+    const dir = path.join(HOME, sub);
+    for (const e of await safeReaddir(dir)) {
+      if (e.isDirectory()) push(path.join(dir, e.name));
+    }
   }
-  for (const p of (extraRoots || [])) push(String(p).trim());
+  // 5) 旧字段 extraRoots 兼容
+  for (const p of extraRoots) push(String(p).trim());
   return roots;
 }
 
@@ -371,24 +387,18 @@ async function openIn(p, mode) {
 
 /* ---------- 主扫描流程 ---------- */
 
-const LINK_PATHS = [
+// 快捷入口：默认只有用户目录（通用）；额外的快捷方式从 settings.links 配置（不写死在源码里）
+const DEFAULT_LINKS = [
   { name: '桌面', path: path.join(HOME, 'Desktop') },
   { name: '文档', path: path.join(HOME, 'Documents') },
-  { name: '下载', path: path.join(HOME, 'Downloads') },
-  { name: 'D:\\code 项目群', path: 'D:\\code' },
-  { name: 'TclLauncher 主仓库', path: 'D:\\TclLauncher' },
-  { name: 'CLAUNCER2 工作区', path: 'D:\\CLAUNCER2' },
-  { name: 'D:\\tools 工具', path: 'D:\\tools' },
-  { name: 'D:\\download 下载', path: 'D:\\download' },
-  { name: '归档整理_20261105', path: 'D:\\归档整理_20261105' },
-  { name: 'E:\\workspace', path: 'E:\\workspace' },
-  { name: 'E:\\launcher_hprof 内存分析', path: 'E:\\launcher_hprof' },
-  { name: 'E:\\android-development-docs', path: 'E:\\android-development-docs' },
-  { name: 'E:\\WorkBuddy Worksapace 日报', path: 'E:\\WorkBuddy Worksapace' },
-  { name: 'F:\\TCL_Layout_Toolv0.6', path: 'F:\\TCL_Layout_Toolv0.6' },
-  { name: 'F:\\CDriveData C盘迁移数据', path: 'F:\\CDriveData' },
-  { name: 'C:\\TCL', path: 'C:\\TCL' }
+  { name: '下载', path: path.join(HOME, 'Downloads') }
 ];
+function linksOf(opts) {
+  const extra = opts && opts.links;
+  return DEFAULT_LINKS.concat(Array.isArray(extra)
+    ? extra.filter(x => x && typeof x.path === 'string' && typeof x.name === 'string')
+    : []);
+}
 
 async function runScan(opts = {}, onProgress = () => {}) {
   const t0 = Date.now();
@@ -398,7 +408,7 @@ async function runScan(opts = {}, onProgress = () => {}) {
   const drives = await listDrives();
 
   prog('projects', 0, 0, '发现项目根');
-  const roots = await discoverRoots(opts.extraRoots);
+  const roots = await discoverRoots(opts);
   prog('projects', 0, roots.length, '开始');
   const projects = [];
   let doneN = 0;
@@ -448,20 +458,14 @@ async function runScan(opts = {}, onProgress = () => {}) {
   await addFiles(recent, path.join(HOME, 'Documents'), 1);
   await addFiles(recent, path.join(HOME, 'Downloads'), 0);
   // v1.7.32：旧代码 levels=1 只收项目**根目录**文件（README/package.json），
-  //   看不到 src\ 内层源码（本机真实最近改的 D:\code\usou\workbench-electron\src\scanner.js
+  //   看不到 src\ 内层源码（本机真实最近改的 某工作区\workbench-electron\src\scanner.js
   //   藏在第 3 层，旧逻辑与新 levels=2 都够不到），且来源只剩 3 个项目。
   //   改为对基础根深度 4（实测 16232 文件 ~1.5s）+ 项目根深度 4 补扫 33 个外部项目；
   //   addFiles 已跳过 SIZE_EXCLUDE + 临时目录，Top-60 按 mtime 取最新。
-  await addFiles(recent, 'D:\\code', 4);
-  await addFiles(recent, 'E:\\workspace', 4);
-  const recentSeen = new Set(['D:\\code', 'E:\\workspace']);
-  for (const pr of projects.map(p => p.path)) {
-    if (!pr || typeof pr !== 'string' || recentSeen.has(pr)) continue;
-    // 跳过基础根之下的项目（已被上面的深度4遍历覆盖）
-    if (['D:\\code', 'E:\\workspace'].some(s => pr === s || pr.startsWith(s + '\\') || pr.startsWith(s + '/'))) continue;
-    recentSeen.add(pr);
-    await addFiles(recent, pr, 4);
-  }
+  // 遍历所有已发现的项目根（去重后只扫最外层），不硬编码任何机器目录。
+  const recentRoots = projects.map(p => p.path).filter(p => typeof p === 'string' && p);
+  const recentOuter = recentRoots.filter(p => !recentRoots.some(q => q !== p && p.startsWith(q.endsWith('\\') ? q : q + '\\')));
+  for (const r of recentOuter) await addFiles(recent, r, 4);
   recent.sort((a, b) => b.mtime.localeCompare(a.mtime));
   recent.length = Math.min(recent.length, 60);
 
@@ -480,7 +484,7 @@ async function runScan(opts = {}, onProgress = () => {}) {
   }
 
   const aiTools = AI_CANDIDATES.filter(a => existsSync(path.join(HOME, a)));
-  const links = LINK_PATHS.filter(l => existsSync(l.path)).map(l => ({ name: l.name, path: l.path }));
+  const links = linksOf(opts).filter(l => existsSync(l.path)).map(l => ({ name: l.name, path: l.path }));
 
   const meta = {
     host: os.hostname(),

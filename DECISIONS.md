@@ -3157,3 +3157,11 @@ D:\code\usou\workbench-electron\out\
  > **规模**：app.js 1983 → **1698 行**（相对最初 3249 行减少 48%）；renderer/ 现有 7 个平铺 JS：contrast 135 / format 35 / history 102 / brief 287 / search 115 / qa 979 / app 1698。
  > **实证（CDP）**：7 脚本顺序加载、简报函数全局可见、buildBrief 输出 9 条正确；6 个依赖简报的 QA 钩子中 weekqa/briefsync/deadbriefqa/actrootqa/timeqa 全 PASS，dayqa 单独跑也 PASS（多钩子并发时取证行互相冲掉是已知现象，第 36 轮记录过）；六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push（本地 65 → 66，远端 59 不动）。
+
+ # 第七十九轮：抽出可视化渲染为平铺 visual.js（app.js 降至 1607 行）
+
+ > **选题依据**：用户要求继续迭代、代码组织是重点；app.js 里「机器脉搏」（canvas 采样绘制）+「编码热力图」（DOM 网格）是两个内聚的可视化块（约 90 行），依赖 cssVar/window.wb/DATA/esc 均在调用时延迟访问。
+ > **做法**：抽到平铺文件 `renderer/visual.js`（不建子目录/package），在 app.js 前加载、全局可见；init/渲染调用点零改动。index.html 加载 8 脚本；verify-delivery 清单同步。
+ > **规模**：app.js 1698 → **1607 行**（相对最初 3249 行减少 51%）；renderer/ 现有 8 个平铺 JS：contrast 135 / format 35 / history 102 / brief 287 / visual 94 / search 115 / qa 979 / app 1607。
+ > **实证（CDP）**：8 脚本顺序加载、drawPulse/heatCard/bindPulse/PULSE 全局可见；PULSE 采样 55 个且 started=true；heatCard 输出 95 个格子（90 天 + 图例）；canvas 397x98 正常；六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push（本地 66 → 67，远端 59 不动）。

@@ -3420,3 +3420,8 @@ D:\code\usou\workbench-electron\out\
  > **做法**：① main.js 新增 `data:peek` IPC（showOpenDialog 选文件 → 读 JSON → 校验 format/version → 返回摘要：项目数/快照数/导出时间/是否含设置，**零写入**）；② data:import 改为接受可选 file 参数（peek 后带文件路径执行，避免二次选择）；③ preload 暴露 dataPeek；④ interaction.js 的 dataImport 流程改为「先 peek → 确认框显示摘要 → 确认后带 file 导入」。
  > **实证**：CDP 确认 dataPeek/dataImport 均暴露、导入按钮在位、16 脚本加载；隔离环境测核心逻辑——正常备份解析出 3 项目/2 快照/导出时间/含设置、错误格式拒绝、目录零写入（未产生任何数据文件）。六视图审计 failCount 0 / min 4.73。
  > **交付**：v1.7.44 本地重建（清理 1.7.43 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。
+
+ # 第一百一十八轮：打包版 asar 验证新 data:peek IPC（QA 深化 · 证伪轮）
+
+ > **选题依据**：造活源第 3 项——第 117 轮新增 data:peek 并改了 data:import 签名（接受 file 参数），打包版 asar 环境未测。
+ > **实证（CDP 连打包版 v1.7.44）**：16 脚本全部加载、window.wb.dataPeek / dataImport / dataExport 三个函数均为 function、设置页导入按钮存在、六视图导航 6 按钮。新 IPC 与签名变更正确打进 asar，无环境差异。无缺陷（data:peek 核心逻辑已在第 117 轮隔离环境实测）。

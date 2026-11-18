@@ -36,14 +36,18 @@ function doAct(act, p) {
       } catch (e) { toast('导出失败：' + String((e && e.message) || e), 'err'); }
     })(); break;
     case 'dataImport': (async () => {
-      const ok = typeof window.confirm === 'function'
-        ? window.confirm('导入备份会覆盖当前的扫描数据/历史/设置（覆盖前会自动备份现有数据）。确定继续吗？')
-        : true;
-      if (!ok) return;
       try {
-        const r = await window.wb.dataImport();
+        const pv = await window.wb.dataPeek();
+        if (!pv || pv.canceled) return;
+        if (!pv.ok) { toast('备份校验失败：' + ((pv && pv.reason) || '未知'), 'err'); return; }
+        const when = String(pv.exportedAt || '').slice(0, 19).replace('T', ' ') || '(未记录)';
+        const msg = '备份摘要：\n· ' + pv.projects + ' 个项目\n· ' + pv.history + ' 条历史快照\n' +
+          '· 导出时间：' + when + '\n· 设置：' + (pv.hasSettings ? '包含' : '不含') +
+          '\n\n导入会覆盖当前数据（覆盖前自动备份现有数据）。确定继续吗？';
+        if (typeof window.confirm === 'function' && !window.confirm(msg)) return;
+        const r = await window.wb.dataImport(pv.file);
         if (r && r.canceled) return;
-        toast(r && r.ok ? ('已导入 ' + r.projects + ' 项目，重启应用后生效（旧数据已备份 .preimport-' + r.backupTag + '）') : ('导入失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
+        toast(r && r.ok ? ('已导入 ' + r.projects + ' 项目，重启后生效（旧数据已备份 .preimport-' + r.backupTag + '）') : ('导入失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
       } catch (e) { toast('导入失败：' + String((e && e.message) || e), 'err'); }
     })(); break;
     case 'theme:set': setTheme(p); break;

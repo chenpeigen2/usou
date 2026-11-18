@@ -790,16 +790,47 @@ ipcMain.handle('data:export', () => {
   }
 });
 
-/* v1.7.41：导入数据备份——选 JSON → 校验格式 → 先备份现有数据 → 写入。保守：版本不符/格式错一律拒绝。 */
-ipcMain.handle('data:import', async () => {
+/* v1.7.44：导入前预览——选文件、读摘要、校验格式，但不写入任何数据。 */
+ipcMain.handle('data:peek', async () => {
   try {
     const win = BrowserWindow.getFocusedWindow();
     const r = await dialog.showOpenDialog(win, {
-      title: '选择工作台数据备份 JSON', filters: [{ name: 'JSON 备份', extensions: ['json'] }],
+      title: '选择要预览的工作台备份 JSON', filters: [{ name: 'JSON 备份', extensions: ['json'] }],
       properties: ['openFile']
     });
     if (r.canceled || !r.filePaths.length) return { ok: false, canceled: true };
     const file = r.filePaths[0];
+    const obj = JSON.parse(fs.readFileSync(file, 'utf8'));
+    if (!obj || obj.format !== 'usou-workbench-backup' || Number(obj.version) !== 1) {
+      return { ok: false, reason: '备份格式/版本不匹配（需 usou-workbench-backup v1）', file };
+    }
+    if (!obj.scan || !Array.isArray(obj.scan.projects)) return { ok: false, reason: '备份缺少扫描数据', file };
+    return {
+      ok: true, file,
+      projects: (obj.scan.projects || []).length,
+      history: Array.isArray(obj.history) ? obj.history.length : 0,
+      exportedAt: obj.exportedAt || '(未记录)',
+      hasSettings: !!(obj.settings && typeof obj.settings === 'object')
+    };
+  } catch (e) {
+    log('data:peek ERROR ' + ((e && e.stack) || e));
+    return { ok: false, reason: String((e && e.message) || e) };
+  }
+});
+
+/* v1.7.41：导入数据备份——选 JSON → 校验格式 → 先备份现有数据 → 写入。保守：版本不符/格式错一律拒绝。 */
+ipcMain.handle('data:import', async (_e, chosenFile) => {
+  try {
+    let file = chosenFile;
+    if (!file) {
+      const win = BrowserWindow.getFocusedWindow();
+      const r = await dialog.showOpenDialog(win, {
+        title: '选择工作台数据备份 JSON', filters: [{ name: 'JSON 备份', extensions: ['json'] }],
+        properties: ['openFile']
+      });
+      if (r.canceled || !r.filePaths.length) return { ok: false, canceled: true };
+      file = r.filePaths[0];
+    }
     const obj = JSON.parse(fs.readFileSync(file, 'utf8'));
     if (!obj || obj.format !== 'usou-workbench-backup' || Number(obj.version) !== 1) {
       return { ok: false, reason: '备份格式/版本不匹配（需 usou-workbench-backup v1）' };

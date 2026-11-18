@@ -3413,3 +3413,10 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 1 项「深度巡检」换系统性角度——枚举六视图所有 `data-act` 交互（30 个），与 doAct 的 case 分支（29 个）交叉比对，找「按钮存在但没接线（点了没反应）」的残留缺陷。
  > **实证（CDP 逐视图枚举）**：overview 8 种 / projects 8 / recent 3 / disk 4 / system 1 / settings 6，全部 data-act 都在 doAct 有对应 case（overview: brief:copy/export/weekly:export/detail/goto/open/brief:bysize/show；projects: typefilter/compare:open/fav/open/vscode/term/detail/copy；recent: recent:deadonly/open/show；disk: drill/open/analyze/reforce；system: open；settings: theme:set/saveSettings/scan/dataExport/dataImport/clearScanErrors）。doAct 另有 compare:run/dirsdrill/dirsup/git/redirs 供弹窗内部使用。零漏接，无缺陷。
+
+ # 第一百一十七轮：新功能「导入备份前预览摘要」（data:peek IPC）
+
+ > **选题依据**：造活源第 6 项「新功能」——第 101 轮的导入功能只有一句模糊确认「覆盖当前数据，确定吗？」，用户看不到要导入的备份内容（几个项目、何时导出），数据安全场景的实质 UX 缺口。
+ > **做法**：① main.js 新增 `data:peek` IPC（showOpenDialog 选文件 → 读 JSON → 校验 format/version → 返回摘要：项目数/快照数/导出时间/是否含设置，**零写入**）；② data:import 改为接受可选 file 参数（peek 后带文件路径执行，避免二次选择）；③ preload 暴露 dataPeek；④ interaction.js 的 dataImport 流程改为「先 peek → 确认框显示摘要 → 确认后带 file 导入」。
+ > **实证**：CDP 确认 dataPeek/dataImport 均暴露、导入按钮在位、16 脚本加载；隔离环境测核心逻辑——正常备份解析出 3 项目/2 快照/导出时间/含设置、错误格式拒绝、目录零写入（未产生任何数据文件）。六视图审计 failCount 0 / min 4.73。
+ > **交付**：v1.7.44 本地重建（清理 1.7.43 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

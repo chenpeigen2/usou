@@ -3425,3 +3425,10 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 3 项——第 117 轮新增 data:peek 并改了 data:import 签名（接受 file 参数），打包版 asar 环境未测。
  > **实证（CDP 连打包版 v1.7.44）**：16 脚本全部加载、window.wb.dataPeek / dataImport / dataExport 三个函数均为 function、设置页导入按钮存在、六视图导航 6 按钮。新 IPC 与签名变更正确打进 asar，无环境差异。无缺陷（data:peek 核心逻辑已在第 117 轮隔离环境实测）。
+
+ # 第一百一十九轮：新功能「项目对比结果导出/复制 Markdown」
+
+ > **选题依据**：造活源第 6 项「新功能」——第 76 轮的项目对比视图只能看弹窗，关掉就没了，无法留档/分享。
+ > **做法**：detail.js 加纯函数 compareMarkdown(pa,pb,rows)（所有动态文本经 mdEsc 转义、差异项加粗）、全局 lastCompare 缓存、runCompare 结果区加「📋 复制 / 💾 导出 Markdown」按钮；interaction.js 加 compare:copy/compare:export 两个 case；复用既有 brief:export IPC（prefix 白名单已支持中文「项目对比」），零新增 IPC。
+ > **实证（CDP）**：三个新函数全局可见、50 项目下拉、执行对比得 9 行、两个按钮在位、Markdown 输出正确（标题/数据截至/9 行表格/差异加粗）。六视图审计 failCount 0 / min 4.73。
+ > **交付**：v1.7.45 本地重建（清理 1.7.44 旧产物）、4 进程、verify-delivery 12 项全 PASS。只 commit 不 push。

@@ -53,6 +53,8 @@ function doAct(act, p) {
     case 'theme:set': setTheme(p); break;
     case 'compare:open': openCompare(); break;
     case 'compare:run': runCompare(); break;
+    case 'compare:copy': copyCompare(); break;
+    case 'compare:export': exportCompare(); break;
   }
 }
 

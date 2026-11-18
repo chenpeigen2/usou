@@ -61,6 +61,42 @@ function compareHtml(rows) {
       cell(r.va, r.diff) + cell(r.vb, r.diff) + '</tr>').join('') +
     '</tbody></table></div>';
 }
+/* v1.7.45：对比结果导出为 Markdown（纯函数，所有动态文本经 mdEsc 转义）。 */
+let lastCompare = null;
+function compareMarkdown(pa, pb, rows) {
+  const m = v => mdEsc(String(v == null || v === '' ? '—' : v));
+  const stamp = String((DATA && DATA.meta && DATA.meta.scanTime) || new Date().toISOString()).slice(0, 19).replace('T', ' ');
+  const lines = [
+    '# 项目对比：' + m(pa && pa.name) + ' vs ' + m(pb && pb.name),
+    '',
+    '> 数据截至 ' + m(stamp) + ' · 工作台导出',
+    '',
+    '| 对比项 | 项目 A：' + m(pa && pa.name) + ' | 项目 B：' + m(pb && pb.name) + ' |',
+    '|---|---|---|'
+  ];
+  (rows || []).forEach(r => {
+    const mark = t => r.diff ? '**' + m(t) + '**' : m(t);
+    lines.push('| ' + m(r.label) + ' | ' + mark(r.va) + ' | ' + mark(r.vb) + ' |');
+  });
+  lines.push('', '> ** 加粗表示该项两项目存在差异。');
+  return lines.join('\n');
+}
+async function copyCompare() {
+  if (!lastCompare) { toast('请先执行一次对比', 'err'); return; }
+  const md = compareMarkdown(lastCompare.pa, lastCompare.pb, lastCompare.rows);
+  try {
+    await navigator.clipboard.writeText(md);
+    toast('对比结果已复制（Markdown）', 'ok');
+  } catch (e) { toast('复制失败：' + String((e && e.message) || e), 'err'); }
+}
+async function exportCompare() {
+  if (!lastCompare) { toast('请先执行一次对比', 'err'); return; }
+  const md = compareMarkdown(lastCompare.pa, lastCompare.pb, lastCompare.rows);
+  try {
+    const r = await window.wb.briefExport(md, '项目对比');
+    toast(r && r.ok ? ('已导出：' + r.path.split(/[\\/]/).pop()) : ('导出失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
+  } catch (e) { toast('导出失败：' + String((e && e.message) || e), 'err'); }
+}
 
 async function openCompare() {
   const projects = ((DATA && DATA.projects) || []).filter(p => p && p.isGit);
@@ -106,10 +142,14 @@ async function runCompare() {
   const pa = plist.find(x => x && x.path === a) || { name: shortPath(a), path: a };
   const pb = plist.find(x => x && x.path === b) || { name: shortPath(b), path: b };
   const rows = compareRows(pa, pb, da, db);
+  lastCompare = { pa: pa, pb: pb, rows: rows };
   const errNote = (da && da.__error) || (db && db.__error)
     ? '<div class="small muted" style="margin-bottom:6px;color:var(--amber)">部分项目详情读取失败，缺失项已用快照数据 / — 兜底。</div>'
     : '';
-  res.innerHTML = errNote + compareHtml(rows);
+  const actions = '<div class="btnrow" style="margin-top:10px">' +
+    '<button class="btn ghost" data-act="compare:copy">📋 复制</button>' +
+    '<button class="btn ghost" data-act="compare:export">💾 导出 Markdown</button></div>';
+  res.innerHTML = errNote + compareHtml(rows) + actions;
 }
 
 function dirsUp() {

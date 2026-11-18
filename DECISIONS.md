@@ -3227,3 +3227,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：15 脚本全部加载、6 个关键函数全局可见、六视图全部渲染（overview 22953 / projects 63836 / recent 30265 / disk 2351 / system 16072 / settings 3124 chars）、导航 6 按钮；六视图审计 failCount 0 / min 4.64。
  > **探针纠错**：测试中 `partitionDead(...).map` 报 TypeError 是探针误用——该函数签名为 `partitionDead(list, deadSet)`、返回 `{live,dead}` 对象而非数组，非产品缺陷（按 QA 探针范式第 1 条自查确认）。
  > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 15 个平铺 JS（app.js 22 行入口）。只 commit 不 push。
+
+ # 第八十八轮：抽项目+最近列表视图为平铺 lists.js（views.js 267→108 行）
+
+ > **选题依据**：自驱造活源第 2 项「代码组织」——views.js 剩 267 行，项目+最近列表视图（158 行）是独立内聚块。
+ > **做法**：抽到平铺 `renderer/lists.js`（renderProjects/renderRecent + 类型 chip/排序/搜索），在 app.js 前加载、全局可见。
+ > **实证（CDP）**：16 脚本全部加载、六视图渲染全正常、项目视图 59 行 + 7 个 chipbtn（筛选文案完整：全部 59/未提交 3/Web 20 等）、导航 6 按钮；六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：PROJ_CHIPS 用 `.chip` 选择器得 0 是探针错误——实际用 `.chipbtn`（7 个），非产品缺陷（QA 探针范式自查）。
+ > **交付**：v1.7.40 本地重建、4 进程、verify-delivery 12 项全 PASS。renderer/ 现有 16 个平铺 JS（app.js 22 行入口，views.js 108 行仅剩渲染分发+空间分析）。只 commit 不 push。

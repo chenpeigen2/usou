@@ -178,7 +178,7 @@ function autoCheckHtml() {
 
 function renderSettings() {
   $('#view').innerHTML = '<div class="viewwrap">' +
-    '<h2>行为</h2>' +
+    '<h2>行为<span style="margin-left:12px"><button class="chipbtn" data-act="shortcutHelp">⌨ 快捷键 ( ? )</button></span></h2>' +
     '<label class="ckrow"><input type="checkbox" id="ck-tray"' + (SETTINGS.trayMinimize ? ' checked' : '') + '> 关闭按钮最小化到托盘</label>' +
     '<label class="ckrow"><input type="checkbox" id="ck-login"' + (LOGINITEM ? ' checked' : '') + '> 开机自动启动工作台</label>' +
     '<h2>外观<span class="sub">切换即时生效，并跨重启保留</span></h2>' +

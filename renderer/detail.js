@@ -301,6 +301,25 @@ async function bulkTagRun() {
   closeModal(); render();
   toast('已给 ' + selPaths.size + ' 个项目添加标签', 'ok');
 }
+/* v1.7.65：快捷键速查（按 ? 唤起，输入框内不触发） */
+function openShortcutHelp() {
+  const rows = [
+    ['Ctrl + K', '打开/关闭命令面板（万物直达）'],
+    ['↑ / ↓', '命令面板中上下选择'],
+    ['Enter', '执行命令面板选中项'],
+    ['Esc', '关闭弹窗 / 关闭命令面板'],
+    ['F5', '全量重扫项目数据'],
+    ['?', '显示本快捷键帮助'],
+    ['Tab', '在按钮/输入框间移动焦点（键盘导航）']
+  ];
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>⌨ 快捷键速查</h3></div>' +
+    '<div class="shortcut-list">' + rows.map(([k, d]) =>
+      '<div class="shortcut-row"><kbd>' + esc(k) + '</kbd><span>' + esc(d) + '</span></div>').join('') + '</div>' +
+    '<div class="hint small" style="margin-top:10px">命令面板还可搜「动作：」执行导出周报/复制简报/导出备份等。</div>'
+  );
+}
 function dirsUp() {
   if (!currentDetail || currentDetail.stack.length <= 1) return;
   currentDetail.stack.pop();

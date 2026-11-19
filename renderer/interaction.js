@@ -37,6 +37,7 @@ function doAct(act, p) {
     case 'bulkTagRun': bulkTagRun(); break;
     case 'bulkClear': selPaths.clear(); render(); break;
     case 'mruClear': clearMRU(); break;
+    case 'shortcutHelp': openShortcutHelp(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'recent:group': recentGrouped = !recentGrouped; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
@@ -121,6 +122,13 @@ function bindDelegation() {
     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
       e.preventDefault();
       togglePal();
+    }
+    // v1.7.65：? 显示快捷键帮助（输入框内不触发，避免打字误弹）
+    if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+      e.preventDefault();
+      openShortcutHelp();
     }
   });
 }

@@ -3683,3 +3683,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：state.js 加 clearMRU()（清空 MRU + saveSettings 落盘）；命令面板加「清除最近打开」动作；设置页按钮行加「🧹 清除最近打开」按钮；interaction.js 加 mruClear case。零新增 IPC。
  > **实证（CDP）**：清除前 MRU=2 → 清除后 0、磁盘 recentOpened=[]、命令面板动作可搜到、设置页按钮在位。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.64 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十七轮：新功能「快捷键速查」（连续第 13 个功能轮）
+
+ > **选题依据**：用户「想新功能」——软件有 Ctrl+K/F5/Esc/? 等快捷键但用户不知道，可发现性差（呼应第 96 轮无障碍工作）。按 `?` 显示速查弹窗。
+ > **做法**：interaction.js 的 document keydown 加 `?` 处理（排除输入框避免打字误弹）；detail.js 加 openShortcutHelp()（复用 openModal，7 条快捷键）；设置页「行为」标题加快捷键按钮；style.css 加 .shortcut-* 样式。零新增 IPC。
+ > **实证（CDP）**：设置页按钮在位、按 ? 打开弹窗、7 条快捷键正确显示（Ctrl+K/↑↓/Enter/Esc/F5/?/Tab）、输入框内按 ? 不误弹窗。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.65 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

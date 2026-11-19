@@ -23,7 +23,7 @@ function doAct(act, p) {
     case 'weekly:export': exportWeekly(); break;
     case 'fav': toggleFav(p); break;
     case 'typefilter': filterType = p; render(); break;
-    case 'tagfilter': tagFilter = (tagFilter === p ? '' : p); render(); break;
+    case 'tagfilter': tagFilter = (tagFilter === p ? '' : p); if (view !== 'projects') setView('projects'); else render(); break;
     case 'tagedit': openTagEditor(p); break;
     case 'tagsave': saveTagEditor(p); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
@@ -66,7 +66,7 @@ function bindDelegation() {
     const b = e.target.closest('[data-act]');
     if (!b) return;
     const a = b.dataset.act;
-    if (a === 'typefilter') doAct(a, b.dataset.t);
+    if (a === 'typefilter' || a === 'tagfilter') doAct(a, b.dataset.t);
     else if (a === 'scan') doAct(a, b.dataset.fast || b.dataset.p);
     else doAct(a, b.dataset.p);
   });

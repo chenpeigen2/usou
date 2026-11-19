@@ -71,6 +71,17 @@ function renderOverview() {
     '<div class="link-grid">' + (DATA.links || []).map(l =>
       '<div class="lcard" data-act="open" data-p="' + esc(l.path) + '"><span>📁 ' + esc(l.name) + '</span><span class="p">' + esc(l.path) + '</span></div>').join('') +
     '</div></div>' +
+    (function () {
+      const names = typeof allTagNames === 'function' ? allTagNames() : [];
+      if (!names.length) return '';
+      const counts = {};
+      Object.keys(PROJ_TAGS || {}).forEach(p => (PROJ_TAGS[p].tags || []).forEach(t => { counts[t] = (counts[t] || 0) + 1; }));
+      const taggedN = Object.keys(PROJ_TAGS || {}).length;
+      return '<div class="b b-tags"><div class="b-sec-t"><span>🏷 标签速览 <span class="muted small">' + taggedN + ' 个项目</span></span></div>' +
+        '<div class="chips">' + names.map(t =>
+          '<button class="chipbtn" data-act="tagfilter" data-t="' + esc(t) + '">' + esc(t) + ' <b>' + counts[t] + '</b></button>').join('') +
+        '</div><div class="hint small">点击标签 → 跳转项目视图并筛选</div></div>';
+    })() +
 
     '</div></div>';
 

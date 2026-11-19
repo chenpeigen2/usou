@@ -3604,3 +3604,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：projectTimeline 对 3d娃娃 返回 7 条（兼容旧 name-key 和新 path-key 混合快照）；干净实例打开详情弹窗显示「历史轨迹」区块 + 7 行 tl-row。六视图审计 failCount 0 / min 4.64。
  > **探针纠错**：首测弹窗卡「读取项目详情…」是测试实例残留 detailSeq 竞态（多次 openProject），非产品 bug；干净实例验证正常。
  > **交付**：v1.7.54 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百四十七轮：新功能「标签速览卡」+ 修复标签 chip 点击不生效（连续第 3 个功能轮）
+
+ > **选题依据**：用户「想新功能」——标签系统缺"回顾入口"：用户标记了哪些项目、写了什么，要逐个点开看。补总览标签速览卡，点击标签跳转项目视图并筛选，补齐标签系统闭环。
+ > **做法**：overview.js 快速入口后加「🏷 标签速览」卡（仅当有标签时显示，列出各标签+项目数）；点击 tag chip → doAct('tagfilter', t) → 跳项目视图 + 按标签筛选；style.css 加 .b-tags 样式。
+ > **真实 bug 修复（本轮实证发现）**：interaction.js 事件委托 L69 只对 typefilter 传 dataset.t，tagfilter 走 else 分支传 dataset.p（空）⇒ **项目行标签 chip 真实点击一直是坏的**（此前测试用直接设变量绕过）。本轮改为 `if (a==='typefilter'||a==='tagfilter') doAct(a, b.dataset.t)`，两处 chip 同时修好。
+ > **实证（CDP）**：打标签后总览显示标签速览卡（chip「速览测试 1」）、点击后 view=projects / tagFilter=速览测试 / 列表 69→1 行。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.55 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

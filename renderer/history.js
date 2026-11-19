@@ -31,6 +31,38 @@ function timelineHtml(pts) {
       '<span class="tl-s">' + esc(fmtMB(x.sizeMB)) + '</span></div>';
   }).join('') + '</div>';
 }
+/* v1.7.57：任意两次快照的完整对比（供系统页「对比快照」弹窗）。
+   返回 {added:[], removed:[], changed:[], same:[]}，每项 {name,dirty,sizeMB}。
+   复用 normHistoryProjects 归一化新旧格式，按 path（无则 name:）做键。 */
+function snapshotDiff(h1, h2) {
+  const a = normHistoryProjects(h1), b = normHistoryProjects(h2);
+  const cur = (DATA && DATA.projects) || [];
+  // 桥接：旧 name-key（无 path）项若在当前项目里唯一同名，映射到其 path —— 否则同一项目会
+  // 被算作「新增+移除」而非「变更」（第 29 轮混合格式问题的延续）。零个/多个同名保持 name: 键，绝不误指。
+  const keyOf = (k, e) => {
+    if (e && e.path) return e.path;
+    const nm = (e && e.name) || k;
+    const same = cur.filter(p => p && p.name === nm && p.path);
+    return same.length === 1 ? same[0].path : ('name:' + nm);
+  };
+  const ma = {}, mb = {};
+  Object.keys(a).forEach(k => { ma[keyOf(k, a[k])] = a[k]; });
+  Object.keys(b).forEach(k => { mb[keyOf(k, b[k])] = b[k]; });
+  const item = e => ({ name: e.name || '(未命名)', dirty: e.dirty || 0, sizeMB: e.sizeMB || 0 });
+  const added = [], removed = [], changed = [], same = [];
+  Object.keys(mb).forEach(k => {
+    if (!ma[k]) added.push(item(mb[k]));
+    else {
+      const x = ma[k], y = mb[k];
+      if ((x.dirty || 0) !== (y.dirty || 0) || Math.abs((x.sizeMB || 0) - (y.sizeMB || 0)) > 0.1) {
+        changed.push({ name: y.name || x.name, d0: x.dirty || 0, d1: y.dirty || 0, s0: x.sizeMB || 0, s1: y.sizeMB || 0 });
+      } else same.push(item(y));
+    }
+  });
+  Object.keys(ma).forEach(k => { if (!mb[k]) removed.push(item(ma[k])); });
+  const srt = (x, y) => String(x.name).localeCompare(String(y.name), 'zh-Hans-CN');
+  return { added: added.sort(srt), removed: removed.sort(srt), changed: changed.sort(srt), same: same.sort(srt) };
+}
 function normHistoryProjects(h) {
   const out = {};
   const projects = (h && h.projects) || {};

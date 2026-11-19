@@ -29,6 +29,8 @@ function doAct(act, p) {
     case 'tagManage': openTagManager(); break;
     case 'tagRename': renameTag(p); break;
     case 'tagDelete': deleteTag(p); break;
+    case 'snapDiff': openSnapDiff(); break;
+    case 'snapDiffRun': runSnapDiff(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
     case 'analyze': startAnalyze(); break;

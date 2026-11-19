@@ -4,7 +4,8 @@
 function renderSystem() {
   const m = DATA.meta;
   $('#view').innerHTML = '<div class="viewwrap">' +
-    '<h2>扫描历史趋势<span class="sub">共 ' + HISTORY.length + ' 次扫描快照 · 展示未提交文件总量与项目数变化</span></h2>' +
+    '<h2>扫描历史趋势<span class="sub">共 ' + HISTORY.length + ' 次扫描快照 · 展示未提交文件总量与项目数变化</span>' +
+    (HISTORY.length >= 2 ? '<button class="btn ghost" style="margin-left:12px" data-act="snapDiff">⚖ 对比快照</button>' : '') + '</h2>' +
     historyTrendHtml() +
     '<h2>开发工具链</h2><table class="sys"><tr><th style="width:90px">工具</th><th style="width:320px">版本</th><th>路径</th></tr>' +
     (DATA.tools || []).map(t => '<tr><td><b>' + esc(t.name) + '</b></td><td>' + esc(t.version) + '</td><td class="muted small mono">' + esc(t.path) + '</td></tr>').join('') + '</table>' +

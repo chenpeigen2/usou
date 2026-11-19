@@ -225,6 +225,42 @@ async function deleteTag(t) {
   openTagManager(); render();
   toast('标签「' + t + '」已删除', 'ok');
 }
+/* v1.7.57：快照对比弹窗（选两次扫描，看新增/移除/变更项目） */
+function openSnapDiff() {
+  const opts = (HISTORY || []).map((h, i) =>
+    '<option value="' + i + '">' + esc(String(h.time || '快照 ' + i).slice(0, 19)) + '</option>').join('');
+  if ((HISTORY || []).length < 2) { toast('至少需要 2 次扫描快照', 'err'); return; }
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>⚖ 对比快照</h3></div>' +
+    '<div class="hint" style="margin-bottom:10px">选两次扫描快照，对比项目的新增/移除与未提交数、体量变化。</div>' +
+    '<div class="cmp-picker" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:10px 0">' +
+    '<select id="snap-a">' + opts + '</select><span class="muted">→</span><select id="snap-b">' + opts + '</select>' +
+    '<button class="btool" data-act="snapDiffRun">对比</button></div>' +
+    '<div id="snap-result"></div>'
+  );
+  const a = $('#snap-a'), b = $('#snap-b');
+  if (a) a.value = '0';
+  if (b) b.value = String((HISTORY || []).length - 1);
+}
+function runSnapDiff() {
+  const res = $('#snap-result');
+  if (!res) return;
+  const ia = Number(($('#snap-a') || {}).value), ib = Number(($('#snap-b') || {}).value);
+  const A = (HISTORY || [])[ia], B = (HISTORY || [])[ib];
+  if (!A || !B) { res.innerHTML = '<div class="hint">请选择两个快照</div>'; return; }
+  const d = snapshotDiff(A, B);
+  const sec = (title, items, cls) => items.length
+    ? '<div class="sec"><h3>' + title + '（' + items.length + '）</h3><div class="chips">' +
+      items.map(x => '<span class="chip ' + (cls || '') + '">' + esc(x.name) +
+        (x.d1 != null ? ' · ' + x.d0 + '→<b>' + x.d1 + '</b> 未提交' : '') + '</span>').join('') + '</div></div>'
+    : '';
+  res.innerHTML =
+    '<div class="hint">从 ' + esc(String(A.time || '').slice(0, 19)) + ' → ' + esc(String(B.time || '').slice(0, 19)) +
+    ' · 新增 ' + d.added.length + ' / 移除 ' + d.removed.length + ' / 变更 ' + d.changed.length + ' / 未变 ' + d.same.length + '</div>' +
+    sec('🆕 新增', d.added) + sec('🗑 移除', d.removed, 'warn') + sec('🔄 有变化', d.changed) +
+    (d.changed.length ? '<div class="hint small">变更项括号内为「旧→新」未提交数。</div>' : '');
+}
 function dirsUp() {
   if (!currentDetail || currentDetail.stack.length <= 1) return;
   currentDetail.stack.pop();

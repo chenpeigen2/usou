@@ -3620,3 +3620,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：给 2 个项目打"旧标签"→管理弹窗显示 1 行(2 项目使用)→批量改名为"新标签"→两个项目 tags 都变为["新标签"]、allTagNames=["新标签"]。六视图审计 failCount 0 / min 4.64。
  > **健壮性**：重命名/删除用按钮 data-p 传标签名（不用全局 event），零副作用确认框。测试后恢复 settings（projectTags=none）。
  > **交付**：v1.7.56 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百四十九轮：新功能「快照对比」（连续第 5 个功能轮）
+
+ > **选题依据**：用户「想新功能」——history 有 7 次快照、系统页只有趋势折线，无法选两次快照看"哪些项目新增/移除/未提交数变化"。
+ > **做法**：① history.js 加纯函数 snapshotDiff(h1,h2)（复用 normHistoryProjects，返回 added/removed/changed/same，并按当前 DATA.projects 唯一同名桥接旧 name-key → path）；② system.js 趋势卡加「⚖ 对比快照」按钮；③ detail.js 加 openSnapDiff/runSnapDiff 弹窗（两个下拉选快照+结果分组）；④ interaction.js 加 snapDiff/snapDiffRun case。零新增 IPC。
+ > **实证（CDP）**：snapshotDiff 对相邻快照正确识别 added=17/removed=4/changed=23/same=29、变更样本真实（America 体量 1230.5→211.5、AsyncAnimator dirty 2→0）；弹窗按钮存在、14 个下拉选项、对比结果显示分组。六视图审计 failCount 0 / min 4.64。
+ > **真实数据问题修复**：首测对比第1→第7快照得 added=69/removed=54/changed=0——旧 name-key 与新 path-key 不桥接导致同一项目误判「新增+移除」；加唯一同名桥接后修正（第 29 轮混合格式问题在新功能里的延续）。
+ > **交付**：v1.7.57 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

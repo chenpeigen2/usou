@@ -3734,3 +3734,10 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：tb-status 有 data-act=rescan/title/cursor、文案保持「数据 20 小时前更新」、doAct 含 rescan 分支、对比度审计 fail=0。六视图审计 failCount 0 / min 4.64。
  > **治理修正**：STATE 本轮状态此前从 153 轮起因脆弱字符串替换连续 9 轮漂移——本轮起改用行首锚点正则（(?m)^- \*\*本轮状态\*\*：.*$），杜绝漂移。
  > **交付**：v1.7.71 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十四轮：新功能「项目视图★收藏一键筛选」（连续第 20 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——收藏有置顶/数字条/批量，但没有「只看收藏」筛选（69 个项目里快速找到置顶的几个）。与「已标记」筛选一致。
+ > **做法**：lists.js renderTypeChips 加「★收藏 N」chip、renderProjectList filter 加 `filterType==='★收藏'` 分支（复用 isFav）。
+ > **实证（CDP）**：收藏 1 个项目后 chip 显示「★收藏 1」、筛选后列表 69→1 行。测试后恢复 settings（favorites=[]）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.72 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

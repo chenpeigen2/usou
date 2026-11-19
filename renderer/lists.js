@@ -68,9 +68,11 @@ function renderTypeChips() {
   counts['已删除'] = projects.filter(p => PROJ_DEAD.has(p.path)).length;
   // v1.7.59：一键筛出所有带标签/备注的项目（无需逐个点标签）
   counts['已标记'] = Object.keys(PROJ_TAGS || {}).filter(p => projects.some(x => x.path === p)).length;
+  counts['★收藏'] = projects.filter(p => isFav(p.path)).length;
   const order = ['全部', '未提交'].concat(types);
   if (counts['已删除'] > 0) order.push('已删除');
   if (counts['已标记'] > 0) order.push('已标记');
+  if (counts['★收藏'] > 0) order.push('★收藏');
   $('#type-chips').innerHTML = order.map(t =>
     '<button class="chipbtn' + (t === filterType ? ' on' : '') + '" data-act="typefilter" data-t="' + esc(t) + '">' + esc(t) + ' ' + (counts[t] || 0) + '</button>').join('');
 }
@@ -99,6 +101,7 @@ function renderProjectList() {
     if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0) || PROJ_DEAD.has(p.path)) return false; }
     else if (filterType === '已删除') { if (!PROJ_DEAD.has(p.path)) return false; }
     else if (filterType === '已标记') { if (!(tagsOf(p.path).length || noteOf(p.path))) return false; }
+    else if (filterType === '★收藏') { if (!isFav(p.path)) return false; }
     else if (filterType !== '全部' && p.type !== filterType) return false;
     if (tagFilter && !tagsOf(p.path).includes(tagFilter)) return false;
     return hitSet.has(p);

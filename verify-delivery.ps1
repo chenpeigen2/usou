@@ -86,6 +86,14 @@ foreach ($sf in @($jsFiles) + @('scan.ps1','workbench.html','workbench.template.
   if ($m) { $machineHits += "$sf($($m.Count))" }
 }
 Check '源码无机器特异性硬编码' ($machineHits.Count -eq 0) ($(if ($machineHits.Count) { $machineHits -join ', ' } else { '' }))
+# v1.7.52：数据不变量硬门禁——第 109 轮嵌套体积重复计数类回归守卫
+$invScript = Join-Path $APP 'verify-invariants.js'
+if (Test-Path $invScript) {
+  $invOut = & node $invScript 2>&1
+  Check '数据不变量自证' ($LASTEXITCODE -eq 0) ((($invOut | Select-Object -Last 1) -join ''))
+} else {
+  Check '数据不变量自证' $false 'verify-invariants.js 缺失'
+}
 
 Write-Host ""
 if ($fail.Count -eq 0) {

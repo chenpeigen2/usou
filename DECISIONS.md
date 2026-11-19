@@ -3542,3 +3542,11 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 1 项「高疑点」——托盘菜单「立即扫描」（main.js L159）只传 extraRoots，疑似漏传第 81 轮新增的 scanRoots/forceDirs/links，导致托盘扫描与设置页「全量重扫」口径不一致。
  > **实证（读码）**：startScanRun（L526-536）内部 `const s=store.getSettings()` 并合并 scanRoots/forceDirs/links（L533-535），extraRoots 也 fallback 到 s.extraRoots（L532）⇒ 托盘扫描与设置页扫描行为完全一致，第 81 轮已考虑周全。无缺陷（L159 的 extraRoots 传参实为冗余，但属整洁问题无用户价值，不立项）。
  > **附带核对**：app.on('second-instance', showMainWindow)（L448）正确——第二实例启动会唤醒已有窗口；trayDeadDirtySet（L101）已剔除失效项目的未提交口径（第 60 轮修复）。均正常。
+
+ # 第一百三十七轮：门禁强化——数据不变量自证（14 项，自驱架构收尾）
+
+ > **选题依据**：造活源第 7 项「治理」+ 自驱架构自身质量——历轮真实缺陷（嵌套体积重复、刚刚前文案、竞态、窗口屏外）中，只有机器特异性有回归门禁；第 109 轮的高产手段「数据自证」未固化为守卫。
+ > **做法**：新增根目录平铺脚本 `verify-invariants.js`（零依赖、只读）——Node vm 独立加载 renderer/format.js 的 sizeTotals/projPathKey，对 scan-cache.json 做 6 项数学自证（raw≥unique / dup=raw-unique / count / nested≤count / 嵌套项有顶层父 / 路径边界 ab≠a 子目录）；verify-delivery.ps1 接入为第 14 项检查。
+ > **实证**：6 项不变量全过（raw=102288.4 / uniq=97724.9 / dup=4563.5 / nested=5 / count=69）；完整门禁 14 项全 PASS。
+ > **价值**：把「巡检要算不要只看」的方法论固化为自动化守卫——未来任何 iteration 若破坏体量去重口径，门禁立刻 FAIL，不必等人工巡检发现。这是自驱架构从「靠 agent 自觉」升级到「靠机器守卫」的关键一步。
+ > **交付**：v1.7.52 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

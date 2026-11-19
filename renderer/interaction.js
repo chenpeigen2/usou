@@ -37,6 +37,7 @@ function doAct(act, p) {
     case 'bulkTagRun': bulkTagRun(); break;
     case 'bulkClear': selPaths.clear(); render(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
+    case 'recent:group': recentGrouped = !recentGrouped; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
     case 'analyze': startAnalyze(); break;
     case 'reforce': { if (p) { const el = $('#an-path'); if (el) el.value = p; } startAnalyze(true); break; }

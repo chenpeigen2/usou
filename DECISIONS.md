@@ -3660,3 +3660,12 @@ D:\code\usou\workbench-electron\out\
  > **做法**：system.js 加纯函数 scanHealthHtml()（数据全来自已加载 DATA/PROJ_DEAD/HISTORY，零新增 IPC）——健康分 = 新鲜度30 + 体量覆盖30 + 存活率25 + 干净仓库15，分档 良好≥80 / 一般≥55 / 需关注；系统页顶部插入健康卡；style.css 加 .b-health/.hl-* 样式。
  > **实证（CDP）**：健康卡显示、健康分 87/100、4 条指标条、详情文案正确（19 小时/失效 0/未提交 8）、无 NaN/undefined。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.61 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十四轮：新功能「最近动态按项目分组」（连续第 10 个功能轮）
+
+ > **选题依据**：用户「想新功能」——最近视图 60 条平铺（按时间），想看"某项目最近改了哪些文件"只能搜索。加分组模式，一眼看到每个项目的最近改动。
+ > **做法**：state.js 加 recentGrouped 状态；lists.js 最近视图工具栏加「📁 按项目分组」切换按钮，renderRecentList 分组时按 dir 聚合（每组标题+项数，按项数降序）；interaction.js 加 recent:group case；style.css 加 .rgroup/.rgroup-h 样式。零新增 IPC。
+ > **实证（CDP）**：按钮存在、开启后 16 个分组（Top1 app-launcher/changes 11 项、usou/renderer 6 项）、60 条记录全保留。六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：首测用 `[data-act=recent:group]`（冒号未转义）得 undefined（QA 范式第 9 条），改用 Array.find(b=>b.dataset.act===...) 后确认功能正常。
+ > **里程碑**：用户批评「磨洋工」后连续 10 个功能轮（145-154），共 10 个真实新功能 + 3 个真实 bug 修复。
+ > **交付**：v1.7.62 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

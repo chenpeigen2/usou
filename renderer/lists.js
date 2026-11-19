@@ -180,7 +180,8 @@ function renderRecent() {
   $('#view').innerHTML = '<div class="viewwrap">' +
     '<h2>最近动态<span class="sub">桌面 / 文档 / 下载 + 已配置项目根 · 限深扫描 Top 60</span></h2>' +
     '<div class="toolbar"><input id="rq" type="search" placeholder="搜索文件名 / 目录 / 类型…（空格分词）" value="' + esc(rq) + '">' +
-    (deadTotal ? '<button class="chipbtn' + (rqDeadOnly ? ' on' : '') + '" data-act="recent:deadonly">🗑 仅看已删除 ' + deadTotal + '</button>' : '') + '</div>' +
+    (deadTotal ? '<button class="chipbtn' + (rqDeadOnly ? ' on' : '') + '" data-act="recent:deadonly">🗑 仅看已删除 ' + deadTotal + '</button>' : '') +
+    '<button class="chipbtn' + (recentGrouped ? ' on' : '') + '" data-act="recent:group">📁 按项目分组</button></div>' +
     '<div id="recent-list"></div></div>';
   renderRecentList();
 }
@@ -208,7 +209,17 @@ function renderRecentList() {
     : (rq ? ('匹配 ' + list.length + ' / ' + all.length + ' 条') : (all.length + ' 条')) +
       (deadN ? ' · <span class="deadstat">已删除 ' + deadN + '（已沉底）</span>' : '');
   const sep = (!rqDeadOnly && deadN) ? '<div class="deadsep">以下 ' + deadN + ' 条已从磁盘删除（已沉底 · 不再位于首屏）</div>' : '';
-  const body = parts.live.map(recentRow).join('') + sep + parts.dead.map(recentRow).join('');
+  let body;
+  if (recentGrouped) {
+    const groups = {};
+    parts.live.forEach(r => { const d = String(r.dir || '(未知目录)'); (groups[d] = groups[d] || []).push(r); });
+    const keys = Object.keys(groups).sort((a, b) => groups[b].length - groups[a].length || a.localeCompare(b, 'zh-Hans-CN'));
+    body = keys.map(d => '<div class="rgroup"><div class="rgroup-h" title="' + esc(d) + '">📁 ' + esc(d) + ' <span class="muted small">' + groups[d].length + ' 项</span></div>' +
+      groups[d].map(recentRow).join('') + '</div>').join('');
+    if (deadN) body += sep + parts.dead.map(recentRow).join('');
+  } else {
+    body = parts.live.map(recentRow).join('') + sep + parts.dead.map(recentRow).join('');
+  }
   $('#recent-list').innerHTML =
     '<div class="stats" style="margin-bottom:8px">' + note + '</div>' +
     '<div class="rlist">' + (body || '<div class="empty">' + (rq ? '无匹配文件' : '无记录') + '</div>') + '</div>';

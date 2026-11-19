@@ -11,6 +11,7 @@ let detailSeq = 0;    // 项目详情弹窗序号：接口慢返回时不覆盖�
 let currentDetail = null; // 当前详情弹窗 { root, stack, loadDirs }，供目录构成下钻 / 返回 / 重算使用
 let FAVS = [];        // 收藏项目绝对路径数组（settings.favorites 镜像；置顶 / Ctrl+K / 数字条共用）
 let PROJ_TAGS = {};   // v1.7.53：项目标签/备注 { path: { tags:[], note:'' } }（settings.projectTags 镜像）
+let MRU = [];         // v1.7.58：最近打开的项目路径（settings.recentOpened 镜像，命令面板优先）
 let SCAN_ERRORS = []; // 持久化的扫描/分析错误诊断（state:get 带回；设置页展示，重启后仍在）
 let AUTO_CHECK = null; // v1.7.10：最近一次「自动扫描到期检查」判定（state:get.autoCheck 兜底 + scan:auto 事件实时更新）
 /* v1.7.13 失效路径保护：扫描缓存里存着已被删除的路径（实测 60 条中 36 条已失效），
@@ -50,6 +51,7 @@ async function refreshState() {
   SETTINGS.autoScanHours = Number(SETTINGS.autoScanHours) || 0; // 0=关闭
   FAVS = Array.isArray(SETTINGS.favorites) ? SETTINGS.favorites.filter(x => typeof x === 'string') : [];
   PROJ_TAGS = (SETTINGS.projectTags && typeof SETTINGS.projectTags === 'object' && !Array.isArray(SETTINGS.projectTags)) ? SETTINGS.projectTags : {};
+  MRU = Array.isArray(SETTINGS.recentOpened) ? SETTINGS.recentOpened.filter(x => typeof x === 'string').slice(0, 12) : [];
   CAPS = st.caps;
   HISTORY = st.history || [];
   SCAN_ERRORS = Array.isArray(st.scanErrors) ? st.scanErrors : [];
@@ -92,6 +94,12 @@ async function saveProjTags(p, tags, note) {
     const res = await window.wb.saveSettings({ projectTags: next });
     if (res && typeof res === 'object') { SETTINGS = res; PROJ_TAGS = res.projectTags || next; }
   } catch (e) { toast('标签保存失败：' + String((e && e.message) || e), 'err'); }
+}
+/* v1.7.58：记录最近打开（MRU）——命令面板优先显示，最多 12 条，落盘 settings */
+function markOpened(p) {
+  if (typeof p !== 'string' || !p) return;
+  MRU = [p].concat(MRU.filter(x => x !== p)).slice(0, 12);
+  window.wb.saveSettings({ recentOpened: MRU }).catch(() => {});
 }
 
 async function init() {

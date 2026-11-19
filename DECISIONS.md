@@ -3628,3 +3628,12 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：snapshotDiff 对相邻快照正确识别 added=17/removed=4/changed=23/same=29、变更样本真实（America 体量 1230.5→211.5、AsyncAnimator dirty 2→0）；弹窗按钮存在、14 个下拉选项、对比结果显示分组。六视图审计 failCount 0 / min 4.64。
  > **真实数据问题修复**：首测对比第1→第7快照得 added=69/removed=54/changed=0——旧 name-key 与新 path-key 不桥接导致同一项目误判「新增+移除」；加唯一同名桥接后修正（第 29 轮混合格式问题在新功能里的延续）。
  > **交付**：v1.7.57 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十轮：里程碑——新功能「命令面板最近打开 MRU」（连续第 6 个功能轮）
+
+ > **选题依据**：用户「想新功能」——Ctrl+K 命令面板每次固定顺序（收藏+修改时间），不学习用户习惯。加 MRU（最近打开）记录，让常用项目浮到顶部。
+ > **做法**：state.js 加 MRU 状态（settings.recentOpened 镜像）+ markOpened(p)（记录 + 最多 12 条 + 落盘）；interaction.js 的 open/vscode/term 成功后调 markOpened；palIndex 排序改为 失效沉底 > 收藏 > MRU > 其他，hint 标「🕘 最近打开」。零新增 IPC。
+ > **实证（CDP）**：markOpened 记录顺序正确（最后打开排第一）、命令面板前 2 项为刚打开的项目、hint 显示「🕘 最近打开」。测试后恢复 settings（recentOpened=none）。六视图审计 failCount 0 / min 4.64。
+ > **纠错**：编辑 palIndex sort 时残留旧 `});` 导致语法错（Unexpected token），删除残留后通过（QA 范式第 11 条：编辑后先 node --check）。
+ > **里程碑**：用户批评「磨洋工」后连续 6 个功能轮（145 标签系统 / 146 历史轨迹 / 147 标签速览卡 / 148 全局标签管理 / 149 快照对比 / 150 MRU），共 6 个真实新功能 + 2 个真实 bug 修复。
+ > **交付**：v1.7.58 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

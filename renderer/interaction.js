@@ -3,13 +3,13 @@
 
 function doAct(act, p) {
   switch (act) {
-    case 'open': window.wb.openPath(p).then(r => { if (r && r !== '') toast(String(r), 'err'); }).catch(() => toast('打开失败', 'err')); break;
+    case 'open': window.wb.openPath(p).then(r => { if (r && r !== '') toast(String(r), 'err'); else markOpened(p); }).catch(() => toast('打开失败', 'err')); break;
     // v1.7.13：此前**完全忽略** path:show 的返回值 ⇒ 失效路径点「📂 打开所在目录」是 100% 静默失败
     case 'show': window.wb.showInFolder(p).then(r => { if (r && r.ok === false) toast(String(r.reason || '无法打开所在目录'), 'err'); }).catch(() => toast('无法打开所在目录', 'err')); break;
     // v1.7.14：open:in 现在会先判存在性（缺失 → {ok:false, msg} ⇒ 这里自动弹 toast）；
     // 另补 .catch() 兜底 —— IPC 调用异常时也要有提示，否则 Promise 变成 unhandled rejection =「点了没反应」
-    case 'vscode': window.wb.openIn(p, 'vscode').then(r => { if (!r || !r.ok) toast((r && r.msg) || '打开失败', 'err'); }).catch(() => toast('无法用 VS Code 打开', 'err')); break;
-    case 'term': window.wb.openIn(p, 'terminal').then(r => { if (!r || !r.ok) toast((r && r.msg) || '打开失败', 'err'); }).catch(() => toast('无法在终端打开', 'err')); break;
+    case 'vscode': window.wb.openIn(p, 'vscode').then(r => { if (!r || !r.ok) toast((r && r.msg) || '打开失败', 'err'); else markOpened(p); }).catch(() => toast('无法用 VS Code 打开', 'err')); break;
+    case 'term': window.wb.openIn(p, 'terminal').then(r => { if (!r || !r.ok) toast((r && r.msg) || '打开失败', 'err'); else markOpened(p); }).catch(() => toast('无法在终端打开', 'err')); break;
     case 'git': case 'detail': openProject(p); break; // 🌿 统一走项目详情弹窗
     case 'redirs': if (currentDetail && curDirsPath() === p) currentDetail.loadDirs(true); break;
     case 'dirsdrill': drillDirs(p); break;
@@ -125,8 +125,13 @@ function palIndex() {
     .sort((a, b) => {
       const da = PROJ_DEAD.has(a.path) ? 1 : 0, db = PROJ_DEAD.has(b.path) ? 1 : 0;
       if (da !== db) return da - db;
-      return (isFav(b.path) ? 1 : 0) - (isFav(a.path) ? 1 : 0);
-    }); // 收藏优先（稳定排序）⇒ v1.7.1 立的「收藏恒置顶」约定在存活层内不受破坏
+      const fa = isFav(a.path) ? 1 : 0, fb = isFav(b.path) ? 1 : 0;
+      if (fa !== fb) return fb - fa;
+      // v1.7.58：收藏之后按最近打开（MRU）排序，越近打开越靠前
+      const ma = MRU.indexOf(a.path), mb = MRU.indexOf(b.path);
+      const ra = ma < 0 ? 999 : ma, rb = mb < 0 ? 999 : mb;
+      return ra - rb;
+    });
   projects.forEach(p => {
     const fav = isFav(p.path);
     const hue = hueOf(p.name);
@@ -138,7 +143,7 @@ function palIndex() {
     const tags = tagsOf(p.path);
     items.push({
       label: (fav ? '★ ' : '') + p.name + (tags.length ? ' [' + tags.join(' ') + ']' : ''),
-      hint: (fav ? '★ 已收藏 · ' : '') + p.type + (p.isGit ? ' · ' + (p.branch || '') : '') + ' · ' + p.path,
+      hint: (fav ? '★ 已收藏 · ' : '') + (MRU.indexOf(p.path) === 0 ? '🕘 最近打开 · ' : '') + p.type + (p.isGit ? ' · ' + (p.branch || '') : '') + ' · ' + p.path,
       // v1.7.12：p.branch 可能为 null/undefined —— 旧的字符串拼接会产出字面量 "undefined"，
       // 污染搜索键（搜 "undefined" 会命中所有非 git 项目）。改为显式兜底。
       keys: [p.name, p.path, p.branch || '', p.type || '', fav ? '收藏 置顶 星标 favorite' : ''].join(' ').toLowerCase(),

@@ -3790,3 +3790,11 @@ D:\code\usou\workbench-electron\out\
  > **做法**：style.css 系统性圆角提升——核心变量 --r 14→18px、--r-sm 10→12px；16 处散落的小圆角统一提升（qa徽标8→12/tagman-row8→12/rgroup-h6→10/kbd5→8/dup-row4→10/disk-warn8→12/fav-btn6→9/badge5→8/ibtn7→9/ext5→8/deadtag5→8/modal-box16→20/field input10→12/log10→12/toast11→14/pulse-cv8→12）；ring-tip 浮层 10→14px + 更强阴影；pal-input 顶部圆角。
  > **实证（截图+CDP）**：改前/改后总览截图对比——卡片明显更圆润柔和；ring-tip 实测 14px、四角全圆、阴影增强；对比度审计 failCount 0 / min 4.64（圆角改动未影响可读性）。
  > **交付**：v1.7.79 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百七十二轮：真实对齐 bug 修复 + 导航悬浮层级（用户反馈「悬浮丑、没对齐」）
+
+ > **选题依据**：用户反馈「项目和最近这两个悬浮好丑、要加深层级」「UI 都没对齐」。用 CDP 几何量测定位，不靠目测。
+ > **实证根因（几何量测）**：项目行 `#proj-list .prow` 有 **5 个子元素**（复选框/头像/p-main/p-size/p-actions）但 CSS `grid-template-columns` 只声明 **4 列** ⇒ 第 5 个 `.p-actions` 被挤到第二行（实测 x=250/y=295/cy=308，行高 99px）——这正是 AGENTS.md 第 70 行记录的「5 轨道 vs 4 子元素」历史缺陷，我在第 152 轮加多选复选框时重新引入。
+ > **修复**：① `.prow` 网格 4→5 列（16px 复选框 / 34px 头像 / 1fr 主信息 / 1.3fr 体量 / auto 操作），紧凑模式与窄屏媒体查询同步；② 导航 hover 加深层级——从 `var(--panel)`（与侧栏背景几乎同色、无层次）改为 `--panel2` 背景 + `--line2` 边框 + 双层阴影 + 文字变亮 + `translateX(2px)` 浮起感，形成「默认透明 < 悬浮浮起 < 选中渐变侧条」三级层次。
+ > **验证（CDP 复测）**：项目行 5 元素 cy 全=262（垂直完全对齐）、p-actions x=1102（回右侧）、行高 99→61px（无第二行溢出）；hover 样式生效；对比度审计 fail 0；截图目检项目视图整齐。
+ > **交付**：v1.7.80 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

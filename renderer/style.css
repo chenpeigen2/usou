@@ -150,7 +150,13 @@ textarea{width:100%;min-height:96px;resize:vertical;font-family:Consolas,monospa
   position:relative;text-align:left;background:none;border:none;color:var(--muted);
   padding:9px 14px;border-radius:var(--r-sm);font-size:13.5px;transition:all .13s;
 }
-#nav button:hover{background:var(--panel);color:var(--text)}
+/* v1.7.80：导航悬浮层级 —— 默认透明 < 悬浮浮起(panel2+阴影+边框) < 选中(渐变侧条) */
+#nav button:hover{
+  background:var(--panel2);color:var(--strong);
+  border:1px solid var(--line2);
+  box-shadow:0 3px 12px rgba(0,0,0,.18),inset 0 1px 0 rgba(255,255,255,.04);
+  transform:translateX(2px);
+}
 #nav button.on{
   background:var(--nav-sel);
   color:var(--nav-on);font-weight:600;
@@ -284,7 +290,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .shortcut-row kbd{font-family:Consolas,monospace;font-size:11.5px;background:var(--panel2);border:1px solid var(--line2);
   border-bottom-width:2px;border-radius:8px;padding:3px 8px;min-width:78px;text-align:center;color:var(--acc)}
 /* v1.7.66：项目视图紧凑模式 */
-#proj-list.compact .prow{padding:4px 15px;grid-template-columns:30px minmax(150px,1fr) minmax(120px,1fr) minmax(170px,auto)}
+#proj-list.compact .prow{padding:4px 15px;grid-template-columns:16px 24px minmax(140px,1fr) minmax(110px,1fr) minmax(180px,auto)}
 #proj-list.compact .avatar{width:24px;height:24px;border-radius:7px;font-size:12px}
 #proj-list.compact .p-sub{display:none}
 #proj-list.compact .p-actions{opacity:1}
@@ -320,8 +326,9 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
      ⇒ flex 溢出**向左**压到「体量」列文字上（实测存活行重叠 34~35px），
      同时末尾还留着一条**空轨道**（minmax(170px,auto)）在右侧空出 ≈186px 的死区。
      改为 4 条轨道、末轨交给 .p-actions 自适应 ⇒ 按钮不再溢出、体量列不再被压、右侧死区消失。 */
-  display:grid;grid-template-columns:44px minmax(150px,1fr) minmax(140px,1.5fr) minmax(170px,auto);
-  gap:12px;align-items:center;background:var(--panel);
+  /* v1.7.81：加「多选复选框」后从 4 列改 5 列 —— 否则第 5 个 .p-actions 被挤到第二行（实测 x=250/y=295/左对齐错乱） */
+  display:grid;grid-template-columns:16px 34px minmax(140px,1fr) minmax(120px,1.3fr) minmax(180px,auto);
+  gap:10px;align-items:center;background:var(--panel);
   padding:9px 15px;font-size:13px;transition:background .12s;
 }
 .prow:hover{background:var(--panel2)}
@@ -528,7 +535,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
 
 /* 窄屏 */
 @media (max-width:980px){
-  .prow{grid-template-columns:44px 1fr 90px; }
+  .prow{grid-template-columns:16px 30px 1fr 90px; gap:8px}
   .prow .p-sub,.prow .p-actions{display:none}
   .ritem{grid-template-columns:100px 56px 1fr 70px}
   .ritem .d,.ritem .ibtn{display:none}

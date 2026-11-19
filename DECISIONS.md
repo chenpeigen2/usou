@@ -3583,3 +3583,8 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 1 项「高疑点」——从未系统核对 main.js handler / preload.js 暴露 / AGENTS 契约三方一致性；若 handler 未暴露到 preload，渲染层调用静默失败；若暴露无 handler，调用挂起。
  > **实证（Node 脚本三方比对）**：main handlers=23、preload exposed=23；preload→缺失 handler=none、handler→未暴露=none（排除广播类通道）。契约完全一致，无孤儿无缺失。无缺陷。
+
+ # 第一百四十四轮：数据导出→导入往返一致性验证（证伪轮）
+
+ > **选题依据**：造活源第 3 项「QA 深化」——第 98/101 轮分别测过导出和导入，但没测过「导出→导入→逐字段比对」完整往返，无法证明备份真的能完整还原用户数据。
+ > **实证（隔离临时目录，不碰真实数据）**：构造含中文/嵌套/失效特征的 scan/history/settings → 模拟 data:export 打包 → 模拟 data:import 校验+原子写 → 逐字段深度比对：scan/history/settings 三类 round-trip 全 PASS、无 tmp 残留。备份格式可信、可完整还原。无缺陷。

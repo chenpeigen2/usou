@@ -27,8 +27,8 @@
 
 ## 当前
 
-- **本轮状态**：DONE · 第一百六十七轮 / v1.7.75 · **「新功能：详情弹窗内快捷操作（打开/终端/复制/标签）」**
-- **版本**：v1.7.75
+- **本轮状态**：DONE · 第一百六十八轮 / v1.7.76 · **「新功能：视图滚动位置记忆」**
+- **版本**：v1.7.76
 - **交付态**：`out\Workbench-Setup-1.7.41.exe`（87,635,507 B）+ `out\Workbench-1.7.41-portable.zip`（118,739,420 B）+ blockmap；打包版 4 进程（ProductVersion 1.7.41.0）运行中，托盘在位；预置数据已刷新为 2026-11-18 17:22 真实扫描（69 项目 / 7 快照）
 - **累计成果**：真实缺陷修复 20+ 项；证伪/治理轮 15+；本地 commit 持续增长（只 commit 不 push）
 - **READY**：空；IDEA 池 7 项（多机器合并 / 看文件修改 / 全字库拼音 / 数字条换行 / 空间页空态 / +2 既有）
@@ -75,7 +75,7 @@
 - **QA 方法论沉淀（本轮，3 条）**：① **对比度审计器必须量 hover 态** —— 此前只量「当前鼠标位置」⇒ 缺陷被系统性掩盖；现在强制复测 + 采样量翻倍，**且必须配阴性对照**（否则「全过」可能只是审计器坏了）；② **「排序」与「标注」是两件事** —— 标注解决「看不出来」，排序解决「挡在前面」，**两者都要做**；③ **总览卡与明细视图必须共用同一套顺序**（同一个 `partitionDead()` 纯函数），否则同一概念在两处给出两种答案
 - 规则：批次到顶不再停（PM.md 第五节）；本轮收尾后由编排器立即拉起下一轮，本轮不自起
 
-- **版本**：v1.7.75
+- **版本**：v1.7.76
 - **交付态**：`out\Workbench-Setup-1.7.15.exe` + `out\Workbench-1.7.15-portable.zip` + blockmap；打包版运行中（含托盘，4 进程，ProductVersion = **1.7.15.0**）
 - **运行时数据**：`%APPDATA%\工作台\`（scan-cache.json / history.json / settings.json / main.log；无 dirs-cache.json / scan-errors.json，交付态干净，settings theme=dark · autoScanHours=0 默认）
 - **最后巡检**：2026-11-16 18:49 —— 打包版 **4 进程**（`out\win-unpacked\工作台.exe`，ProductVersion = 1.7.15.0）、启动日志 `app ready / window created, query={} / tray created / tray menu rebuilt (启动) / autoScan off (autoScanHours=0) / state:get invoked / pulse started` **四项标志全 True**、全日志 `[renderer]` 行 = **0** / error 行 = **0**、托盘在位（菜单含「上次扫描：5 小时前（13:47）」「未提交：5 个仓库 / 8 个文件」）
@@ -344,6 +344,7 @@
 | 24 | v1.7.14 | **链式续批 · 「用 VS Code / 在终端打开」的失效路径保护**（openIn 入口统一判存在性：缺失 → {ok:false,msg} 且不 spawn 不调 shell，兜底分支加 Promise.race 超时；探针实证修前失效路径照样 spawn VS Code/WT 却回报 ok:true；跨进程 tasklist 监控 delta=0；真实点击 658ms 出错误 toast；零新增 IPC、仅 2 文件改动） |
 | 25 | v1.7.15 | **链式续批 · 项目雷达里的失效项目视觉标注**（复用既有批量 path:exists 通道，零新增 IPC；失效行置灰 + 划线 + 红色「已删除」角标占用类型徽标格 + 去掉过期快照的未提交标记 + 统计行「已删除 N」；**本轮自查并修复既有布局缺陷**：.prow 栅格 5 轨 vs 4 子元素 ⇒ 操作按钮溢出压住体量列文字 34~35px ⇒ 改 4 轨后全表重叠 = 0px） |
 | 26+ | — | 由编排器立即拉起下一轮续写（指针：READY 池已空 ⇒ 先做真实巡检找问题，否则从 IDEA 池升级「每周开发节奏周报」） |
+
 
 
 

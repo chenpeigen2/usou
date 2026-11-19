@@ -3762,3 +3762,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：detail.js openProject 头部后加操作行（📂资源管理器/💻VS Code/⌨️终端/📋复制路径/🏷标签 + ←→提示），复用既有 doAct 和 modal 委托，零新增 IPC。
  > **实证（CDP）**：5 个按钮都在、data-p 都指向当前项目、翻页提示在位。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.75 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十八轮：新功能「视图滚动位置记忆」（连续第 24 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——用户浏览到第 50 个项目、切视图回来又回到顶部，真实 UX 痛点（批量 checkbox 重绘丢滚动的延伸）。
+ > **做法**：state.js 加 viewScroll map；setView 离开视图时保存 #main.scrollTop、进入时恢复目标视图的上次位置（silent=true 的 QA 钩子切视图不恢复，保持原行为）。零 IPC。
+ > **实证（CDP）**：项目视图滚到 800 → 切总览（保存 projects=800）→ 切回项目视图恢复到 800。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.76 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

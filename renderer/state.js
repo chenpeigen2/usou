@@ -8,6 +8,7 @@ let rqDeadOnly = false; // v1.7.41：最近视图「仅看已删除」筛选开�
 let recentGrouped = false; // v1.7.62：最近视图按项目分组开关
 let projCompact = false;   // v1.7.66：项目视图紧凑模式（settings 持久化）
 let detailPath = '';       // v1.7.69：当前详情弹窗的项目路径（支持 ← → 翻页）
+let viewScroll = {};       // v1.7.76：各视图滚动位置记忆（切换后回到上次位置）
 let lastAnalysis = null;
 let QA_DETAIL = '';   // QA 钩子：URL ?detail=项目名，renderProjects 末尾消费
 let detailSeq = 0;    // 项目详情弹窗序号：接口慢返回时不覆盖已关闭/已切换的弹窗
@@ -164,11 +165,14 @@ async function init() {
 /* QA 钩子（22 个 triggerXxxQa + pollQa/qaNote）已按 nodebestpractices 1.3 抽为平铺文件 renderer/qa.js（v1.7.41）。在 app.js 之前加载、全局直接可见，init 里的派发调用点零改动。 */
 
 function setView(v, silent) {
+  // v1.7.76：保存离开视图的滚动位置、恢复目标视图的位置（Ctrl+K 跳转/筛选返回不再回到顶部）
+  const main = $('#main');
+  if (main && view) viewScroll[view] = main.scrollTop;
   view = v;
   localStorage.setItem('wb.view', v);
   $$('#nav button').forEach(x => x.classList.toggle('on', x.dataset.view === v));
   render();
-  if (!silent) $('#main').scrollTop = 0;
+  if (!silent) main.scrollTop = (viewScroll[v] || 0);
 }
 
 function bindWinControls() {

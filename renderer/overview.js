@@ -61,6 +61,13 @@ function renderOverview() {
     miniStat(ico('recent'), 'g5', 'ms-recent', (DATA.recent || []).length, '条最近动态', 'recent') +
     miniStat(ico('star'), 'g6', 'ms-fav', favN, '个收藏项目', 'projects') +
     '</div>' +
+    (function () {
+      const full = ((DATA && DATA.drives) || []).filter(d => d && d.totalGB > 0 && d.usedGB / d.totalGB > 0.85);
+      if (!full.length) return '';
+      return '<div class="disk-warn">⚠ 磁盘空间预警：' + full.map(d =>
+        esc(d.name + ':') + Math.round(d.usedGB / d.totalGB * 100) + '%（剩 ' + esc(d.freeGB) + ' GB）').join(' · ') +
+        ' <span data-act="goto" data-p="system" style="cursor:pointer;text-decoration:underline">查看扫描健康 →</span></div>';
+    })() +
 
     '<div class="b b-recent"><div class="b-sec-t"><span>最近动态</span>' +
     '<span class="muted small" style="cursor:pointer" data-act="goto" data-p="recent">全部 ' + (DATA.recent || []).length + ' 条 →</span></div>' +

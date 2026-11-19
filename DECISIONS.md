@@ -3712,9 +3712,17 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：真实数据检出 2 组同名 + 5 对嵌套（与第 109 轮独立重算一致）、弹窗 7 行、分组正确。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.68 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
 
- # 第一百六十一步：新功能「详情弹窗 ← → 项目间翻页」（连续第 17 个功能轮）
+ # 第一百六十一轮：新功能「详情弹窗 ← → 项目间翻页」（连续第 17 个功能轮）
 
  > **选题依据**：用户「继续迭代」——批量浏览项目详情时，每次要关弹窗重新点，效率低。加 ← → 在详情弹窗内翻到上/下一个项目（呼应第 157 轮快捷键工作）。
  > **做法**：state.js 加 detailPath 状态；detail.js 的 openProject 记录当前路径、closeModal 清空、加 stepProject(dir) 纯函数（按 DATA.projects 顺序切换，边界返回 false）；interaction.js keydown 加 ← → 处理（仅详情弹窗打开且非输入框）；快捷键帮助加一行。零 IPC。
  > **实证（CDP）**：翻页成功且切到下一个项目（Australia→CNBMoblieBank）、最后一项翻页返回 false（边界正确）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.69 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+
+ # 第一百六十二轮：新功能「磁盘空间预警」（连续第 18 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——DATA.drives 有各盘 usedGB/totalGB，但快满时用户得不到提醒（本机 C 盘已 92.9%）。真实痛点。
+ > **做法**：system.js scanHealthHtml 加「磁盘空间」维度（健康分重配 25/25/20/10/20，任一盘 >85% 触发磁盘预警等级 + 红色详情）；overview.js 总览 KPI 后加 disk-warn 提示条（点击跳系统健康）；style.css 加 .disk-warn 样式（复用已有 --soft-red 变量）。零 IPC。
+ > **实证（CDP，真实数据 C:93%）**：总览显示「⚠ 磁盘空间预警：C:93%（剩 10.7 GB）查看扫描健康→」、健康卡等级「磁盘预警」、5 条指标条、红色提示正确、无 NaN/undefined。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.70 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

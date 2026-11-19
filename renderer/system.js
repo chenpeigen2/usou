@@ -10,16 +10,21 @@ function scanHealthHtml() {
   const sizedN = projects.filter(p => p && (p.sizeMB || 0) > 0).length;
   const gitN = projects.filter(p => p && p.isGit).length;
   const dirtyN = projects.filter(p => p && p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
+  // v1.7.70：磁盘空间维度 —— 任一盘 >85% 触发预警
+  const drives = (DATA && DATA.drives) || [];
+  const full = drives.filter(d => d && d.totalGB > 0 && (d.usedGB / d.totalGB) > 0.85);
+  const maxPct = drives.reduce((m, d) => d && d.totalGB > 0 ? Math.max(m, d.usedGB / d.totalGB) : m, 0);
   const ageMin = DATA && DATA.meta && DATA.meta.scanTime
     ? Math.max(0, Math.round((Date.now() - new Date(String(DATA.meta.scanTime).slice(0, 19).replace(' ', 'T'))) / 60000))
     : -1;
-  // 健康分：新鲜度(30) + 体量覆盖(30) + 存活率(25) + 无未提交(15)
-  const fresh = ageMin < 0 ? 0 : ageMin < 120 ? 30 : ageMin < 1440 ? 20 : ageMin < 10080 ? 10 : 0;
-  const cover = Math.round((sizedN / n) * 30);
-  const alive = Math.round(((n - deadN) / n) * 25);
-  const clean = gitN ? Math.round(((gitN - dirtyN) / gitN) * 15) : 15;
-  const score = fresh + cover + alive + clean;
-  const level = score >= 80 ? ['良好', 'var(--green)'] : score >= 55 ? ['一般', 'var(--amber)'] : ['需关注', 'var(--red)'];
+  // 健康分：新鲜度(25) + 体量覆盖(25) + 存活率(20) + 无未提交(10) + 磁盘空间(20)
+  const fresh = ageMin < 0 ? 0 : ageMin < 120 ? 25 : ageMin < 1440 ? 17 : ageMin < 10080 ? 8 : 0;
+  const cover = Math.round((sizedN / n) * 25);
+  const alive = Math.round(((n - deadN) / n) * 20);
+  const clean = gitN ? Math.round(((gitN - dirtyN) / gitN) * 10) : 10;
+  const disk = full.length ? 0 : (maxPct > 0.7 ? 10 : 20);
+  const score = fresh + cover + alive + clean + disk;
+  const level = full.length ? ['磁盘预警', 'var(--red)'] : score >= 80 ? ['良好', 'var(--green)'] : score >= 55 ? ['一般', 'var(--amber)'] : ['需关注', 'var(--red)'];
   const bar = (label, val, max, color) =>
     '<div class="hl-row"><span class="hl-l">' + label + '</span>' +
     '<span class="hl-bar"><i style="width:' + Math.max(0, Math.min(100, (val / max) * 100)).toFixed(0) + '%;background:' + color + '"></i></span>' +
@@ -27,10 +32,13 @@ function scanHealthHtml() {
   return '<div class="card b-health"><div class="b-sec-t"><span>扫描健康 <span class="muted small">' +
     '整体 ' + score + '/100</span></span><span style="color:' + level[1] + ';font-weight:700">' + level[0] + '</span></div>' +
     '<div class="health-score"><b style="color:' + level[1] + '">' + score + '</b><span>/100</span></div>' +
-    bar('数据新鲜度', fresh, 30, 'var(--acc)') +
-    bar('体量覆盖 ' + sizedN + '/' + projects.length, cover, 30, 'var(--green)') +
-    bar('存活项目 ' + (projects.length - deadN) + '/' + projects.length, alive, 25, 'var(--acc2)') +
-    bar('干净仓库 ' + (gitN - dirtyN) + '/' + gitN, clean, 15, 'var(--amber)') +
+    bar('数据新鲜度', fresh, 25, 'var(--acc)') +
+    bar('体量覆盖 ' + sizedN + '/' + projects.length, cover, 25, 'var(--green)') +
+    bar('存活项目 ' + (projects.length - deadN) + '/' + projects.length, alive, 20, 'var(--acc2)') +
+    bar('干净仓库 ' + (gitN - dirtyN) + '/' + gitN, clean, 10, 'var(--amber)') +
+    bar('磁盘空间 ' + Math.round(maxPct * 100) + '% 已用', disk, 20, full.length ? 'var(--red)' : 'var(--acc)') +
+    (full.length ? '<div class="hint small" style="color:var(--red)">⚠ 磁盘即将满：' + full.map(d =>
+      esc(d.name + ':') + Math.round(d.usedGB / d.totalGB * 100) + '%（剩 ' + esc(d.freeGB) + ' GB）').join(' · ') + '</div>' : '') +
     '<div class="hint small">' + (ageMin < 0 ? '尚无扫描数据' : '数据距今 ' + (ageMin < 60 ? ageMin + ' 分钟' : Math.round(ageMin / 60) + ' 小时')) +
     ' · 失效项目 ' + deadN + ' 个（已剔除统计）· 未提交仓库 ' + dirtyN + ' 个</div></div>';
 }

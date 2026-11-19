@@ -807,6 +807,38 @@ ipcMain.handle('data:export', () => {
   }
 });
 
+/* v1.7.67：导出项目清单 CSV（UTF-8 BOM，Excel 中文不乱码）。只读 DATA 快照，零副作用。 */
+ipcMain.handle('csv:export', () => {
+  try {
+    const cache = store.getScan() || {};
+    const projects = Array.isArray(cache.projects) ? cache.projects : [];
+    const set = store.getSettings() || {};
+    const tags = set.projectTags || {};
+    const favs = Array.isArray(set.favorites) ? set.favorites : [];
+    const dead = new Set(projects.filter(p => p && p.dead).map(p => p.path));
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const lines = ['项目名称,路径,类型,Git仓库,分支,未提交文件,体量MB,文件数,最近提交时间,收藏,标签,备注'];
+    projects.forEach(p => {
+      lines.push([p.name, p.path, p.type, p.isGit ? '是' : '否', p.branch || '',
+        p.isGit ? (p.dirty || 0) : '', p.sizeMB || 0, p.fileCount || '',
+        p.lastCommitTime || '', favs.indexOf(p.path) >= 0 ? '★' : '',
+        (tags[p.path] && tags[p.path].tags || []).join(' '), (tags[p.path] && tags[p.path].note) || ''
+      ].map(q).join(','));
+    });
+    const dir0 = (() => { try { const d = app.getPath('documents'); return d && fs.existsSync(d) ? path.join(d, '工作台') : ''; } catch (_e) { return ''; } })();
+    const dir = dir0 || path.join(store.dataDir(), 'exports');
+    fs.mkdirSync(dir, { recursive: true });
+    const d = new Date(), p2 = n => String(n).padStart(2, '0');
+    const file = path.join(dir, '项目清单-' + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '.csv');
+    fs.writeFileSync(file, '\uFEFF' + lines.join('\r\n'), 'utf8');
+    log('csv:export -> ' + file + ' (' + projects.length + ' rows)');
+    return { ok: true, file, rows: projects.length };
+  } catch (e) {
+    log('csv:export ERROR ' + ((e && e.stack) || e));
+    return { ok: false, reason: String((e && e.message) || e) };
+  }
+});
+
 /* v1.7.44：导入前预览——选文件、读摘要、校验格式，但不写入任何数据。 */
 ipcMain.handle('data:peek', async () => {
   try {

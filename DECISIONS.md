@@ -3697,3 +3697,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：state.js 加 projCompact 状态（settings.compactProjects 持久化）；lists.js toolbar 加「☰ 紧凑 / ▤ 舒适」切换按钮 + proj-list 加 compact class；interaction.js 加 projCompact case（切换+落盘）；style.css 加 #proj-list.compact 样式（padding 9→4px、avatar 34→24px、隐藏 p-sub、操作常显）。
  > **实证（CDP）**：按钮文案切换正确、行高 99→87px、副标题 display:none、设置持久化 compactProjects=true。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.66 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十九轮：新功能「项目清单导出 CSV」（连续第 15 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——JSON 备份和 Markdown 简报之外，缺一个能给 Excel 做进一步分析的数据出口。
+ > **做法**：main.js 加 `csv:export` IPC（读 scan-cache + settings 的标签/收藏，生成 12 列 CSV：名称/路径/类型/Git/分支/未提交/体量/文件数/最近提交/收藏/标签/备注，UTF-8 BOM 保证 Excel 中文不乱码）；preload 暴露 csvExport；设置页加「📊 导出项目清单 CSV」按钮；命令面板加对应动作。零新增 IPC 名（csv 是新增 handler，契约只增不改名）。
+ > **实证（CDP）**：导出成功（69 行/7.3KB/BOM 有/首行数据完整）、设置页按钮在位、命令面板动作可搜。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.67 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

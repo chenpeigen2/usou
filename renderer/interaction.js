@@ -37,6 +37,12 @@ function doAct(act, p) {
     case 'bulkTagRun': bulkTagRun(); break;
     case 'bulkClear': selPaths.clear(); render(); break;
     case 'mruClear': clearMRU(); break;
+    case 'csvExport': (async () => {
+      try {
+        const r = await window.wb.csvExport();
+        toast(r && r.ok ? ('已导出 ' + r.rows + ' 个项目到 CSV（Excel 可直接打开）') : ('导出失败：' + ((r && r.reason) || '未知')), r && r.ok ? 'ok' : 'err');
+      } catch (e) { toast('导出失败：' + String((e && e.message) || e), 'err'); }
+    })(); break;
     case 'shortcutHelp': openShortcutHelp(); break;
     case 'projCompact': projCompact = !projCompact; window.wb.saveSettings({ compactProjects: projCompact }).catch(() => {}); render(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
@@ -188,7 +194,8 @@ function palIndex() {
   [['动作：导出周报', '📅 导出 weeklyMarkdown 到文档', '导出 周报 weekly markdown', '📅', () => exportWeekly()],
    ['动作：复制今日简报', '📋 复制简报到剪贴板', '复制 简报 brief copy', '📋', () => copyBrief()],
    ['动作：导出数据备份', '💾 导出全部本地数据 JSON', '导出 备份 数据 data export', '💾', () => doAct('dataExport')],
-   ['动作：清除最近打开', '🕘 清除命令面板的最近打开记录', '清除 最近 打开 clear mru recent', '🧹', () => clearMRU()]
+   ['动作：清除最近打开', '🕘 清除命令面板的最近打开记录', '清除 最近 打开 clear mru recent', '🧹', () => clearMRU()],
+   ['动作：导出项目清单 CSV', '📊 导出全部项目到 Excel 可打开的 CSV', '导出 项目 清单 csv excel 表格', '📊', () => doAct('csvExport')]
   ].forEach(([label, hint, keys, ico, run]) => items.push({
     label: label, hint: hint, keys: keys, ico: ico, icoCls: 'g2', acts: [], run: run
   }));

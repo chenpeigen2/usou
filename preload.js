@@ -19,6 +19,7 @@ contextBridge.exposeInMainWorld('wb', {
   dataExport: () => ipcRenderer.invoke('data:export'),
   dataImport: (file) => ipcRenderer.invoke('data:import', file),
   dataPeek: () => ipcRenderer.invoke('data:peek'),
+  csvExport: () => ipcRenderer.invoke('csv:export'),
   loginItemSet: (open) => ipcRenderer.invoke('login-item:set', open),
   on: (ch, cb) => ipcRenderer.on(ch, (_e, payload) => cb(payload)),
   winMin: () => ipcRenderer.send('win:minimize'),

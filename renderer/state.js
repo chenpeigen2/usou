@@ -103,6 +103,14 @@ function markOpened(p) {
   MRU = [p].concat(MRU.filter(x => x !== p)).slice(0, 12);
   window.wb.saveSettings({ recentOpened: MRU }).catch(() => {});
 }
+async function clearMRU() {
+  MRU = [];
+  try {
+    const res = await window.wb.saveSettings({ recentOpened: [] });
+    if (res && typeof res === 'object') SETTINGS = res;
+  } catch (e) { toast('清除失败：' + String((e && e.message) || e), 'err'); }
+  toast('已清除最近打开记录', 'ok');
+}
 
 async function init() {
   await refreshState();

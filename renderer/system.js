@@ -217,6 +217,7 @@ function renderSettings() {
     '<button class="btn ghost" data-act="dataExport">💾 导出数据备份</button>' +
     '<button class="btn ghost" data-act="dataImport">📥 导入备份（覆盖前自动备份现有数据）</button>' +
     '<button class="btn ghost" data-act="tagManage">🏷 管理标签</button>' +
+    '<button class="btn ghost" data-act="mruClear">🧹 清除最近打开</button>' +
     '</div>' +
     '<div class="hint" style="margin-top:6px">导出全部本地数据（扫描缓存 / 历史快照 / 设置）为 JSON 备份，落盘至「文档\\工作台」；只读取、不改动原数据。</div>' +
     '<h2>扫描错误诊断<span class="sub">扫描 / 空间分析失败原因持久保存，重启后仍可查看</span></h2>' +

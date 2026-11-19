@@ -3676,3 +3676,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：interaction.js palIndex 在视图项后加 3 个动作项（导出周报/复制今日简报/导出数据备份），复用已有 exportWeekly/copyBrief/doAct('dataExport')，零新增 IPC。
  > **实证（CDP）**：搜「导出周报」「复制简报」「导出备份」分别命中对应动作项、动作总数 2→5。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.63 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十六轮：新功能「清除最近打开记录」（连续第 12 个功能轮）
+
+ > **选题依据**：用户「想新功能」——第 150 轮的 MRU（最近打开）会一直显示在命令面板顶部，用户打开敏感项目后无法清除，是隐私/整洁缺口。补齐闭环。
+ > **做法**：state.js 加 clearMRU()（清空 MRU + saveSettings 落盘）；命令面板加「清除最近打开」动作；设置页按钮行加「🧹 清除最近打开」按钮；interaction.js 加 mruClear case。零新增 IPC。
+ > **实证（CDP）**：清除前 MRU=2 → 清除后 0、磁盘 recentOpened=[]、命令面板动作可搜到、设置页按钮在位。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.64 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

@@ -36,6 +36,7 @@ function doAct(act, p) {
     case 'bulkTag': bulkTag(); break;
     case 'bulkTagRun': bulkTagRun(); break;
     case 'bulkClear': selPaths.clear(); render(); break;
+    case 'mruClear': clearMRU(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'recent:group': recentGrouped = !recentGrouped; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
@@ -177,7 +178,8 @@ function palIndex() {
   // v1.7.63：高频动作也进命令面板 —— Ctrl+K 不必回总览/设置就能导出/复制
   [['动作：导出周报', '📅 导出 weeklyMarkdown 到文档', '导出 周报 weekly markdown', '📅', () => exportWeekly()],
    ['动作：复制今日简报', '📋 复制简报到剪贴板', '复制 简报 brief copy', '📋', () => copyBrief()],
-   ['动作：导出数据备份', '💾 导出全部本地数据 JSON', '导出 备份 数据 data export', '💾', () => doAct('dataExport')]
+   ['动作：导出数据备份', '💾 导出全部本地数据 JSON', '导出 备份 数据 data export', '💾', () => doAct('dataExport')],
+   ['动作：清除最近打开', '🕘 清除命令面板的最近打开记录', '清除 最近 打开 clear mru recent', '🧹', () => clearMRU()]
   ].forEach(([label, hint, keys, ico, run]) => items.push({
     label: label, hint: hint, keys: keys, ico: ico, icoCls: 'g2', acts: [], run: run
   }));

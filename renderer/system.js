@@ -158,6 +158,9 @@ function renderSettings() {
     '<textarea id="force-dirs" placeholder="每行一个绝对路径">' + esc((SETTINGS.forceDirs || []).join('\n')) + '</textarea></div>' +
     '<div class="field"><label>额外项目根目录（每行一个路径，会纳入项目雷达）</label>' +
     '<textarea id="extra-roots" placeholder="每行一个绝对路径">' + esc((SETTINGS.extraRoots || []).join('\n')) + '</textarea></div>' +
+    '<div class="field"><label>快捷入口（每行「名称=路径」，出现在空间分析页与命令面板；留空 = 仅默认的桌面/文档/下载）</label>' +
+    '<textarea id="links" placeholder="项目群=D:\\projects">' + esc(((SETTINGS.links || [])).map(l => (l && l.name && l.path) ? l.name + '=' + l.path : '').filter(Boolean).join('\n')) + '</textarea></div>' +
+    '<label class="ckrow"><input type="checkbox" id="ck-skip"' + (SETTINGS.skipSizes ? ' checked' : '') + '> 扫描时跳过体量统计（更快，但失去空间分析数据）</label>' +
     '<div class="field"><label>自动扫描间隔（应用运行期间按间隔自动刷新项目数据）</label>' +
     '<select id="autoscan-hours">' +
     // 选项表里的值之外（如 24 小时）也要能正确回显 —— 此前下拉无匹配项时会回落显示「关闭」，
@@ -198,8 +201,13 @@ async function saveSettings() {
   const scanRoots = lines('#scan-roots');
   const forceDirs = lines('#force-dirs');
   const extraRoots = lines('#extra-roots');
+  const links = lines('#links').map(s => {
+    const i = s.indexOf('=');
+    return i > 0 ? { name: s.slice(0, i).trim(), path: s.slice(i + 1).trim() } : null;
+  }).filter(x => x && x.name && x.path);
+  const skipSizes = !!(($('#ck-skip') || {}).checked);
   const autoScanHours = Number($('#autoscan-hours').value) || 0;
-  const patch = { scanRoots, forceDirs, extraRoots, trayMinimize: $('#ck-tray').checked, autoScanHours };
+  const patch = { scanRoots, forceDirs, extraRoots, links, skipSizes, trayMinimize: $('#ck-tray').checked, autoScanHours };
   const res = await window.wb.saveSettings(patch);
   // settings:set 自 v1.7.2 起返回合并后的 settings 对象；历史版本返回布尔 true。
   // 绝不能把返回值整体赋给 SETTINGS（严格模式给布尔赋属性抛 TypeError，且会清空 favorites / winBounds）。

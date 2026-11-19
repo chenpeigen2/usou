@@ -3516,3 +3516,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：data:import 的 history 写入改为同款原子写（tmp-import + renameSync），零行为改变、仅消除半写入窗口。
  > **实证（CDP 真实导入）**：导入成功、history.json 完整可读（7 条）、无 .tmp-import 残留、渲染层 HISTORY=7 同步。清理测试产物（dev + %APPDATA% 备份 + 12 个 .preimport）后数据干净（69 项目/7 历史）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.49 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。
+
+ # 第一百三十三轮：设置页补齐 links / skipSizes 可视化配置（新功能 · 造活源第 6 项）
+
+ > **选题依据**：造活源第 6 项「新功能」——审计 SETTINGS 11 字段 vs 设置页控件，发现 `links`（快捷入口）与 `skipSizes`（跳过体量）无 UI，第 81 轮通用化时把 links 做成 settings 字段却忘了给 UI，用户加快捷入口还得手改 JSON，与「设置页可视化配置」初衷矛盾。
+ > **做法**：system.js 设置页加 links textarea（格式「名称=路径」每行一个）+ skipSizes 复选框；saveSettings 解析 links（按 '=' 拆分）与 skipSizes 一并保存。UI 语义与 scanRoots 等一致（全量编辑、预填当前值）。
+ > **实证（CDP）**：两个新控件都在、links 按「名称=路径」正确预填 12 条、保存后 getState 读回正确（测试入口 + skipSizes=true）；测试后恢复真实 settings（links=12/skipSizes=false/无测试数据）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.50 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。

@@ -117,6 +117,9 @@ function tbStatus(s) { $('#tb-status').textContent = s; }
 function idleStatus() {
   if (DATA && DATA.meta) tbStatus(freshness(DATA.meta.scanTime) + (DATA.meta.fast ? ' · 快速模式' : ''));
   else tbStatus('');
+  // v1.7.71：标题栏新鲜度可点击重扫（符合直觉：点"数据 X 前"= 刷新数据）
+  const st = $('#tb-status');
+  if (st) { st.setAttribute('data-act', 'rescan'); st.title = '点击立即重扫项目数据（F5）'; st.style.cursor = 'pointer'; }
 }
 function logLine(s) {
   const el = $('#scan-log');

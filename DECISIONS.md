@@ -3726,3 +3726,11 @@ D:\code\usou\workbench-electron\out\
  > **做法**：system.js scanHealthHtml 加「磁盘空间」维度（健康分重配 25/25/20/10/20，任一盘 >85% 触发磁盘预警等级 + 红色详情）；overview.js 总览 KPI 后加 disk-warn 提示条（点击跳系统健康）；style.css 加 .disk-warn 样式（复用已有 --soft-red 变量）。零 IPC。
  > **实证（CDP，真实数据 C:93%）**：总览显示「⚠ 磁盘空间预警：C:93%（剩 10.7 GB）查看扫描健康→」、健康卡等级「磁盘预警」、5 条指标条、红色提示正确、无 NaN/undefined。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.70 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十三轮：新功能「标题栏数据新鲜度点击重扫」（连续第 19 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——标题栏「数据 X 小时前更新」是纯文本，用户想重扫要按 F5 或去设置，不符合直觉。点击即扫。
+ > **做法**：theme.js idleStatus() 给 #tb-status 加 data-act=rescan + title + cursor:pointer（不改动 textContent，qa.js 断言不受影响）；interaction.js 加 document 级委托（tb-status 在 #view 外）+ rescan case。零 IPC。
+ > **实证（CDP）**：tb-status 有 data-act=rescan/title/cursor、文案保持「数据 20 小时前更新」、doAct 含 rescan 分支、对比度审计 fail=0。六视图审计 failCount 0 / min 4.64。
+ > **治理修正**：STATE 本轮状态此前从 153 轮起因脆弱字符串替换连续 9 轮漂移——本轮起改用行首锚点正则（(?m)^- \*\*本轮状态\*\*：.*$），杜绝漂移。
+ > **交付**：v1.7.71 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

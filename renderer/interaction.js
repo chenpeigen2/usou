@@ -16,6 +16,7 @@ function doAct(act, p) {
     case 'dirsup': dirsUp(); break;
     case 'copy': copyText(p); break;
     case 'scan': startScan({ skipSizes: !!p, extraRoots: SETTINGS.extraRoots }); break;
+    case 'rescan': startScan({ extraRoots: SETTINGS.extraRoots }); break;
     case 'goto': setView(p); break;
     case 'brief:bysize': sortBy = 'size'; setView('projects'); break;
     case 'brief:copy': copyBrief(); break;
@@ -90,6 +91,11 @@ function bindDelegation() {
     if (a === 'typefilter' || a === 'tagfilter') doAct(a, b.dataset.t);
     else if (a === 'scan') doAct(a, b.dataset.fast || b.dataset.p);
     else doAct(a, b.dataset.p);
+  });
+  // v1.7.71：标题栏「数据 X 前」点击重扫（在 #view 外，需 document 级委托）
+  document.addEventListener('click', e => {
+    const el = e.target && e.target.closest ? e.target.closest('#tb-status[data-act=rescan]') : null;
+    if (el) doAct('rescan');
   });
   $('#view').addEventListener('input', e => {
     if (e.target.id === 'q') { q = e.target.value.trim(); renderProjectList(); }

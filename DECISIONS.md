@@ -3523,3 +3523,9 @@ D:\code\usou\workbench-electron\out\
  > **做法**：system.js 设置页加 links textarea（格式「名称=路径」每行一个）+ skipSizes 复选框；saveSettings 解析 links（按 '=' 拆分）与 skipSizes 一并保存。UI 语义与 scanRoots 等一致（全量编辑、预填当前值）。
  > **实证（CDP）**：两个新控件都在、links 按「名称=路径」正确预填 12 条、保存后 getState 读回正确（测试入口 + skipSizes=true）；测试后恢复真实 settings（links=12/skipSizes=false/无测试数据）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.50 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。
+
+ # 第一百三十四轮：主题跨重启持久化闭环验证（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项「深度巡检」——主题持久化（setTheme 落盘 → 重启恢复）从未做完整闭环验证。
+ > **实证（CDP 两轮重启）**：disk=light → 启动 data-theme=light → setTheme('dark') 后 disk=dark → 重启启动 data-theme=dark/SETTINGS.theme=dark ✓。完整闭环成立，无缺陷。测试后恢复原始 settings（theme=light/links=12/skip=false，无残留备份）。
+ > **探针纠错**：读备份文件用 require('settings.json.r134bak') 失败（Node 不认非 .json 扩展名）——但恢复命令在探针后独立执行成功、已验证。非产品问题。

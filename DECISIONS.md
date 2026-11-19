@@ -3536,3 +3536,9 @@ D:\code\usou\workbench-electron\out\
  > **做法**：main.js 引入 screen 模块；恢复前用 `screen.getDisplayMatching(b).workArea` 算可见交集体，若可见宽/高 < 200/150px 则钳制到主屏工作区内（x/y 限幅在 pri 内、尺寸限幅不超过屏幕），否则原样恢复；try/catch 兜底。
  > **实证（Node 独立重算钳制算法 7 用例）**：屏幕内=不钳制、副屏拔出(x=2253)=钳制到 x=540、右下角几乎全在外=钳制、部分可见(220px/左侧)=不钳制——核心「窗口完全在屏外」场景正确钳制。启动 dev 确认 app ready 无错误、六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.51 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。
+
+ # 第一百三十六轮：托盘立即扫描的配置注入核对（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项「高疑点」——托盘菜单「立即扫描」（main.js L159）只传 extraRoots，疑似漏传第 81 轮新增的 scanRoots/forceDirs/links，导致托盘扫描与设置页「全量重扫」口径不一致。
+ > **实证（读码）**：startScanRun（L526-536）内部 `const s=store.getSettings()` 并合并 scanRoots/forceDirs/links（L533-535），extraRoots 也 fallback 到 s.extraRoots（L532）⇒ 托盘扫描与设置页扫描行为完全一致，第 81 轮已考虑周全。无缺陷（L159 的 extraRoots 传参实为冗余，但属整洁问题无用户价值，不立项）。
+ > **附带核对**：app.on('second-instance', showMainWindow)（L448）正确——第二实例启动会唤醒已有窗口；trayDeadDirtySet（L101）已剔除失效项目的未提交口径（第 60 轮修复）。均正常。

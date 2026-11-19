@@ -31,6 +31,11 @@ function doAct(act, p) {
     case 'tagDelete': deleteTag(p); break;
     case 'snapDiff': openSnapDiff(); break;
     case 'snapDiffRun': runSnapDiff(); break;
+    case 'bulkFav': bulkFav(true); break;
+    case 'bulkUnfav': bulkFav(false); break;
+    case 'bulkTag': bulkTag(); break;
+    case 'bulkTagRun': bulkTagRun(); break;
+    case 'bulkClear': selPaths.clear(); render(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
     case 'analyze': startAnalyze(); break;
@@ -82,6 +87,10 @@ function bindDelegation() {
   $('#view').addEventListener('change', e => {
     if (e.target.id === 'sort') { sortBy = e.target.value; renderProjectList(); }
     else if (e.target.id === 'tag-filter') { tagFilter = e.target.value; renderProjectList(); }
+    else if (e.target.classList && e.target.classList.contains('proj-check')) {
+      if (e.target.checked) selPaths.add(e.target.dataset.p); else selPaths.delete(e.target.dataset.p);
+      updateBulkUI(); // 局部更新，不重绘列表（避免滚动跳转与 DOM 替换）
+    }
   });
   // v1.7.6 磁盘环 hover 明细：mouseover/mouseout 会冒泡 → 在常驻的 #view 上委托一次即可，无需逐环绑定
   $('#view').addEventListener('mouseover', e => {

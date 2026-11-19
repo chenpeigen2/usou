@@ -3645,3 +3645,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP）**：给 2 个项目分别打标签/写备注后，chip 显示「已标记 2」、点击筛选后列表 69→2 行。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.59 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
 
+
+ # 第一百五十二轮：新功能「项目多选批量操作」（连续第 8 个功能轮）
+
+ > **选题依据**：用户「想新功能」——69 个项目整理时逐个收藏/打标签很累。加多选 + 批量收藏/取消/打标签。
+ > **做法**：state.js 加 selPaths 集合；lists.js 每行加复选框 + 条件显示批量条；interaction.js 加 bulkFav/bulkUnfav/bulkTag/bulkTagRun/bulkClear case + change 事件；detail.js 加批量函数（复用 saveSettings 通道持久化）；style.css 加 .proj-check/.bulk-bar/.is-sel 样式。零新增 IPC。
+ > **真实 UX 问题修复（本轮实证发现）**：初版点复选框调用 render() 重绘整个列表 ⇒ DOM 替换、滚动跳转、第二次选中失效（实测 SEL_SIZE=1 而非 2）；改为 updateBulkUI() 局部更新批量条+行样式后，2 项都正确选中、批量打标签两个项目都生效。
+ > **实证（CDP）**：69 个复选框、选中 2 项、批量条显示"已选 2 项"、批量打标签后两个项目 tags 都为「批量测试」。测试后清理 settings（projectTags={}）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.60 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

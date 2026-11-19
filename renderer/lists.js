@@ -21,7 +21,13 @@ function renderProjects() {
     '<option value="size"' + (sortBy === 'size' ? ' selected' : '') + '>按体量</option>' +
     '<option value="name"' + (sortBy === 'name' ? ' selected' : '') + '>按名称</option></select>' +
     '<button class="btool" data-act="compare:open" title="并排对比两个 git 项目的分支 / 未提交 / 提交 / 体量">⚖ 对比</button>' +
-    '</div><div id="proj-list"></div></div>';
+    '</div>' +
+    (selPaths.size ? '<div class="bulk-bar">已选 <b>' + selPaths.size + '</b> 项 · ' +
+      '<button class="chipbtn" data-act="bulkFav">★ 批量收藏</button>' +
+      '<button class="chipbtn" data-act="bulkUnfav">☆ 取消收藏</button>' +
+      '<button class="chipbtn" data-act="bulkTag">🏷 批量打标签</button>' +
+      '<button class="chipbtn" data-act="bulkClear">✕ 清空选择</button></div>' : '') +
+    '<div id="proj-list"></div></div>';
   renderTypeChips();
   renderProjectList();
   // QA 钩子：?detail=项目名 → 列表就绪后自动打开项目详情
@@ -30,6 +36,24 @@ function renderProjects() {
     const hit = (DATA.projects || []).find(x => x.name === name);
     if (hit) openProject(hit.path);
   }
+}
+/* v1.7.60：局部更新批量条与行选中态（不重绘整个列表，避免滚动跳转/DOM 替换） */
+function updateBulkUI() {
+  document.querySelectorAll('.prow').forEach(row => {
+    const cb = row.querySelector('.proj-check');
+    if (cb) row.classList.toggle('is-sel', !!cb.checked);
+  });
+  const toolbar = document.querySelector('#view .toolbar');
+  if (!toolbar) return;
+  let bar = document.querySelector('.bulk-bar');
+  if (!selPaths.size) { if (bar) bar.remove(); return; }
+  const html = '已选 <b>' + selPaths.size + '</b> 项 · ' +
+    '<button class="chipbtn" data-act="bulkFav">★ 批量收藏</button>' +
+    '<button class="chipbtn" data-act="bulkUnfav">☆ 取消收藏</button>' +
+    '<button class="chipbtn" data-act="bulkTag">🏷 批量打标签</button>' +
+    '<button class="chipbtn" data-act="bulkClear">✕ 清空选择</button>';
+  if (bar) bar.innerHTML = html;
+  else { bar = document.createElement('div'); bar.className = 'bulk-bar'; bar.innerHTML = html; toolbar.after(bar); }
 }
 function renderTypeChips() {
   const projects = DATA.projects || [];
@@ -127,7 +151,8 @@ function prow(p) {
   const tagChips = tagsOf(p.path).map(t =>
     '<button class="tagchip" data-act="tagfilter" data-t="' + esc(t) + '" title="按标签「' + esc(t) + '」筛选">' + esc(t) + '</button>').join('');
   const noteChip = noteOf(p.path) ? '<span class="muted small" title="' + esc(noteOf(p.path)) + '">📝</span>' : '';
-  return '<div class="prow' + (dirty ? ' has-dirty' : '') + (fav ? ' is-fav' : '') + (dead ? ' is-dead' : '') + '">' +
+  return '<div class="prow' + (dirty ? ' has-dirty' : '') + (fav ? ' is-fav' : '') + (dead ? ' is-dead' : '') + (selPaths.has(p.path) ? ' is-sel' : '') + '">' +
+    '<input type="checkbox" class="proj-check" data-p="' + esc(p.path) + '"' + (selPaths.has(p.path) ? ' checked' : '') + ' aria-label="选中项目">' +
     '<div class="avatar" style="' + avatarStyle(hue) + '">' + esc(p.name.slice(0, 1).toUpperCase()) + '</div>' +
     '<div class="p-main" style="min-width:0">' +
     '<div class="p-line"><button class="fav-btn' + (fav ? ' on' : '') + '" data-act="fav" data-p="' + esc(p.path) + '" title="' + esc(starTip) + '" aria-label="' + esc(starTip) + '">' + (fav ? '★' : '☆') + '</button>' +

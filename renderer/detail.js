@@ -261,6 +261,46 @@ function runSnapDiff() {
     sec('🆕 新增', d.added) + sec('🗑 移除', d.removed, 'warn') + sec('🔄 有变化', d.changed) +
     (d.changed.length ? '<div class="hint small">变更项括号内为「旧→新」未提交数。</div>' : '');
 }
+/* v1.7.60：批量操作（收藏/取消/打标签） */
+async function bulkFav(on) {
+  if (!selPaths.size) return;
+  const cur = new Set(isFav ? (SETTINGS.favorites || []) : []);
+  selPaths.forEach(p => { if (on) cur.add(p); else cur.delete(p); });
+  const next = Array.from(cur);
+  FAVS = next;
+  const res = await window.wb.saveSettings({ favorites: next });
+  if (res && typeof res === 'object') { SETTINGS = res; FAVS = Array.isArray(SETTINGS.favorites) ? SETTINGS.favorites : next; }
+  render();
+  toast((on ? '已收藏 ' : '已取消收藏 ') + selPaths.size + ' 个项目', 'ok');
+}
+function bulkTag() {
+  if (!selPaths.size) return;
+  const existing = Array.from(new Set(Array.from(selPaths).reduce((a, p) => a.concat(tagsOf(p)), [])));
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>🏷 批量打标签</h3></div>' +
+    '<div class="hint" style="margin-bottom:10px">将给选中的 ' + selPaths.size + ' 个项目添加标签（保留已有标签' + (existing.length ? '：' + esc(existing.join('/')) : '') + '）。</div>' +
+    '<div class="field"><label>要添加的标签（逗号分隔）</label><input id="bulk-tag-input" type="text" placeholder="标签1, 标签2"></div>' +
+    '<div class="btnrow"><button class="btn" data-act="bulkTagRun">应用</button></div>'
+  );
+}
+async function bulkTagRun() {
+  const inp = $('#bulk-tag-input');
+  if (!inp) return;
+  const add = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  if (!add.length) { toast('请输入标签', 'err'); return; }
+  const next = Object.assign({}, PROJ_TAGS);
+  selPaths.forEach(p => {
+    const e = Object.assign({}, next[p] || { tags: [], note: '' });
+    e.tags = Array.from(new Set((e.tags || []).concat(add)));
+    next[p] = e;
+  });
+  PROJ_TAGS = next;
+  const res = await window.wb.saveSettings({ projectTags: next });
+  if (res && typeof res === 'object') { SETTINGS = res; PROJ_TAGS = res.projectTags || next; }
+  closeModal(); render();
+  toast('已给 ' + selPaths.size + ' 个项目添加标签', 'ok');
+}
 function dirsUp() {
   if (!currentDetail || currentDetail.stack.length <= 1) return;
   currentDetail.stack.pop();

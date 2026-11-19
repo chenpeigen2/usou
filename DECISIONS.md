@@ -3755,3 +3755,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：lists.js renderRecentList 默认模式按 mtime 日期插入 .rdaysep 分隔行（今天/昨天/更早三档）；分组模式保持原样（两种模式互斥）；style.css 加 .rdaysep 样式。零 IPC。
  > **实证（CDP）**：默认模式显示「昨天」分隔、60 条全保留；切分组模式后无日期分隔、16 个分组（互斥正确）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.74 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十七轮：新功能「详情弹窗内快捷操作」（连续第 23 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——详情弹窗展示了项目信息，但想复制路径/打开终端要关弹窗回列表点，操作链断裂。
+ > **做法**：detail.js openProject 头部后加操作行（📂资源管理器/💻VS Code/⌨️终端/📋复制路径/🏷标签 + ←→提示），复用既有 doAct 和 modal 委托，零新增 IPC。
+ > **实证（CDP）**：5 个按钮都在、data-p 都指向当前项目、翻页提示在位。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.75 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

@@ -434,6 +434,14 @@ async function openProject(p) {
     '<div class="m-head"><div class="avatar" style="' + avatarStyle(hueOf(name)) + '">' + esc(name.slice(0, 1).toUpperCase()) + '</div>' +
     '<div style="min-width:0;flex:1"><h3>' + esc(name) + '</h3><div class="muted small mono">' + esc(p) + '</div></div>' +
     (meta.type ? '<span class="badge ' + esc(meta.type) + '" style="flex:none">' + esc(meta.type) + '</span>' : '') + '</div>' +
+    // v1.7.75：详情弹窗内直接操作（无需关弹窗回列表）
+    '<div class="btnrow" style="margin:6px 0 12px">' +
+    '<button class="btn ghost" data-act="open" data-p="' + esc(p) + '">📂 资源管理器</button>' +
+    (CAPS.vscode ? '<button class="btn ghost" data-act="vscode" data-p="' + esc(p) + '">💻 VS Code</button>' : '') +
+    '<button class="btn ghost" data-act="term" data-p="' + esc(p) + '">⌨️ 终端</button>' +
+    '<button class="btn ghost" data-act="copy" data-p="' + esc(p) + '">📋 复制路径</button>' +
+    '<button class="btn ghost" data-act="tagedit" data-p="' + esc(p) + '">🏷 标签</button>' +
+    '<span class="muted small" style="margin-left:auto;align-self:center">← → 切换项目</span></div>' +
     '<div class="sec"><h3>概览</h3><div class="chips">' +
     (d.git
       ? '<span class="chip"><b>分支</b> ' + esc(g.branch || '—') + '</span>' +

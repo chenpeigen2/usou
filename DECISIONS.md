@@ -3550,3 +3550,8 @@ D:\code\usou\workbench-electron\out\
  > **实证**：6 项不变量全过（raw=102288.4 / uniq=97724.9 / dup=4563.5 / nested=5 / count=69）；完整门禁 14 项全 PASS。
  > **价值**：把「巡检要算不要只看」的方法论固化为自动化守卫——未来任何 iteration 若破坏体量去重口径，门禁立刻 FAIL，不必等人工巡检发现。这是自驱架构从「靠 agent 自觉」升级到「靠机器守卫」的关键一步。
  > **交付**：v1.7.52 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百三十八轮：架构文档同步门禁升级（纯文档轮）
+
+ > **选题依据**：造活源第 7 项「文档治理」——第 137 轮门禁升级到 14 项并新增 verify-invariants.js，第 126 轮的 ARCHITECTURE.md 已过时（还写「动态枚举 renderer/*.js」、无数据自证守卫）。
+ > **做法**：ARCHITECTURE.md 关键不变量加第 7 条「数据自证」（sizeTotals 单一事实源 + verify-invariants.js 6 项数学自证），新增「验证工具」章节（verify-delivery 14 项 / verify-invariants 6 项 / auto-commit，均自身路径推导）。纯文档轮，不改业务代码、不重建。

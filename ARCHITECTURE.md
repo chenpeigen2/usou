@@ -51,6 +51,17 @@
 4. **IPC 只增不改名**：契约见 AGENTS.md；`window.wb` 是冻结对象（contextBridge），无法替换方法——QA 钩子用静态 DOM 断言。
 5. **零机器特异性**：扫描根/强制目录/快捷入口从 settings 读，源码无写死盘符/项目名/主机名。
 6. **加载顺序**：新模块必须在 index.html 按依赖顺序加入、app.js 永远最后；删/加模块后跑 `verify-delivery.ps1`（已改为动态枚举 renderer\*.js）。
+7. **数据自证**：体量口径只能来自 `sizeTotals()` 一处；`verify-invariants.js` 用 Node 独立加载纯函数对 scan-cache 做 6 项数学自证（raw≥unique/dup=raw-unique/count/嵌套父/路径边界），任何 iteration 破坏去重口径都会被门禁拦下。
+
+## 三·五、验证工具（发版前必跑）
+
+| 脚本 | 职责 | 门禁项 |
+|---|---|---|
+| `verify-delivery.ps1` | 14 项交付门禁（进程/产物/版本/旧版清理/日志/治理/语法/时序/机器特异性/数据不变量） | 全部 |
+| `verify-invariants.js` | Node 独立加载 format.js 纯函数，对 scan-cache 做 6 项数学自证（零依赖只读） | 第 14 项 |
+| `auto-commit.ps1` | 只 commit 不 push（用户自行 push），报告待推送数 | 收尾 |
+
+> 两个 verify 脚本路径均从自身位置推导（`$PSScriptRoot` / `__dirname`），不含机器特异性硬编码。
 
 ## 四、IPC 契约（main.js 实际注册）
 

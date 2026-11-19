@@ -3653,3 +3653,10 @@ D:\code\usou\workbench-electron\out\
  > **真实 UX 问题修复（本轮实证发现）**：初版点复选框调用 render() 重绘整个列表 ⇒ DOM 替换、滚动跳转、第二次选中失效（实测 SEL_SIZE=1 而非 2）；改为 updateBulkUI() 局部更新批量条+行样式后，2 项都正确选中、批量打标签两个项目都生效。
  > **实证（CDP）**：69 个复选框、选中 2 项、批量条显示"已选 2 项"、批量打标签后两个项目 tags 都为「批量测试」。测试后清理 settings（projectTags={}）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.60 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十三轮：新功能「扫描健康仪表」（连续第 9 个功能轮）
+
+ > **选题依据**：用户「想新功能」——用户只知道"数据 5 小时前更新"，不知道扫描质量如何。系统页加健康仪表：新鲜度/体量覆盖/存活率/干净仓库四维度 + 整体健康分。
+ > **做法**：system.js 加纯函数 scanHealthHtml()（数据全来自已加载 DATA/PROJ_DEAD/HISTORY，零新增 IPC）——健康分 = 新鲜度30 + 体量覆盖30 + 存活率25 + 干净仓库15，分档 良好≥80 / 一般≥55 / 需关注；系统页顶部插入健康卡；style.css 加 .b-health/.hl-* 样式。
+ > **实证（CDP）**：健康卡显示、健康分 87/100、4 条指标条、详情文案正确（19 小时/失效 0/未提交 8）、无 NaN/undefined。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.61 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

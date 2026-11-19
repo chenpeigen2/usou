@@ -1,9 +1,43 @@
 /* 系统 + 设置视图（v1.7.41 按职责抽为独立文件）。renderSystem/historyTrendHtml/drawTrend + renderSettings/saveSettings/clearScanErrors/autoCheckHtml。依赖 DATA/HISTORY/SETTINGS/AUTO_CHECK/esc/ipc 均在调用时延迟访问，在 app.js 之前加载、全局可见。 */
 /* ---------- 系统 ---------- */
 
+/* v1.7.61：扫描健康仪表 —— 聚合数据新鲜度/失效占比/体量覆盖/未提交数，给出整体健康分。
+   纯展示，零新增 IPC，数据全部来自已加载的 DATA/PROJ_DEAD/HISTORY。 */
+function scanHealthHtml() {
+  const projects = (DATA && DATA.projects) || [];
+  const n = projects.length || 1;
+  const deadN = projects.filter(p => p && PROJ_DEAD.has(p.path)).length;
+  const sizedN = projects.filter(p => p && (p.sizeMB || 0) > 0).length;
+  const gitN = projects.filter(p => p && p.isGit).length;
+  const dirtyN = projects.filter(p => p && p.isGit && p.dirty > 0 && !PROJ_DEAD.has(p.path)).length;
+  const ageMin = DATA && DATA.meta && DATA.meta.scanTime
+    ? Math.max(0, Math.round((Date.now() - new Date(String(DATA.meta.scanTime).slice(0, 19).replace(' ', 'T'))) / 60000))
+    : -1;
+  // 健康分：新鲜度(30) + 体量覆盖(30) + 存活率(25) + 无未提交(15)
+  const fresh = ageMin < 0 ? 0 : ageMin < 120 ? 30 : ageMin < 1440 ? 20 : ageMin < 10080 ? 10 : 0;
+  const cover = Math.round((sizedN / n) * 30);
+  const alive = Math.round(((n - deadN) / n) * 25);
+  const clean = gitN ? Math.round(((gitN - dirtyN) / gitN) * 15) : 15;
+  const score = fresh + cover + alive + clean;
+  const level = score >= 80 ? ['良好', 'var(--green)'] : score >= 55 ? ['一般', 'var(--amber)'] : ['需关注', 'var(--red)'];
+  const bar = (label, val, max, color) =>
+    '<div class="hl-row"><span class="hl-l">' + label + '</span>' +
+    '<span class="hl-bar"><i style="width:' + Math.max(0, Math.min(100, (val / max) * 100)).toFixed(0) + '%;background:' + color + '"></i></span>' +
+    '<span class="hl-v">' + val + '/' + max + '</span></div>';
+  return '<div class="card b-health"><div class="b-sec-t"><span>扫描健康 <span class="muted small">' +
+    '整体 ' + score + '/100</span></span><span style="color:' + level[1] + ';font-weight:700">' + level[0] + '</span></div>' +
+    '<div class="health-score"><b style="color:' + level[1] + '">' + score + '</b><span>/100</span></div>' +
+    bar('数据新鲜度', fresh, 30, 'var(--acc)') +
+    bar('体量覆盖 ' + sizedN + '/' + projects.length, cover, 30, 'var(--green)') +
+    bar('存活项目 ' + (projects.length - deadN) + '/' + projects.length, alive, 25, 'var(--acc2)') +
+    bar('干净仓库 ' + (gitN - dirtyN) + '/' + gitN, clean, 15, 'var(--amber)') +
+    '<div class="hint small">' + (ageMin < 0 ? '尚无扫描数据' : '数据距今 ' + (ageMin < 60 ? ageMin + ' 分钟' : Math.round(ageMin / 60) + ' 小时')) +
+    ' · 失效项目 ' + deadN + ' 个（已剔除统计）· 未提交仓库 ' + dirtyN + ' 个</div></div>';
+}
 function renderSystem() {
   const m = DATA.meta;
   $('#view').innerHTML = '<div class="viewwrap">' +
+    scanHealthHtml() +
     '<h2>扫描历史趋势<span class="sub">共 ' + HISTORY.length + ' 次扫描快照 · 展示未提交文件总量与项目数变化</span>' +
     (HISTORY.length >= 2 ? '<button class="btn ghost" style="margin-left:12px" data-act="snapDiff">⚖ 对比快照</button>' : '') + '</h2>' +
     historyTrendHtml() +

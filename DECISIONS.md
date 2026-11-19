@@ -3612,3 +3612,11 @@ D:\code\usou\workbench-electron\out\
  > **真实 bug 修复（本轮实证发现）**：interaction.js 事件委托 L69 只对 typefilter 传 dataset.t，tagfilter 走 else 分支传 dataset.p（空）⇒ **项目行标签 chip 真实点击一直是坏的**（此前测试用直接设变量绕过）。本轮改为 `if (a==='typefilter'||a==='tagfilter') doAct(a, b.dataset.t)`，两处 chip 同时修好。
  > **实证（CDP）**：打标签后总览显示标签速览卡（chip「速览测试 1」）、点击后 view=projects / tagFilter=速览测试 / 列表 69→1 行。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.55 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百四十八轮：新功能「全局标签管理（批量重命名/删除）」（连续第 4 个功能轮）
+
+ > **选题依据**：用户「想新功能」——标签规模化后痛点：打"工作"到 20 个项目，想改成"在岗"得逐项目改 20 次。补全局管理弹窗批量操作。
+ > **做法**：system.js 设置页加「🏷 管理标签」按钮；detail.js 加 tagUsage/openTagManager/renameTag/deleteTag（列出所有标签+使用数，改名/删除批量更新 PROJ_TAGS 并 saveSettings 持久化）；interaction.js 加 tagManage/tagRename/tagDelete case；style.css 加 .tagman-* 样式。零新增 IPC。
+ > **实证（CDP）**：给 2 个项目打"旧标签"→管理弹窗显示 1 行(2 项目使用)→批量改名为"新标签"→两个项目 tags 都变为["新标签"]、allTagNames=["新标签"]。六视图审计 failCount 0 / min 4.64。
+ > **健壮性**：重命名/删除用按钮 data-p 传标签名（不用全局 event），零副作用确认框。测试后恢复 settings（projectTags=none）。
+ > **交付**：v1.7.56 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

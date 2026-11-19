@@ -26,6 +26,9 @@ function doAct(act, p) {
     case 'tagfilter': tagFilter = (tagFilter === p ? '' : p); if (view !== 'projects') setView('projects'); else render(); break;
     case 'tagedit': openTagEditor(p); break;
     case 'tagsave': saveTagEditor(p); break;
+    case 'tagManage': openTagManager(); break;
+    case 'tagRename': renameTag(p); break;
+    case 'tagDelete': deleteTag(p); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
     case 'analyze': startAnalyze(); break;

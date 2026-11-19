@@ -179,6 +179,52 @@ async function saveTagEditor(p) {
   render();
   toast('标签已保存', 'ok');
 }
+/* v1.7.56：全局标签管理（重命名/删除批量更新所有项目） */
+function tagUsage() {
+  const m = {};
+  Object.keys(PROJ_TAGS || {}).forEach(p => (PROJ_TAGS[p].tags || []).forEach(t => { (m[t] = m[t] || []).push(p); }));
+  return m;
+}
+function openTagManager() {
+  const usage = tagUsage(), names = Object.keys(usage).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+  if (!names.length) { toast('还没有任何标签，请先在项目中打标签', 'err'); return; }
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>🏷 标签管理</h3></div>' +
+    '<div class="hint" style="margin-bottom:10px">重命名会更新所有使用该标签的项目；删除会从所有项目移除该标签。</div>' +
+    '<div class="tagman-list">' + names.map(t =>
+      '<div class="tagman-row" data-tag="' + esc(t) + '">' +
+      '<input type="text" class="tagman-in" value="' + esc(t) + '" aria-label="标签名">' +
+      '<span class="muted small">' + usage[t].length + ' 个项目</span>' +
+      '<button class="btn ghost" data-act="tagRename" data-p="' + esc(t) + '">改名</button>' +
+      '<button class="btn ghost" data-act="tagDelete" data-p="' + esc(t) + '">删除</button></div>').join('') +
+    '</div>'
+  );
+}
+async function renameTag(oldT) {
+  const row = Array.from(document.querySelectorAll('.tagman-row')).find(r => r.dataset.tag === oldT);
+  if (!oldT || !row) return;
+  const newT = (row.querySelector('.tagman-in') || {}).value.trim();
+  if (!newT || newT === oldT) return;
+  const next = Object.assign({}, PROJ_TAGS);
+  Object.keys(next).forEach(p => { next[p] = Object.assign({}, next[p]); next[p].tags = (next[p].tags || []).map(t => t === oldT ? newT : t); });
+  PROJ_TAGS = next;
+  const res = await window.wb.saveSettings({ projectTags: next });
+  if (res && typeof res === 'object') { SETTINGS = res; PROJ_TAGS = res.projectTags || next; }
+  openTagManager(); render();
+  toast('标签「' + oldT + '」已改名为「' + newT + '」', 'ok');
+}
+async function deleteTag(t) {
+  if (!t) return;
+  if (typeof window.confirm === 'function' && !window.confirm('确定删除标签「' + t + '」？会从所有使用它的项目移除。')) return;
+  const next = Object.assign({}, PROJ_TAGS);
+  Object.keys(next).forEach(p => { next[p] = Object.assign({}, next[p]); next[p].tags = (next[p].tags || []).filter(x => x !== t); if (!next[p].tags.length && !next[p].note) delete next[p]; });
+  PROJ_TAGS = next;
+  const res = await window.wb.saveSettings({ projectTags: next });
+  if (res && typeof res === 'object') { SETTINGS = res; PROJ_TAGS = res.projectTags || next; }
+  openTagManager(); render();
+  toast('标签「' + t + '」已删除', 'ok');
+}
 function dirsUp() {
   if (!currentDetail || currentDetail.stack.length <= 1) return;
   currentDetail.stack.pop();

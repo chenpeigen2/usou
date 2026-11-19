@@ -850,7 +850,12 @@ ipcMain.handle('data:import', async (_e, chosenFile) => {
       if (fs.existsSync(src)) fs.copyFileSync(src, src + '.preimport-' + stamp);
     }
     store.setScan(obj.scan);
-    if (Array.isArray(obj.history)) fs.writeFileSync(path.join(dir, 'history.json'), JSON.stringify(obj.history, null, 2), 'utf8');
+    if (Array.isArray(obj.history)) {
+      // 原子写（tmp + rename）——与 store.write 同款，避免 state:get 在写入中途读到半截 JSON
+      const hf = path.join(dir, 'history.json'), tmp = hf + '.tmp-import';
+      fs.writeFileSync(tmp, JSON.stringify(obj.history, null, 2), 'utf8');
+      fs.renameSync(tmp, hf);
+    }
     if (obj.settings && typeof obj.settings === 'object') store.setSettings(obj.settings);
     log('data:import <- ' + file + ' (' + (obj.scan.projects || []).length + ' projects), backup .preimport-' + stamp);
     send('data:imported', { projects: (obj.scan.projects || []).length, file: file });

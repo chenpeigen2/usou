@@ -3508,3 +3508,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP 真实触发）**：startScan 启动后 1.2s 调 dataImport → 返回 `{"ok":false,"reason":"扫描正在进行中，请等扫描完成后再导入备份"}` ✓；重启（scanning=false）后同样导入 → `{"ok":true,"projects":69}` ✓。完整闭环。测试后恢复真实 dev data（history=7/projects=69）、清理 12 个 .preimport 测试备份（含第 122 轮遗留的 3 个）、无残留。六视图审计 failCount 0 / min 4.64。
  > **探针纠错**：首测用 `window.wb.scanStart`（不存在）导致扫描没启动、误判"防护失效"；改 `startScan` 后正确复现（QA 范式第 10 条）。
  > **交付**：v1.7.48 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。
+
+ # 第一百三十二轮：健壮性——导入 history 改原子写（tmp+rename）
+
+ > **选题依据**：造活源第 4 项「健壮性」——沿第 131 轮竞态思路，发现 data:import 中 scan-cache/settings 走 store.write（原子 tmp+rename），唯独 history.json 用 fs.writeFileSync 直接写（非原子）⇒ 若 state:get 在写入中途读，可能拿到半截 JSON。
+ > **实证（读码）**：store.write（L31-34）= writeFileSync(tmp) + renameSync（原子）；data:export 读 store.getScan/getHistory 因此不会读到半写入。风险集中在 import 的 history 直写。
+ > **做法**：data:import 的 history 写入改为同款原子写（tmp-import + renameSync），零行为改变、仅消除半写入窗口。
+ > **实证（CDP 真实导入）**：导入成功、history.json 完整可读（7 条）、无 .tmp-import 残留、渲染层 HISTORY=7 同步。清理测试产物（dev + %APPDATA% 备份 + 12 个 .preimport）后数据干净（69 项目/7 历史）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.49 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。

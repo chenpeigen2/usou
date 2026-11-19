@@ -3499,3 +3499,12 @@ D:\code\usou\workbench-electron\out\
  > **做法**：verify-delivery.ps1 新增 Check '源码无机器特异性硬编码'（扫描 JS/ps1/html 的 8 个机器关键词）；新门禁立刻抓出 format.js 注释里第 109 轮写的真实项目名案例（D:\CLAUNCER2 ⊃ TclLauncher 等）——泛化为通用描述。
  > **实证**：新门禁先 FAIL（format.js 2 处）→ 泛化注释后 PASS；重新打包 v1.7.47（清理旧产物）→ verify-delivery 全过（现 13 项）。期间遇到打包版启动失败（4 个 dev electron 进程残留持有单实例锁）——杀净后恢复正常，已固化为「每次启动前杀净 electron/工作台 进程」的既有红线。
  > **交付**：v1.7.47 重新构建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。
+
+ # 第一百三十一轮：修复真实竞态——扫描期间禁止数据导入（写盘互斥）
+
+ > **选题依据**：造活源第 1 项「高疑点角度」——第 130 轮预告的竞态：data:import 与扫描完成都会写 scan-cache/history/settings，若并发会互相覆盖（用户导入后数据"莫名变回旧的"）。
+ > **根因（读码实证）**：扫描成功路径 L530 的 `scanning=false` 在写盘（L533 setScan + L543 appendHistory）**之前**，导致"扫描中"标志没覆盖写盘窗口；data:import 无 scanning 检查。
+ > **做法**：① 把成功路径的 `scanning=false` 移到持久化完成之后（L553），让标志覆盖「扫描+写盘」全周期（catch 路径的 scanning=false 保留）；② data:import 入口 + 校验通过后各加一次 `if (scanning) return {ok:false, reason:'扫描进行中'}`（二次检查防选文件对话框期间开始扫描的异步窗口）。
+ > **实证（CDP 真实触发）**：startScan 启动后 1.2s 调 dataImport → 返回 `{"ok":false,"reason":"扫描正在进行中，请等扫描完成后再导入备份"}` ✓；重启（scanning=false）后同样导入 → `{"ok":true,"projects":69}` ✓。完整闭环。测试后恢复真实 dev data（history=7/projects=69）、清理 12 个 .preimport 测试备份（含第 122 轮遗留的 3 个）、无残留。六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：首测用 `window.wb.scanStart`（不存在）导致扫描没启动、误判"防护失效"；改 `startScan` 后正确复现（QA 范式第 10 条）。
+ > **交付**：v1.7.48 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。

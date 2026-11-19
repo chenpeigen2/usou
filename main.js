@@ -527,7 +527,6 @@ function startScanRun(opts) {
       //   写盘失败（缓存只读/文件被锁/磁盘满）会落入 .catch 被误报为「扫描失败」，
       //   而实际数据已成功扫描、只是没存下 ⇒ 陈述与事实不符（同款第 7 例）。
       //   现在：扫描成功 = runScan 返回 data；持久化单独处理，不再与扫描失败混淆。
-      scanning = false;
       let persisted = false;
       try {
         store.setScan(data);
@@ -550,6 +549,8 @@ function startScanRun(opts) {
           try { tray.displayBalloon({ title: '工作台', content: '扫描完成：简报与项目数据已更新', iconType: 'info' }); } catch (_e) { /* 仅 Windows 生效，其余忽略 */ }
         }
       }
+      // v1.7.48：scanning 标志覆盖「扫描 + 写盘」全周期 —— 防止 data:import 在写盘窗口插入导致互相覆盖
+      scanning = false;
     })
     .catch(err => {
       scanning = false;
@@ -820,6 +821,8 @@ ipcMain.handle('data:peek', async () => {
 
 /* v1.7.41：导入数据备份——选 JSON → 校验格式 → 先备份现有数据 → 写入。保守：版本不符/格式错一律拒绝。 */
 ipcMain.handle('data:import', async (_e, chosenFile) => {
+  // v1.7.48：扫描进行中禁止导入——两者都会写 scan-cache/history/settings，避免互相覆盖
+  if (scanning) return { ok: false, reason: '扫描正在进行中，请等扫描完成后再导入备份' };
   try {
     let file = chosenFile;
     if (!file) {
@@ -836,6 +839,8 @@ ipcMain.handle('data:import', async (_e, chosenFile) => {
       return { ok: false, reason: '备份格式/版本不匹配（需 usou-workbench-backup v1）' };
     }
     if (!obj.scan || !Array.isArray(obj.scan.projects)) return { ok: false, reason: '备份缺少扫描数据' };
+    // 二次检查：选文件对话框期间可能已开始扫描（异步窗口），写盘前再挡一次
+    if (scanning) return { ok: false, reason: '扫描已开始，请等扫描完成后再导入备份' };
     // 先备份现有三类数据（带时间戳，失败即中止、绝不覆盖）
     const dir = store.dataDir(), p2 = n => String(n).padStart(2, '0'), d = new Date();
     const stamp = d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()) + p2(d.getSeconds());

@@ -3578,3 +3578,8 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 3 项「QA 深化」元验证——72 个 commit 都靠 auto-commit.ps1 生成，若它漏文件或有 bug，迭代历史会失真。
  > **实证**：核对 commit message 格式（git log -1 --pretty=%B）——含「版本: v1.7.52 / 变更文件: 1 个 / 只 commit 不 push」，与实际变更一致；auto-commit.ps1 的 $changed.Count + 禁用路径检查 + RunGit（无递归）逻辑正确。commit 历史可信。
  > **元验证体系完成（140/141/142 轮）**：对比度审计非恒过 + 截图非缓存帧 + commit 历史可信——QA 与治理三大支柱均经元验证确认。软件达到成熟稳定态，无新增高价值问题。
+
+ # 第一百四十三轮：IPC 契约三方一致性审计（深度巡检 · 证伪轮）
+
+ > **选题依据**：造活源第 1 项「高疑点」——从未系统核对 main.js handler / preload.js 暴露 / AGENTS 契约三方一致性；若 handler 未暴露到 preload，渲染层调用静默失败；若暴露无 handler，调用挂起。
+ > **实证（Node 脚本三方比对）**：main handlers=23、preload exposed=23；preload→缺失 handler=none、handler→未暴露=none（排除广播类通道）。契约完全一致，无孤儿无缺失。无缺陷。

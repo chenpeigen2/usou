@@ -3704,3 +3704,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：main.js 加 `csv:export` IPC（读 scan-cache + settings 的标签/收藏，生成 12 列 CSV：名称/路径/类型/Git/分支/未提交/体量/文件数/最近提交/收藏/标签/备注，UTF-8 BOM 保证 Excel 中文不乱码）；preload 暴露 csvExport；设置页加「📊 导出项目清单 CSV」按钮；命令面板加对应动作。零新增 IPC 名（csv 是新增 handler，契约只增不改名）。
  > **实证（CDP）**：导出成功（69 行/7.3KB/BOM 有/首行数据完整）、设置页按钮在位、命令面板动作可搜。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.67 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十轮：新功能「重复/相似项目检测」（连续第 16 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——把历轮巡检用的「数据自证」手段产品化：69 个项目里可能有同名/嵌套/近似名，用户管理时容易混淆。
+ > **做法**：format.js 加纯函数 findDuplicates(projects)（同名分组 / 路径嵌套 / 近似名去后缀）；lists.js 工具栏加「🔍 查重」按钮；detail.js 加 openDupFind 弹窗（三组分类展示）；style.css 加 .dup-* 样式。零 IPC、零副作用。
+ > **实证（CDP）**：真实数据检出 2 组同名 + 5 对嵌套（与第 109 轮独立重算一致）、弹窗 7 行、分组正确。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.68 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

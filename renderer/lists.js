@@ -21,6 +21,7 @@ function renderProjects() {
     '<option value="size"' + (sortBy === 'size' ? ' selected' : '') + '>按体量</option>' +
     '<option value="name"' + (sortBy === 'name' ? ' selected' : '') + '>按名称</option></select>' +
     '<button class="btool' + (projCompact ? ' on' : '') + '" data-act="projCompact" title="紧凑模式：隐藏副标题，一屏显示更多项目">' + (projCompact ? '▤ 舒适' : '☰ 紧凑') + '</button>' +
+    '<button class="btool" data-act="dupFind" title="检测同名/嵌套/近似项目">🔍 查重</button>' +
     '<button class="btool" data-act="compare:open" title="并排对比两个 git 项目的分支 / 未提交 / 提交 / 体量">⚖ 对比</button>' +
     '</div>' +
     (selPaths.size ? '<div class="bulk-bar">已选 <b>' + selPaths.size + '</b> 项 · ' +

@@ -320,6 +320,24 @@ function openShortcutHelp() {
     '<div class="hint small" style="margin-top:10px">命令面板还可搜「动作：」执行导出周报/复制简报/导出备份等。</div>'
   );
 }
+/* v1.7.68：重复/相似项目检测弹窗（纯数据，零副作用） */
+function openDupFind() {
+  const d = findDuplicates((DATA && DATA.projects) || []);
+  const total = d.sameName.length + d.nested.length + d.similar.length;
+  if (!total) { toast('未发现重复/嵌套/近似项目', 'ok'); return; }
+  const block = (title, rows, fmt, color) => rows.length
+    ? '<div class="sec"><h3>' + title + '（' + rows.length + '）</h3><div class="dup-list">' +
+      rows.map(r => '<div class="dup-row" style="border-left-color:' + color + '">' + fmt(r) + '</div>').join('') + '</div></div>'
+    : '';
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>🔍 重复/相似项目</h3></div>' +
+    '<div class="hint" style="margin-bottom:10px">' + total + ' 组需留意：同名可能导致数据混淆，嵌套会使体量重复计算，近似名可能是工作副本。</div>' +
+    block('🔴 完全同名', d.sameName, g => '<b>' + esc(g[0].name) + '</b> · ' + g.length + ' 个：' + g.map(p => '<span class="mono">' + esc(shortPath(p.path)) + '</span>').join('、'), 'var(--red)') +
+    block('🟠 路径嵌套', d.nested, x => '<span class="mono">' + esc(shortPath(x.child.path)) + '</span> 位于 <span class="mono">' + esc(shortPath(x.parent.path)) + '</span> 之内（体量含在上级）', 'var(--amber)') +
+    block('🟡 近似名称', d.similar, g => g.map(p => '<span class="mono">' + esc(p.name) + '</span>').join(' ≈ '), 'var(--green)')
+  );
+}
 function dirsUp() {
   if (!currentDetail || currentDetail.stack.length <= 1) return;
   currentDetail.stack.pop();

@@ -67,3 +67,23 @@ function greet() {
   if (h < 18) return '下午好';
   return '晚上好';
 }
+/* v1.7.68：重复/相似项目检测（纯函数）——同名、路径嵌套、近似名。
+   把历轮巡检用的「数据自证」做成用户可用工具。 */
+function findDuplicates(projects) {
+  const list = (Array.isArray(projects) ? projects : []).filter(p => p && p.path);
+  const groups = {};
+  list.forEach(p => { const k = String(p.name || '').trim().toLowerCase(); if (k) (groups[k] = groups[k] || []).push(p); });
+  const sameName = Object.keys(groups).map(k => groups[k]).filter(g => g.length > 1);
+  const key = p => projPathKey(p.path);
+  const nested = [];
+  list.forEach(child => {
+    const parent = list.find(p => p !== child && key(child).indexOf(key(p) + '/') === 0);
+    if (parent) nested.push({ child: child, parent: parent });
+  });
+  // 近似名：去后缀/大小写后相同，但未同名（如 foo 与 foo-wt）
+  const base = n => String(n || '').toLowerCase().replace(/[-_.\s]+(wt|worktree|copy|副本|backup|bak|new|old|\d+)$/, '').trim();
+  const bg = {};
+  list.forEach(p => { const k = base(p.name); if (k) (bg[k] = bg[k] || []).push(p); });
+  const similar = Object.keys(bg).map(k => bg[k]).filter(g => g.length > 1 && new Set(g.map(p => p.name)).size > 1);
+  return { sameName: sameName, nested: nested, similar: similar };
+}

@@ -3748,3 +3748,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：main.js scan:done 广播前用 last history 快照 vs 当前 projects 算 added/removed（排除 name: 旧键），随 scan:done 带 delta；state.js 订阅后 toast/log 显示「新增 X / 移除 Y 个项目」（无变化则不显示）。零新增 IPC。
  > **实证（Node 独立重算）**：当前缓存与最后快照一致 → delta 0/0（计算正确）；语法 21/21、六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.73 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十六轮：新功能「最近动态按日期分段」（连续第 22 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——最近视图 60 条按时间平铺，定位"今天改了什么"要逐条看时间戳。加日期分隔行（今天/昨天/更早），与「按项目分组」互补。
+ > **做法**：lists.js renderRecentList 默认模式按 mtime 日期插入 .rdaysep 分隔行（今天/昨天/更早三档）；分组模式保持原样（两种模式互斥）；style.css 加 .rdaysep 样式。零 IPC。
+ > **实证（CDP）**：默认模式显示「昨天」分隔、60 条全保留；切分组模式后无日期分隔、16 个分组（互斥正确）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.74 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

@@ -223,7 +223,25 @@ function renderRecentList() {
       groups[d].map(recentRow).join('') + '</div>').join('');
     if (deadN) body += sep + parts.dead.map(recentRow).join('');
   } else {
-    body = parts.live.map(recentRow).join('') + sep + parts.dead.map(recentRow).join('');
+    // v1.7.74：默认模式按日期分段（今天/昨天/更早）——60 条平铺时定位更轻松
+    const today = new Date().toDateString();
+    const y = new Date(); y.setDate(y.getDate() - 1);
+    const yesterday = y.toDateString();
+    let lastDay = '';
+    const dayOf = r => {
+      const d = new Date(String(r.mtime || '').slice(0, 19).replace(' ', 'T'));
+      if (isNaN(d)) return '更早';
+      const ds = d.toDateString();
+      if (ds === today) return '今天';
+      if (ds === yesterday) return '昨天';
+      return '更早';
+    };
+    body = parts.live.map(r => {
+      const day = dayOf(r);
+      const sep2 = day !== lastDay ? '<div class="rdaysep">' + day + '</div>' : '';
+      lastDay = day;
+      return sep2 + recentRow(r);
+    }).join('') + sep + parts.dead.map(recentRow).join('');
   }
   $('#recent-list').innerHTML =
     '<div class="stats" style="margin-bottom:8px">' + note + '</div>' +

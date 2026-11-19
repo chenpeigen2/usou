@@ -3637,3 +3637,10 @@ D:\code\usou\workbench-electron\out\
  > **纠错**：编辑 palIndex sort 时残留旧 `});` 导致语法错（Unexpected token），删除残留后通过（QA 范式第 11 条：编辑后先 node --check）。
  > **里程碑**：用户批评「磨洋工」后连续 6 个功能轮（145 标签系统 / 146 历史轨迹 / 147 标签速览卡 / 148 全局标签管理 / 149 快照对比 / 150 MRU），共 6 个真实新功能 + 2 个真实 bug 修复。
  > **交付**：v1.7.58 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十一步：新功能「已标记 N」一键筛选（连续第 7 个功能轮）
+
+ > **选题依据**：用户「想新功能」——标签系统有下拉按单个标签筛、总览速览卡要点具体标签，但缺"一键看所有带标签/备注的项目"入口。
+ > **做法**：lists.js renderTypeChips 加「已标记 N」chip（统计有 tags 或 note 的项目数）、renderProjectList filter 加 `filterType==='已标记'` 分支（复用 tagsOf/noteOf）。
+ > **实证（CDP）**：给 2 个项目分别打标签/写备注后，chip 显示「已标记 2」、点击筛选后列表 69→2 行。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.59 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

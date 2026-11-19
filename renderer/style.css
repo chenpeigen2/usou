@@ -11,7 +11,7 @@
      浅色主题的 --grad 是暗色系 → 文字用白（5.99~6.49:1）。见 DECISIONS 第十九轮 Q4。 */
   --on-grad:#0b1220;
   --green:#34d399; --amber:#fbbf24; --red:#f87171; --purple:#c084fc; --yellow:#e3b341;
-  --r:14px; --r-sm:10px;
+  --r:18px; --r-sm:12px;   /* v1.7.79：整体圆润化 —— 卡片 14→18、按钮 10→12 */
   --shadow:0 12px 32px rgba(0,0,0,.38);
 
   /* ===== v1.7.8 主题语义变量（深色为默认；浅色整体换肤见文末 [data-theme="light"]） =====
@@ -209,9 +209,10 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 
 /* 磁盘环 hover 明细浮层（v1.7.6） */
 .ring-tip{
-  position:fixed;z-index:120;pointer-events:none;min-width:176px;
-  background:var(--tip-bg);border:1px solid var(--line2);border-radius:10px;
-  box-shadow:var(--shadow);padding:9px 12px;font-size:12px;color:var(--muted);
+  position:fixed;z-index:120;pointer-events:none;min-width:186px;
+  background:var(--tip-bg);border:1px solid var(--line2);border-radius:14px;
+  box-shadow:0 10px 32px rgba(0,0,0,.16),0 2px 8px rgba(0,0,0,.06);
+  padding:11px 14px;font-size:12px;color:var(--muted);
 }
 .rt-t{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
   color:var(--text);font-weight:700;font-size:13px;margin-bottom:5px}
@@ -223,7 +224,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 /* QA 取证徽标（固定定位，不参与文档流，避免位移被测对象） */
 .qa-ring-note{
   position:fixed;left:18px;bottom:18px;z-index:130;max-width:46vw;
-  padding:8px 12px;border:1px solid var(--line2);border-radius:8px;
+  padding:8px 12px;border:1px solid var(--line2);border-radius:12px;
   background:var(--qa-bg);color:var(--acc);font-size:12px;line-height:1.8;
   font-variant-numeric:tabular-nums;
 }
@@ -256,7 +257,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .b-tags .chips{margin:6px 0}
 .b-tags .chipbtn b{color:var(--acc);margin-left:3px}
 .tagman-list{display:flex;flex-direction:column;gap:8px;max-height:380px;overflow:auto}
-.tagman-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+.tagman-row{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid var(--line);border-radius:12px;background:var(--panel)}
 .tagman-row .tagman-in{flex:1;min-width:0}
 .tagman-row .btn{padding:4px 10px;font-size:11.5px}
 /* v1.7.60：项目多选批量操作 */
@@ -276,12 +277,12 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .hl-bar i{display:block;height:100%;border-radius:3px}
 .hl-v{width:48px;text-align:right;flex:none;font-variant-numeric:tabular-nums;color:var(--text)}
 .rgroup{margin-bottom:12px}
-.rgroup-h{padding:6px 9px;background:var(--panel2);border-radius:6px;font-size:12px;font-weight:600;
+.rgroup-h{padding:6px 9px;background:var(--panel2);border-radius:10px;font-size:12px;font-weight:600;
   color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .shortcut-list{display:flex;flex-direction:column;gap:7px;margin:10px 0}
 .shortcut-row{display:flex;align-items:center;gap:12px;font-size:12.5px}
 .shortcut-row kbd{font-family:Consolas,monospace;font-size:11.5px;background:var(--panel2);border:1px solid var(--line2);
-  border-bottom-width:2px;border-radius:5px;padding:3px 8px;min-width:78px;text-align:center;color:var(--acc)}
+  border-bottom-width:2px;border-radius:8px;padding:3px 8px;min-width:78px;text-align:center;color:var(--acc)}
 /* v1.7.66：项目视图紧凑模式 */
 #proj-list.compact .prow{padding:4px 15px;grid-template-columns:30px minmax(150px,1fr) minmax(120px,1fr) minmax(170px,auto)}
 #proj-list.compact .avatar{width:24px;height:24px;border-radius:7px;font-size:12px}
@@ -289,9 +290,9 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 #proj-list.compact .p-actions{opacity:1}
 .btool.on{border-color:var(--acc);color:var(--acc);background:var(--soft-acc)}
 .dup-list{display:flex;flex-direction:column;gap:5px;max-height:320px;overflow:auto}
-.dup-row{padding:6px 10px;background:var(--panel2);border-left:3px solid;border-radius:4px;font-size:11.5px;line-height:1.6;word-break:break-all}
+.dup-row{padding:6px 10px;background:var(--panel2);border-left:3px solid;border-radius:10px;font-size:11.5px;line-height:1.6;word-break:break-all}
 .disk-warn{padding:9px 13px;margin-bottom:13px;background:var(--soft-red);border:1px solid var(--red);
-  border-radius:8px;color:var(--red);font-size:12px;font-weight:500}
+  border-radius:12px;color:var(--red);font-size:12px;font-weight:500}
 .rdaysep{padding:5px 9px;margin:8px 0 4px;background:var(--panel2);border-radius:5px;font-size:11px;
   font-weight:600;color:var(--muted);letter-spacing:1px}
 .chipbtn{
@@ -334,7 +335,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .p-line .nm:hover{color:var(--acc)}
 /* 收藏星标（v1.7.1）：常驻可见、可点；未收藏为淡星、收藏为实心琥珀星 */
 .fav-btn{
-  flex:none;background:none;border:1px solid transparent;border-radius:6px;
+  flex:none;background:none;border:1px solid transparent;border-radius:9px;
   color:var(--muted2);font-size:14px;line-height:1;padding:1px 5px;
   transition:all .12s;cursor:pointer;
 }
@@ -360,7 +361,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .p-sub{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
 .p-sub b{color:var(--strong);font-weight:600}
 .dmark{color:var(--amber);font-weight:600}
-.badge{display:inline-block;border-radius:5px;padding:0 7px;font-size:10.5px;line-height:18px;background:var(--badge-bg);color:var(--muted);flex:none}
+.badge{display:inline-block;border-radius:8px;padding:0 7px;font-size:10.5px;line-height:18px;background:var(--badge-bg);color:var(--muted);flex:none}
 .badge.Android{color:var(--green);background:var(--soft-green)}
 .badge.Web{color:var(--ext-blue);background:var(--soft-acc)}
 .badge.Python{color:var(--yellow);background:var(--soft-yellow)}
@@ -374,7 +375,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .p-actions{display:flex;gap:5px;justify-content:flex-end;opacity:.4;transition:opacity .14s}
 .prow:hover .p-actions{opacity:1}
 .ibtn{
-  background:none;border:1px solid var(--line);border-radius:7px;color:var(--muted);
+  background:none;border:1px solid var(--line);border-radius:9px;color:var(--muted);
   padding:3px 8px;font-size:12px;line-height:1.5;transition:all .12s;white-space:nowrap;
 }
 .ibtn:hover{color:var(--acc);border-color:var(--acc);background:var(--soft-acc2)}
@@ -388,7 +389,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .ritem:first-child{border-top:none}
 .ritem:hover{background:var(--panel2)}
 .ritem .t{color:var(--muted2);font-variant-numeric:tabular-nums;font-size:11.5px}
-.ritem .ext{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid;border-radius:5px;padding:0 5px;line-height:16px;text-align:center}
+.ritem .ext{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border:1px solid;border-radius:8px;padding:0 5px;line-height:16px;text-align:center}
 .ritem .name{cursor:pointer;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ritem .name:hover{color:var(--acc)}
 .ritem .d{color:var(--muted2);font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:rtl;text-align:left}
@@ -402,7 +403,7 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .ritem.is-dead .ibtn{color:var(--muted2);border-color:var(--line)}
 .deadtag{
   display:inline-block;font-size:10px;font-weight:700;line-height:16px;padding:0 5px;
-  border:1px solid var(--red);border-radius:5px;color:var(--red);letter-spacing:.5px;white-space:nowrap;
+  border:1px solid var(--red);border-radius:8px;color:var(--red);letter-spacing:.5px;white-space:nowrap;
 }
 /* v1.7.16 失效条目沉底：活条目与失效条目之间的分隔行
    （复用 --muted2 / --panel2 / --hairline，零新增 CSS 变量；不用 opacity 变暗 —— 审计器不计 opacity） */
@@ -494,7 +495,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
 /* 弹窗 */
 #modal{position:fixed;inset:0;background:var(--overlay);backdrop-filter:blur(7px);z-index:50;display:flex;align-items:center;justify-content:center;animation:fadeUp .18s ease}
 #modal-box{
-  background:var(--modal-grad);border:1px solid var(--line2);border-radius:16px;
+  background:var(--modal-grad);border:1px solid var(--line2);border-radius:20px;
   width:min(780px,92vw);max-height:86vh;overflow-y:auto;padding:22px 26px;box-shadow:var(--shadow-strong);
 }
 #modal-box h3{color:var(--text);font-size:15px;margin:0}
@@ -503,10 +504,10 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
 .m-head .small{margin-top:1px}
 .sec{margin-top:16px}
 .files{
-  background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:9px 13px;
+  background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:9px 13px;
   font:12px/1.75 Consolas,monospace;color:var(--amber);max-height:200px;overflow-y:auto;white-space:pre-wrap;
 }
-.log{background:var(--inset);border:1px solid var(--line);border-radius:10px;padding:6px 13px;font:12px/1.7 Consolas,monospace;max-height:210px;overflow-y:auto}
+.log{background:var(--inset);border:1px solid var(--line);border-radius:12px;padding:6px 13px;font:12px/1.7 Consolas,monospace;max-height:210px;overflow-y:auto}
 .log div{padding:2.5px 0;border-bottom:1px dashed var(--hairline2)}
 .log div:last-child{border-bottom:none}
 .log .t{color:var(--muted2);margin-right:9px}
@@ -517,7 +518,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
 #toast-wrap{position:fixed;top:56px;right:18px;z-index:99;display:flex;flex-direction:column;gap:9px;pointer-events:none}
 .toast{
   background:var(--toast-bg);border:1px solid var(--line2);border-left:3px solid var(--acc);
-  padding:10px 17px;border-radius:11px;box-shadow:var(--shadow);font-size:13px;max-width:380px;
+  padding:10px 17px;border-radius:14px;box-shadow:var(--shadow);font-size:13px;max-width:380px;
   animation:slideIn .22s ease;
 }
 .toast.err{border-left-color:var(--red)}
@@ -600,7 +601,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
 .pulse-num .v{font-size:23px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
 .pulse-num .v.cpu{color:var(--acc)} .pulse-num .v.mem{color:var(--acc2)}
 .pulse-num .l{font-size:10.5px;color:var(--muted2);letter-spacing:1.5px}
-#pulse-cv{width:100%;height:98px;display:block;border-radius:8px}
+#pulse-cv{width:100%;height:98px;display:block;border-radius:12px}
 
 /* 简报（时间轴） */
 .daily-list{display:flex;flex-direction:column;gap:2px;max-height:242px;overflow-y:auto;padding-right:5px;position:relative}
@@ -654,7 +655,7 @@ table.sys tr:nth-child(even) td{background:var(--stripe)}
   background:var(--pal-grad);border:1px solid var(--line2);border-radius:14px;
   box-shadow:var(--shadow-modal);overflow:hidden;
 }
-#pal-input{border:none;background:none;border-bottom:1px solid var(--line);border-radius:0;padding:15px 18px;font-size:15px;box-shadow:none!important}
+#pal-input{border:none;background:none;border-bottom:1px solid var(--line);border-radius:12px 12px 0 0;padding:15px 18px;font-size:15px;box-shadow:none!important}
 #pal-list{overflow-y:auto;padding:7px}
 .pal-cap{font-size:10.5px;color:var(--muted2);letter-spacing:2px;padding:9px 12px 3px}
 .pal-item{display:flex;align-items:center;gap:11px;padding:8px 12px;border-radius:9px;cursor:pointer;font-size:13.5px}

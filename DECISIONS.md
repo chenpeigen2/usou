@@ -3783,3 +3783,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：theme.js 加 systemPrefersLight()/resolveTheme()（'system'→检测系统偏好解析为 light/dark）、applyTheme 统一走 resolveTheme、setTheme 保存原值（含 'system'）、bindSystemTheme() 监听 matchMedia change 实时应用；state.js init 调 bindSystemTheme；设置页加「🖥 跟随系统」按钮（选中态按 SETTINGS.theme 原始值判断，不用 themeIsLight 避免解析后误高亮）。零 IPC。
  > **实证（CDP）**：resolveTheme('system')=light（系统偏好浅色）、setTheme('system') 应用 light 但存储/persist 'system'、三个主题按钮都在、恢复 settings（theme=light）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.78 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百七十一步：UI 圆润化（用户反馈「悬浮的不是圆角、整体不好看」）
+
+ > **选题依据**：用户看截图反馈「UI 感觉不好看，悬浮的那个不是圆角」。用 ask_user_question 精确定位为「整体悬浮卡片/面板都不够圆润」。这是真实审美反馈，优先处理。
+ > **做法**：style.css 系统性圆角提升——核心变量 --r 14→18px、--r-sm 10→12px；16 处散落的小圆角统一提升（qa徽标8→12/tagman-row8→12/rgroup-h6→10/kbd5→8/dup-row4→10/disk-warn8→12/fav-btn6→9/badge5→8/ibtn7→9/ext5→8/deadtag5→8/modal-box16→20/field input10→12/log10→12/toast11→14/pulse-cv8→12）；ring-tip 浮层 10→14px + 更强阴影；pal-input 顶部圆角。
+ > **实证（截图+CDP）**：改前/改后总览截图对比——卡片明显更圆润柔和；ring-tip 实测 14px、四角全圆、阴影增强；对比度审计 failCount 0 / min 4.64（圆角改动未影响可读性）。
+ > **交付**：v1.7.79 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

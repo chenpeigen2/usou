@@ -3669,3 +3669,10 @@ D:\code\usou\workbench-electron\out\
  > **探针纠错**：首测用 `[data-act=recent:group]`（冒号未转义）得 undefined（QA 范式第 9 条），改用 Array.find(b=>b.dataset.act===...) 后确认功能正常。
  > **里程碑**：用户批评「磨洋工」后连续 10 个功能轮（145-154），共 10 个真实新功能 + 3 个真实 bug 修复。
  > **交付**：v1.7.62 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十五轮：新功能「命令面板高频动作」（连续第 11 个功能轮）
+
+ > **选题依据**：用户「想新功能」——Ctrl+K 命令面板只有项目/视图/重扫动作，导出周报/复制简报/导出备份这些高频动作要回总览/设置才能用。加进命令面板。
+ > **做法**：interaction.js palIndex 在视图项后加 3 个动作项（导出周报/复制今日简报/导出数据备份），复用已有 exportWeekly/copyBrief/doAct('dataExport')，零新增 IPC。
+ > **实证（CDP）**：搜「导出周报」「复制简报」「导出备份」分别命中对应动作项、动作总数 2→5。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.63 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

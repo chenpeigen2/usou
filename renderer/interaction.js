@@ -174,6 +174,13 @@ function palIndex() {
       ico: '↪', icoCls: 'g4', acts: [],
       run: () => setView(v)
     }));
+  // v1.7.63：高频动作也进命令面板 —— Ctrl+K 不必回总览/设置就能导出/复制
+  [['动作：导出周报', '📅 导出 weeklyMarkdown 到文档', '导出 周报 weekly markdown', '📅', () => exportWeekly()],
+   ['动作：复制今日简报', '📋 复制简报到剪贴板', '复制 简报 brief copy', '📋', () => copyBrief()],
+   ['动作：导出数据备份', '💾 导出全部本地数据 JSON', '导出 备份 数据 data export', '💾', () => doAct('dataExport')]
+  ].forEach(([label, hint, keys, ico, run]) => items.push({
+    label: label, hint: hint, keys: keys, ico: ico, icoCls: 'g2', acts: [], run: run
+  }));
   items.push({
     label: '动作：全量重扫', hint: 'F5 · 约 4 分钟', keys: '动作 重扫 scan full 全量',
     ico: '🔄', icoCls: 'g3', acts: [],

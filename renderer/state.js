@@ -2,6 +2,7 @@
 let DATA = null, SETTINGS = { skipSizes: false, extraRoots: [] }, CAPS = { vscode: false, wt: false }, HISTORY = [], LOGINITEM = false, VERSION = '';
 let view = localStorage.getItem('wb.view') || 'overview';
 let filterType = '全部', q = '', sortBy = 'mtime';
+let tagFilter = '';      // v1.7.53：项目视图标签筛选（空=全部）
 let rq = '';     // v1.7.12：最近视图搜索词（与项目视图的 q 分开保存，互不干扰）
 let rqDeadOnly = false; // v1.7.41：最近视图「仅看已删除」筛选开关
 let lastAnalysis = null;
@@ -9,6 +10,7 @@ let QA_DETAIL = '';   // QA 钩子：URL ?detail=项目名，renderProjects 末�
 let detailSeq = 0;    // 项目详情弹窗序号：接口慢返回时不覆盖已关闭/已切换的弹窗
 let currentDetail = null; // 当前详情弹窗 { root, stack, loadDirs }，供目录构成下钻 / 返回 / 重算使用
 let FAVS = [];        // 收藏项目绝对路径数组（settings.favorites 镜像；置顶 / Ctrl+K / 数字条共用）
+let PROJ_TAGS = {};   // v1.7.53：项目标签/备注 { path: { tags:[], note:'' } }（settings.projectTags 镜像）
 let SCAN_ERRORS = []; // 持久化的扫描/分析错误诊断（state:get 带回；设置页展示，重启后仍在）
 let AUTO_CHECK = null; // v1.7.10：最近一次「自动扫描到期检查」判定（state:get.autoCheck 兜底 + scan:auto 事件实时更新）
 /* v1.7.13 失效路径保护：扫描缓存里存着已被删除的路径（实测 60 条中 36 条已失效），
@@ -47,6 +49,7 @@ async function refreshState() {
   SETTINGS = st.settings || {};
   SETTINGS.autoScanHours = Number(SETTINGS.autoScanHours) || 0; // 0=关闭
   FAVS = Array.isArray(SETTINGS.favorites) ? SETTINGS.favorites.filter(x => typeof x === 'string') : [];
+  PROJ_TAGS = (SETTINGS.projectTags && typeof SETTINGS.projectTags === 'object' && !Array.isArray(SETTINGS.projectTags)) ? SETTINGS.projectTags : {};
   CAPS = st.caps;
   HISTORY = st.history || [];
   SCAN_ERRORS = Array.isArray(st.scanErrors) ? st.scanErrors : [];
@@ -70,6 +73,25 @@ async function refreshState() {
       winStateBootstrapped = true;
     } catch (_e) { /* 缺失 DOM 节点不能打断 refreshState */ }
   }
+}
+
+/* v1.7.53：项目标签/备注（复用 settings 通道持久化，零新增 IPC） */
+function tagsOf(p) { const e = PROJ_TAGS[p]; return e && Array.isArray(e.tags) ? e.tags : []; }
+function noteOf(p) { const e = PROJ_TAGS[p]; return e && typeof e.note === 'string' ? e.note : ''; }
+function allTagNames() {
+  const s = new Set();
+  Object.keys(PROJ_TAGS).forEach(p => (PROJ_TAGS[p].tags || []).forEach(t => s.add(t)));
+  return Array.from(s).sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+}
+async function saveProjTags(p, tags, note) {
+  const next = Object.assign({}, PROJ_TAGS);
+  if (!tags.length && !note) delete next[p];
+  else next[p] = { tags: tags, note: note };
+  PROJ_TAGS = next;
+  try {
+    const res = await window.wb.saveSettings({ projectTags: next });
+    if (res && typeof res === 'object') { SETTINGS = res; PROJ_TAGS = res.projectTags || next; }
+  } catch (e) { toast('标签保存失败：' + String((e && e.message) || e), 'err'); }
 }
 
 async function init() {

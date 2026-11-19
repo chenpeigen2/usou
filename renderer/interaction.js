@@ -23,6 +23,9 @@ function doAct(act, p) {
     case 'weekly:export': exportWeekly(); break;
     case 'fav': toggleFav(p); break;
     case 'typefilter': filterType = p; render(); break;
+    case 'tagfilter': tagFilter = (tagFilter === p ? '' : p); render(); break;
+    case 'tagedit': openTagEditor(p); break;
+    case 'tagsave': saveTagEditor(p); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }
     case 'analyze': startAnalyze(); break;
@@ -71,7 +74,10 @@ function bindDelegation() {
     if (e.target.id === 'q') { q = e.target.value.trim(); renderProjectList(); }
     else if (e.target.id === 'rq') { rq = e.target.value; renderRecentList(); }
   });
-  $('#view').addEventListener('change', e => { if (e.target.id === 'sort') { sortBy = e.target.value; renderProjectList(); } });
+  $('#view').addEventListener('change', e => {
+    if (e.target.id === 'sort') { sortBy = e.target.value; renderProjectList(); }
+    else if (e.target.id === 'tag-filter') { tagFilter = e.target.value; renderProjectList(); }
+  });
   // v1.7.6 磁盘环 hover 明细：mouseover/mouseout 会冒泡 → 在常驻的 #view 上委托一次即可，无需逐环绑定
   $('#view').addEventListener('mouseover', e => {
     const ring = e.target && e.target.closest ? e.target.closest('svg.donut[data-ring]') : null;
@@ -124,8 +130,9 @@ function palIndex() {
     if (CAPS.vscode) acts.push(['💻', 'vscode', p.path]);
     acts.push(['⌨️', 'term', p.path]);
     if (p.isGit) acts.push(['🌿', 'detail', p.path]);
+    const tags = tagsOf(p.path);
     items.push({
-      label: (fav ? '★ ' : '') + p.name,
+      label: (fav ? '★ ' : '') + p.name + (tags.length ? ' [' + tags.join(' ') + ']' : ''),
       hint: (fav ? '★ 已收藏 · ' : '') + p.type + (p.isGit ? ' · ' + (p.branch || '') : '') + ' · ' + p.path,
       // v1.7.12：p.branch 可能为 null/undefined —— 旧的字符串拼接会产出字面量 "undefined"，
       // 污染搜索键（搜 "undefined" 会命中所有非 git 项目）。改为显式兜底。

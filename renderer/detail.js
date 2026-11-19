@@ -152,6 +152,33 @@ async function runCompare() {
   res.innerHTML = errNote + compareHtml(rows) + actions;
 }
 
+/* v1.7.53：项目标签/备注编辑弹窗（复用 openModal，零新增 IPC） */
+function openTagEditor(p) {
+  const name = (p && p.path ? p : {});
+  const proj = ((DATA && DATA.projects) || []).find(x => x && x.path === p);
+  const title = proj ? proj.name : shortPath(p || '');
+  const tags = tagsOf(p).join(', ');
+  const note = noteOf(p);
+  openModal(
+    '<button class="close" data-act="closeModal">✕</button>' +
+    '<div class="m-head"><h3>🏷 标签与备注</h3></div>' +
+    '<div class="hint" style="margin-bottom:10px">' + esc(title) + ' · <span class="muted">' + esc(p || '') + '</span></div>' +
+    '<div class="field"><label>标签（逗号分隔，如：工作, 关注, 交付）</label>' +
+    '<input id="tag-input" type="text" value="' + esc(tags) + '" placeholder="标签1, 标签2"></div>' +
+    '<div class="field"><label>备注</label><textarea id="tag-note" placeholder="给这个项目写点备注…">' + esc(note) + '</textarea></div>' +
+    '<div class="btnrow"><button class="btn" data-act="tagsave" data-p="' + esc(p) + '">💾 保存</button></div>'
+  );
+}
+async function saveTagEditor(p) {
+  const inp = $('#tag-input'), nt = $('#tag-note');
+  if (!inp || !p) return;
+  const tags = inp.value.split(/[,，]/).map(s => s.trim()).filter(Boolean);
+  const note = nt ? nt.value.trim() : '';
+  await saveProjTags(p, tags, note);
+  closeModal();
+  render();
+  toast('标签已保存', 'ok');
+}
 function dirsUp() {
   if (!currentDetail || currentDetail.stack.length <= 1) return;
   currentDetail.stack.pop();

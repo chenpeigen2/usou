@@ -7,6 +7,14 @@ function renderProjects() {
     '<div class="toolbar">' +
     '<input id="q" type="search" placeholder="搜索项目 / 路径 / 分支 / 提交…" value="' + esc(q) + '">' +
     '<div class="chips" id="type-chips"></div>' +
+    (function () {
+      const names = allTagNames();
+      if (!names.length) return '';
+      return '<select id="tag-filter" title="按标签筛选">' +
+        '<option value="">全部标签</option>' +
+        names.map(t => '<option value="' + esc(t) + '"' + (tagFilter === t ? ' selected' : '') + '>' + esc(t) + '</option>').join('') +
+        '</select>';
+    })() +
     '<select id="sort">' +
     '<option value="mtime"' + (sortBy === 'mtime' ? ' selected' : '') + '>按修改时间</option>' +
     '<option value="commit"' + (sortBy === 'commit' ? ' selected' : '') + '>按最近提交</option>' +
@@ -62,6 +70,7 @@ function renderProjectList() {
     if (filterType === '未提交') { if (!(p.isGit && p.dirty > 0) || PROJ_DEAD.has(p.path)) return false; }
     else if (filterType === '已删除') { if (!PROJ_DEAD.has(p.path)) return false; }
     else if (filterType !== '全部' && p.type !== filterType) return false;
+    if (tagFilter && !tagsOf(p.path).includes(tagFilter)) return false;
     return hitSet.has(p);
   });
   list.sort((a, b) => {
@@ -111,13 +120,16 @@ function prow(p) {
   const typeCell = dead
     ? '<span class="deadtag" title="该路径在磁盘上已不存在（可能已被删除或移动）">已删除</span>'
     : '<span class="badge ' + esc(p.type) + '">' + esc(p.type) + '</span>';
+  const tagChips = tagsOf(p.path).map(t =>
+    '<button class="tagchip" data-act="tagfilter" data-t="' + esc(t) + '" title="按标签「' + esc(t) + '」筛选">' + esc(t) + '</button>').join('');
+  const noteChip = noteOf(p.path) ? '<span class="muted small" title="' + esc(noteOf(p.path)) + '">📝</span>' : '';
   return '<div class="prow' + (dirty ? ' has-dirty' : '') + (fav ? ' is-fav' : '') + (dead ? ' is-dead' : '') + '">' +
     '<div class="avatar" style="' + avatarStyle(hue) + '">' + esc(p.name.slice(0, 1).toUpperCase()) + '</div>' +
     '<div class="p-main" style="min-width:0">' +
     '<div class="p-line"><button class="fav-btn' + (fav ? ' on' : '') + '" data-act="fav" data-p="' + esc(p.path) + '" title="' + esc(starTip) + '" aria-label="' + esc(starTip) + '">' + (fav ? '★' : '☆') + '</button>' +
     '<span class="nm" data-act="open" data-p="' + esc(p.path) + '" title="' + esc(p.path) + '">' + esc(p.name) + '</span>' +
     typeCell + '</div>' +
-    '<div class="p-sub">' + sub + '</div></div>' +
+    '<div class="p-sub">' + sub + (tagChips || noteChip ? '<span class="p-tags">' + tagChips + noteChip + '</span>' : '') + '</div></div>' +
     '<div class="p-size"><div class="v">' + (dead ? '—' : fmtMB(p.sizeMB)) + '</div><div class="u">' + (dead ? '已失效' : (p.fileCount ? p.fileCount.toLocaleString() + ' 文件' : '—')) + '</div></div>' +
     '<div class="p-actions">' +
     '<button class="ibtn" data-act="open" data-p="' + esc(p.path) + '" title="资源管理器打开">📂</button>' +
@@ -125,6 +137,7 @@ function prow(p) {
     '<button class="ibtn" data-act="term" data-p="' + esc(p.path) + '" title="在终端打开">⌨️</button>' +
     (p.isGit ? '<button class="ibtn" data-act="detail" data-p="' + esc(p.path) + '" title="项目详情">🌿</button>' : '') +
     '<button class="ibtn" data-act="copy" data-p="' + esc(p.path) + '" title="复制路径">📋</button>' +
+    '<button class="ibtn' + (tagsOf(p.path).length || noteOf(p.path) ? ' tagged' : '') + '" data-act="tagedit" data-p="' + esc(p.path) + '" title="编辑标签与备注">🏷</button>' +
     '</div></div>';
 }
 

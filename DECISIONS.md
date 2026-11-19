@@ -3588,3 +3588,11 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 3 项「QA 深化」——第 98/101 轮分别测过导出和导入，但没测过「导出→导入→逐字段比对」完整往返，无法证明备份真的能完整还原用户数据。
  > **实证（隔离临时目录，不碰真实数据）**：构造含中文/嵌套/失效特征的 scan/history/settings → 模拟 data:export 打包 → 模拟 data:import 校验+原子写 → 逐字段深度比对：scan/history/settings 三类 round-trip 全 PASS、无 tmp 残留。备份格式可信、可完整还原。无缺陷。
+
+ # 第一百四十五轮：新功能「项目标签系统」（用户催做新功能，停止证伪）
+
+ > **选题依据**：用户反馈「一直在磨洋工迭代、能不能想新功能」——停止连续证伪，做真实新功能。选项目管理软件的自然缺口：给项目打标签/备注、按标签筛选、跨重启持久化。
+ > **做法（零新增 IPC、复用 settings 通道）**：① state.js 加 PROJ_TAGS 状态（settings.projectTags 镜像）+ tagsOf/noteOf/allTagNames/saveProjTags 纯数据函数；② lists.js 项目行加标签 chips（点击=按标签筛选）+ 🏷 编辑按钮，工具栏加标签筛选下拉；③ detail.js 加 openTagEditor/saveTagEditor 弹窗（逗号分隔多标签 + 备注）；④ interaction.js 加 tagfilter/tagedit/tagsave case + change 事件；⑤ interaction.js 的 palIndex 把标签并入 label ⇒ 命令面板搜标签命中；⑥ style.css 加 .tagchip/.p-tags/.tagged 样式。
+ > **实证（CDP 完整闭环）**：69 个 🏷 按钮、打标签后显示 chips（核心/关注）、标签筛选下拉出现、按"核心"筛选列表 59→1 行、命令面板搜"核心"命中 1 个；弹窗保存后 settings.projectTags 含正确 tags/note（两个项目各一组）。测试后恢复 settings（projectTags=none/links=12）。六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：saveTagEditor 测试用 querySelectorAll('[tagedit]')[1] 索引定位，因重渲染后顺序变化点了另一个项目，查 projects[1] 得空——查 PROJ_TAGS 全量确认保存路径与所点项目一致、产品逻辑正确（QA 范式第 10 条）。
+ > **交付**：v1.7.53 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

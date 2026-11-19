@@ -20,9 +20,6 @@ function renderProjects() {
     '<option value="commit"' + (sortBy === 'commit' ? ' selected' : '') + '>按最近提交</option>' +
     '<option value="size"' + (sortBy === 'size' ? ' selected' : '') + '>按体量</option>' +
     '<option value="name"' + (sortBy === 'name' ? ' selected' : '') + '>按名称</option></select>' +
-    '<button class="btool' + (projCompact ? ' on' : '') + '" data-act="projCompact" title="紧凑模式：隐藏副标题，一屏显示更多项目">' + (projCompact ? '▤ 舒适' : '☰ 紧凑') + '</button>' +
-    '<button class="btool" data-act="dupFind" title="检测同名/嵌套/近似项目">🔍 查重</button>' +
-    '<button class="btool" data-act="compare:open" title="并排对比两个 git 项目的分支 / 未提交 / 提交 / 体量">⚖ 对比</button>' +
     '</div>' +
     (selPaths.size ? '<div class="bulk-bar">已选 <b>' + selPaths.size + '</b> 项 · ' +
       '<button class="chipbtn" data-act="bulkFav">★ 批量收藏</button>' +
@@ -131,7 +128,12 @@ function renderProjectList() {
     '<div class="stats" style="margin-bottom:8px">' + list.length + ' 项 · git ' + gitN + ' · 未提交 ' + dirtyN + ' · ★ 收藏 ' + favN +
     (deadN ? ' · <span class="deadstat">已删除 ' + deadN + '（已沉底）</span>' : '') +
     ' · 体量 ' + fmtMB(sizeInfo.uniqueMB) +
-    (sizeInfo.nested.length ? '（已去重 ' + sizeInfo.nested.length + ' 个嵌套项目 · ' + fmtMB(sizeInfo.dupMB) + '）' : '') + '</div>' +
+    (sizeInfo.nested.length ? '（已去重 ' + sizeInfo.nested.length + ' 个嵌套项目 · ' + fmtMB(sizeInfo.dupMB) + '）' : '') +
+    '<span style="float:right;display:inline-flex;gap:7px">' +
+    '<button class="btool' + (projCompact ? ' on' : '') + '" data-act="projCompact" title="紧凑模式">' + (projCompact ? '▤ 舒适' : '☰ 紧凑') + '</button>' +
+    '<button class="btool" data-act="dupFind" title="检测同名/嵌套/近似项目">🔍 查重</button>' +
+    '<button class="btool" data-act="compare:open" title="并排对比两个 git 项目">⚖ 对比</button>' +
+    '</span></div>' +
     (list.map(prow).join('') || '<div class="empty">无匹配项目</div>');
 }
 function prow(p) {

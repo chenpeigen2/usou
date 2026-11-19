@@ -1,6 +1,6 @@
 'use strict';
 process.env.UV_THREADPOOL_SIZE = '16'; // fs stat/readdir 并发容量，性能关键（必须在首次 IO 前）
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, shell, clipboard, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, shell, clipboard, dialog, screen } = require('electron');
 const path = require('path');
 const os = require('os');
 const scanner = require('./src/scanner');
@@ -362,11 +362,27 @@ function createWindow() {
   win.webContents.on('before-input-event', (_e, input) => {
     if (input.type === 'keyDown' && input.key === 'F12') win.webContents.toggleDevTools();
   });
-  // 恢复上次窗口状态：边界可信（≥500×400）才恢复，最大化状态最后套用
+  // 恢复上次窗口状态：尺寸可信（≥500×400）才恢复；v1.7.51 加屏幕边界钳制——
+  // 双屏拔副屏/改分辨率后，旧坐标可能在屏幕外 ⇒ 窗口"消失"。用 getDisplayMatching 检查交集，
+  // 可见部分不足则钳制到主屏工作区内，保证用户永远能看到窗口。
   const st = store.getSettings();
   const b = st.winBounds;
   if (b && typeof b.width === 'number' && typeof b.height === 'number' && b.width >= 500 && b.height >= 400) {
-    win.setBounds(b);
+    try {
+      const disp = screen.getDisplayMatching(b).workArea;
+      const visibleW = Math.min(b.x + b.width, disp.x + disp.width) - Math.max(b.x, disp.x);
+      const visibleH = Math.min(b.y + b.height, disp.y + disp.height) - Math.max(b.y, disp.y);
+      if (visibleW < 200 || visibleH < 150) {
+        const pri = screen.getPrimaryDisplay().workArea;
+        win.setBounds({
+          x: Math.max(pri.x, Math.min(b.x, pri.x + pri.width - Math.min(b.width, pri.width))),
+          y: Math.max(pri.y, Math.min(b.y, pri.y + pri.height - Math.min(b.height, pri.height))),
+          width: Math.min(b.width, pri.width), height: Math.min(b.height, pri.height)
+        });
+      } else {
+        win.setBounds(b);
+      }
+    } catch (_e) { win.setBounds(b); }
   }
   if (st.winMaximized) win.maximize();
   win.on('close', (e) => {

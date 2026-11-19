@@ -3529,3 +3529,10 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 1 项「深度巡检」——主题持久化（setTheme 落盘 → 重启恢复）从未做完整闭环验证。
  > **实证（CDP 两轮重启）**：disk=light → 启动 data-theme=light → setTheme('dark') 后 disk=dark → 重启启动 data-theme=dark/SETTINGS.theme=dark ✓。完整闭环成立，无缺陷。测试后恢复原始 settings（theme=light/links=12/skip=false，无残留备份）。
  > **探针纠错**：读备份文件用 require('settings.json.r134bak') 失败（Node 不认非 .json 扩展名）——但恢复命令在探针后独立执行成功、已验证。非产品问题。
+
+ # 第一百三十五轮：修复真实缺陷——窗口几何记忆在屏幕外时钳制回可见区
+
+ > **选题依据**：造活源第 1 项「高疑点」——第 134 轮看到 settings.winBounds 有具体坐标，审计恢复逻辑发现只检查尺寸 ≥500×400、**不检查位置是否在屏幕内**。双屏拔副屏/改分辨率后旧坐标在屏幕外 ⇒ win.setBounds 把窗口放到屏幕外 ⇒ 用户「窗口消失」，只能手改 settings.json 恢复。
+ > **做法**：main.js 引入 screen 模块；恢复前用 `screen.getDisplayMatching(b).workArea` 算可见交集体，若可见宽/高 < 200/150px 则钳制到主屏工作区内（x/y 限幅在 pri 内、尺寸限幅不超过屏幕），否则原样恢复；try/catch 兜底。
+ > **实证（Node 独立重算钳制算法 7 用例）**：屏幕内=不钳制、副屏拔出(x=2253)=钳制到 x=540、右下角几乎全在外=钳制、部分可见(220px/左侧)=不钳制——核心「窗口完全在屏外」场景正确钳制。启动 dev 确认 app ready 无错误、六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.51 本地重建、4 进程、verify-delivery 13 项全 PASS。只 commit 不 push。

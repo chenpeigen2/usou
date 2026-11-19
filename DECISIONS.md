@@ -3690,3 +3690,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：interaction.js 的 document keydown 加 `?` 处理（排除输入框避免打字误弹）；detail.js 加 openShortcutHelp()（复用 openModal，7 条快捷键）；设置页「行为」标题加快捷键按钮；style.css 加 .shortcut-* 样式。零新增 IPC。
  > **实证（CDP）**：设置页按钮在位、按 ? 打开弹窗、7 条快捷键正确显示（Ctrl+K/↑↓/Enter/Esc/F5/?/Tab）、输入框内按 ? 不误弹窗。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.65 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百五十八轮：新功能「项目视图紧凑模式」（连续第 14 个功能轮）
+
+ > **选题依据**：用户「想新功能」——69 个项目时默认行高 99px、一屏看不了几个。加紧凑模式隐藏副标题、缩小行高，一屏显示更多。
+ > **做法**：state.js 加 projCompact 状态（settings.compactProjects 持久化）；lists.js toolbar 加「☰ 紧凑 / ▤ 舒适」切换按钮 + proj-list 加 compact class；interaction.js 加 projCompact case（切换+落盘）；style.css 加 #proj-list.compact 样式（padding 9→4px、avatar 34→24px、隐藏 p-sub、操作常显）。
+ > **实证（CDP）**：按钮文案切换正确、行高 99→87px、副标题 display:none、设置持久化 compactProjects=true。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.66 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

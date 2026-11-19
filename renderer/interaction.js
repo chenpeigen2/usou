@@ -38,6 +38,7 @@ function doAct(act, p) {
     case 'bulkClear': selPaths.clear(); render(); break;
     case 'mruClear': clearMRU(); break;
     case 'shortcutHelp': openShortcutHelp(); break;
+    case 'projCompact': projCompact = !projCompact; window.wb.saveSettings({ compactProjects: projCompact }).catch(() => {}); render(); break;
     case 'recent:deadonly': rqDeadOnly = !rqDeadOnly; renderRecent(); break;
     case 'recent:group': recentGrouped = !recentGrouped; renderRecent(); break;
     case 'drill': { const el = $('#an-path'); if (el) { el.value = p; startAnalyze(); } break; }

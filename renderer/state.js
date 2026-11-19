@@ -6,6 +6,7 @@ let tagFilter = '';      // v1.7.53：项目视图标签筛选（空=全部）
 let rq = '';     // v1.7.12：最近视图搜索词（与项目视图的 q 分开保存，互不干扰）
 let rqDeadOnly = false; // v1.7.41：最近视图「仅看已删除」筛选开关
 let recentGrouped = false; // v1.7.62：最近视图按项目分组开关
+let projCompact = false;   // v1.7.66：项目视图紧凑模式（settings 持久化）
 let lastAnalysis = null;
 let QA_DETAIL = '';   // QA 钩子：URL ?detail=项目名，renderProjects 末尾消费
 let detailSeq = 0;    // 项目详情弹窗序号：接口慢返回时不覆盖已关闭/已切换的弹窗
@@ -54,6 +55,7 @@ async function refreshState() {
   FAVS = Array.isArray(SETTINGS.favorites) ? SETTINGS.favorites.filter(x => typeof x === 'string') : [];
   PROJ_TAGS = (SETTINGS.projectTags && typeof SETTINGS.projectTags === 'object' && !Array.isArray(SETTINGS.projectTags)) ? SETTINGS.projectTags : {};
   MRU = Array.isArray(SETTINGS.recentOpened) ? SETTINGS.recentOpened.filter(x => typeof x === 'string').slice(0, 12) : [];
+  projCompact = !!SETTINGS.compactProjects;
   CAPS = st.caps;
   HISTORY = st.history || [];
   SCAN_ERRORS = Array.isArray(st.scanErrors) ? st.scanErrors : [];

@@ -20,6 +20,7 @@ function renderProjects() {
     '<option value="commit"' + (sortBy === 'commit' ? ' selected' : '') + '>按最近提交</option>' +
     '<option value="size"' + (sortBy === 'size' ? ' selected' : '') + '>按体量</option>' +
     '<option value="name"' + (sortBy === 'name' ? ' selected' : '') + '>按名称</option></select>' +
+    '<button class="btool' + (projCompact ? ' on' : '') + '" data-act="projCompact" title="紧凑模式：隐藏副标题，一屏显示更多项目">' + (projCompact ? '▤ 舒适' : '☰ 紧凑') + '</button>' +
     '<button class="btool" data-act="compare:open" title="并排对比两个 git 项目的分支 / 未提交 / 提交 / 体量">⚖ 对比</button>' +
     '</div>' +
     (selPaths.size ? '<div class="bulk-bar">已选 <b>' + selPaths.size + '</b> 项 · ' +
@@ -27,7 +28,7 @@ function renderProjects() {
       '<button class="chipbtn" data-act="bulkUnfav">☆ 取消收藏</button>' +
       '<button class="chipbtn" data-act="bulkTag">🏷 批量打标签</button>' +
       '<button class="chipbtn" data-act="bulkClear">✕ 清空选择</button></div>' : '') +
-    '<div id="proj-list"></div></div>';
+    '<div id="proj-list"' + (projCompact ? ' class="compact"' : '') + '></div></div>';
   renderTypeChips();
   renderProjectList();
   // QA 钩子：?detail=项目名 → 列表就绪后自动打开项目详情

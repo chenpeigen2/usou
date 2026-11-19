@@ -245,6 +245,14 @@ h3{font-size:13px;color:var(--muted);margin:14px 0 8px}
 .p-tags{display:inline-flex;align-items:center;flex-wrap:wrap;margin-left:6px}
 .ibtn.tagged{color:var(--acc)}
 #tag-filter{max-width:150px}
+/* v1.7.54：项目历史轨迹 */
+.tl-list{display:flex;flex-direction:column;gap:5px;max-height:170px;overflow:auto}
+.tl-row{display:flex;align-items:center;gap:9px;font-size:11.5px}
+.tl-t{color:var(--muted);width:74px;flex:none;font-variant-numeric:tabular-nums}
+.tl-bar{flex:1;height:6px;background:var(--bar-track);border-radius:3px;overflow:hidden;min-width:30px}
+.tl-bar i{display:block;height:100%;background:var(--amber);border-radius:3px}
+.tl-v{color:var(--text);width:72px;text-align:right;flex:none}
+.tl-s{color:var(--muted);width:64px;text-align:right;flex:none;font-variant-numeric:tabular-nums}
 .chipbtn{
   background:var(--panel);border:1px solid var(--line);border-radius:20px;
   padding:4px 13px;font-size:12px;color:var(--muted);transition:all .13s;

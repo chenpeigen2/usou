@@ -6,6 +6,31 @@
      · 否则视为旧名称键：path=值.path 或空，name=值.name 或键本身；
      · normalizedKey 优先用 path，无 path 才用 'name:'+name ⇒ 同名不同路径不会互相覆盖。
    纯函数，畸形条目逐个跳过、绝不抛异常，无历史迁移。 */
+/* v1.7.54：单项目历史轨迹 —— 从各快照里抽出该项目的 dirty/sizeMB 变化序列。
+   兼容新旧格式（normHistoryProjects 归一），按 path 精确匹配、无 path 时按 name 匹配。 */
+function projectTimeline(p, hist) {
+  const snaps = Array.isArray(hist) ? hist : (HISTORY || []);
+  const key = projPathKey ? projPathKey(p) : String(p || '').toLowerCase();
+  const name = String(p || '').split(/[\\/]/).pop();
+  const out = [];
+  snaps.forEach(s => {
+    const map = normHistoryProjects(s);
+    const hit = map[key] || Object.values(map).find(x => x && x.name === name);
+    if (hit) out.push({ time: s.time || '', dirty: hit.dirty || 0, sizeMB: hit.sizeMB || 0, commitTime: hit.commitTime || '' });
+  });
+  return out;
+}
+function timelineHtml(pts) {
+  if (!pts.length) return '<div class="hint">该项目暂无历史快照记录（需至少一次扫描后才会有轨迹）。</div>';
+  const maxDirty = Math.max(1, ...pts.map(x => x.dirty));
+  return '<div class="tl-list">' + pts.map(x => {
+    const w = Math.max(2, Math.round((x.dirty / maxDirty) * 100));
+    return '<div class="tl-row"><span class="tl-t">' + esc(String(x.time).slice(5, 16)) + '</span>' +
+      '<span class="tl-bar"><i style="width:' + w + '%"></i></span>' +
+      '<span class="tl-v">' + x.dirty + ' 未提交</span>' +
+      '<span class="tl-s">' + esc(fmtMB(x.sizeMB)) + '</span></div>';
+  }).join('') + '</div>';
+}
 function normHistoryProjects(h) {
   const out = {};
   const projects = (h && h.projects) || {};

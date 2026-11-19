@@ -271,6 +271,8 @@ async function openProject(p) {
     '<span class="chip"><b>体量</b> ' + (meta.sizeMB ? fmtMB(meta.sizeMB) : '—') + '</span>' +
     '<span class="chip"><b>文件数</b> ' + (meta.fileCount ? meta.fileCount.toLocaleString() : '—') + '</span>' +
     '</div></div>' +
+    '<div class="sec"><h3>历史轨迹 <span class="muted small">各次快照的未提交文件数 · 体量</span></h3>' +
+    timelineHtml(projectTimeline(p)) + '</div>' +
     (g.dirtyFiles && g.dirtyFiles.length
       ? '<div class="sec"><h3>未提交文件（' + g.dirtyFiles.length + '）</h3><div class="files">' + esc(g.dirtyFiles.join('\n')) + '</div></div>'
       : '') +

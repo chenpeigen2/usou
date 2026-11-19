@@ -3596,3 +3596,11 @@ D:\code\usou\workbench-electron\out\
  > **实证（CDP 完整闭环）**：69 个 🏷 按钮、打标签后显示 chips（核心/关注）、标签筛选下拉出现、按"核心"筛选列表 59→1 行、命令面板搜"核心"命中 1 个；弹窗保存后 settings.projectTags 含正确 tags/note（两个项目各一组）。测试后恢复 settings（projectTags=none/links=12）。六视图审计 failCount 0 / min 4.64。
  > **探针纠错**：saveTagEditor 测试用 querySelectorAll('[tagedit]')[1] 索引定位，因重渲染后顺序变化点了另一个项目，查 projects[1] 得空——查 PROJ_TAGS 全量确认保存路径与所点项目一致、产品逻辑正确（QA 范式第 10 条）。
  > **交付**：v1.7.53 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百四十六轮：新功能「项目历史轨迹」（用户催新功能，连续第 2 个功能轮）
+
+ > **选题依据**：用户反馈「一直在磨洋工、想新功能」——继第 145 轮标签系统后，做第 2 个真实新功能：history.json 有 7 次扫描快照，但只能看趋势折线，无法看单个项目在各次快照中的未提交数/体量变化。
+ > **做法**：① history.js 加纯函数 projectTimeline(p,hist)（复用 normHistoryProjects 归一化新旧格式，按 path 精确匹配、无 path 按 name 兜底）+ timelineHtml()（未提交数条形 + 体量）；② detail.js 详情弹窗「概览」后插入「历史轨迹」区块；③ style.css 加 .tl-* 样式。零新增 IPC、零数据改动。
+ > **实证（CDP）**：projectTimeline 对 3d娃娃 返回 7 条（兼容旧 name-key 和新 path-key 混合快照）；干净实例打开详情弹窗显示「历史轨迹」区块 + 7 行 tl-row。六视图审计 failCount 0 / min 4.64。
+ > **探针纠错**：首测弹窗卡「读取项目详情…」是测试实例残留 detailSeq 竞态（多次 openProject），非产品 bug；干净实例验证正常。
+ > **交付**：v1.7.54 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

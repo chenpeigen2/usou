@@ -179,6 +179,7 @@ function palIndex() {
     if (CAPS.vscode) acts.push(['💻', 'vscode', p.path]);
     acts.push(['⌨️', 'term', p.path]);
     if (p.isGit) acts.push(['🌿', 'detail', p.path]);
+    acts.push(['📂', 'show', p.path]); // v1.7.77：Shift+Enter 打开所在目录
     const tags = tagsOf(p.path);
     items.push({
       label: (fav ? '★ ' : '') + p.name + (tags.length ? ' [' + tags.join(' ') + ']' : ''),
@@ -260,7 +261,15 @@ function bindPalette() {
   $('#pal-input').addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') { e.preventDefault(); palActive = Math.min(palActive + 1, palFiltered().length - 1); renderPalActive(); }
     else if (e.key === 'ArrowUp') { e.preventDefault(); palActive = Math.max(palActive - 1, 0); renderPalActive(); }
-    else if (e.key === 'Enter') { e.preventDefault(); const list = palFiltered(); closePal(); if (list[palActive]) list[palActive].run(); }
+    else if (e.key === 'Enter') {
+      e.preventDefault();
+      const list = palFiltered(), it = list[palActive];
+      closePal();
+      if (!it) return;
+      // v1.7.77：Shift+Enter = 打开所在目录（项目/文件项有 show act 时），否则等同 Enter
+      const show = e.shiftKey && Array.isArray(it.acts) && it.acts.find(a => a[1] === 'show');
+      if (show) doAct('show', show[2]); else it.run();
+    }
   });
 }
 

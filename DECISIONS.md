@@ -3769,3 +3769,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：state.js 加 viewScroll map；setView 离开视图时保存 #main.scrollTop、进入时恢复目标视图的上次位置（silent=true 的 QA 钩子切视图不恢复，保持原行为）。零 IPC。
  > **实证（CDP）**：项目视图滚到 800 → 切总览（保存 projects=800）→ 切回项目视图恢复到 800。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.76 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十九轮：新功能「命令面板 Shift+Enter 打开所在目录」（连续第 25 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——Ctrl+K 搜到项目/文件后回车是打开，想"打开所在目录"要点行内按钮（键盘用户不便）。加 Shift+Enter 快捷键。
+ > **做法**：interaction.js 命令面板 Enter 处理加 shiftKey 分支（item.acts 有 show act 时 doAct('show', path)），项目项 acts 加 show；快捷键帮助加一行。零 IPC。
+ > **实证（CDP）**：项目项有 show act、129 个项支持 show（69 项目+60 最近文件）、快捷键帮助含 Shift+Enter。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.77 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

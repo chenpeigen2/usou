@@ -207,8 +207,10 @@ function bindScanEvents() {
   window.wb.on('scan:done', async d => {
     tbStatus('✔ 扫描完成 ' + d.durationSec + 's');
     setTimeout(idleStatus, 2500);
-    toast('扫描完成，耗时 ' + d.durationSec + 's', 'ok');
-    logLine('✔ 扫描完成，耗时 ' + d.durationSec + 's');
+    const dl = d.delta || {};
+    const chg = (dl.added || dl.removed) ? ' · 新增 ' + (dl.added || 0) + ' / 移除 ' + (dl.removed || 0) + ' 个项目' : '';
+    toast('扫描完成，耗时 ' + d.durationSec + 's' + chg, 'ok');
+    logLine('✔ 扫描完成，耗时 ' + d.durationSec + 's' + chg);
     await refreshState();
     render();
   });

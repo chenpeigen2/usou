@@ -555,10 +555,21 @@ function startScanRun(opts) {
       }
       if (persisted) {
         // 历史摘要非主数据：写入失败记入诊断，但不阻断主数据的 scan:done
-        try { store.appendHistory(data); }
-        catch (e) { pushScanError('持久化', '历史摘要保存失败：' + String((e && e.message) || e)); }
+        let delta = {};
+        try {
+          const before = store.getHistory(), last = before[before.length - 1];
+          if (last && last.projects) {
+            const oldKeys = new Set(Object.keys(last.projects));
+            const newKeys = new Set((data.projects || []).map(p => p.path));
+            let added = 0, removed = 0;
+            newKeys.forEach(k => { if (!oldKeys.has(k)) added++; });
+            oldKeys.forEach(k => { if (!newKeys.has(k) && !String(k).startsWith('name:')) removed++; });
+            delta = { added: added, removed: removed };
+          }
+          store.appendHistory(data);
+        } catch (e) { pushScanError('持久化', '历史摘要保存失败：' + String((e && e.message) || e)); }
         log('scan DONE ' + data.projects.length + ' projects, ' + data.meta.durationSec + 's');
-        send('scan:done', { scanTime: data.meta.scanTime, durationSec: data.meta.durationSec });
+        send('scan:done', { scanTime: data.meta.scanTime, durationSec: data.meta.durationSec, delta: delta });
         // v1.7.11：数据变了 → 托盘菜单必须立刻重建（「上次扫描」「未提交」不能停留在旧值）
         refreshTrayMenu('扫描完成');
         if (tray) {

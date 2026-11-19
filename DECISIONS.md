@@ -3741,3 +3741,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：lists.js renderTypeChips 加「★收藏 N」chip、renderProjectList filter 加 `filterType==='★收藏'` 分支（复用 isFav）。
  > **实证（CDP）**：收藏 1 个项目后 chip 显示「★收藏 1」、筛选后列表 69→1 行。测试后恢复 settings（favorites=[]）。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.72 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十五轮：新功能「扫描完成通知变化」（连续第 21 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——扫描完成只提示"耗时 X 秒"，用户不知道这次扫描带来了什么变化（新增/移除了哪些项目）。
+ > **做法**：main.js scan:done 广播前用 last history 快照 vs 当前 projects 算 added/removed（排除 name: 旧键），随 scan:done 带 delta；state.js 订阅后 toast/log 显示「新增 X / 移除 Y 个项目」（无变化则不显示）。零新增 IPC。
+ > **实证（Node 独立重算）**：当前缓存与最后快照一致 → delta 0/0（计算正确）；语法 21/21、六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.73 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

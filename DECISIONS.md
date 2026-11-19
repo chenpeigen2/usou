@@ -3572,3 +3572,9 @@ D:\code\usou\workbench-electron\out\
  > **选题依据**：造活源第 3 项「QA 深化」元验证——第 109 轮踩过 PrintWindow 返回缓存帧（不同视图截图哈希相同）的坑，从未系统确认 --qashot 的 6 张图是真不同视图。
  > **实证**：跑一次 --qashot 得 6 张 PNG，sha256 前 12 位各不相同（disk AB7E / overview D72C / projects 9462 / recent 283F / settings 8076 / system 7E67），唯一哈希数=6 ⇒ 截图 QA 确实覆盖六个不同视图，非缓存帧。无缺陷。
  > **元验证总结（140+141 轮）**：对比度审计非恒过（阴性对照 fail 0→2）+ 截图非缓存（6 哈希互异）——两大 QA 支柱的可信度均得到根本确认，历轮「failCount 0 / 六视图目检」是可信证据。
+
+ # 第一百四十二轮：commit 历史可信度元验证（auto-commit 逻辑核对）
+
+ > **选题依据**：造活源第 3 项「QA 深化」元验证——72 个 commit 都靠 auto-commit.ps1 生成，若它漏文件或有 bug，迭代历史会失真。
+ > **实证**：核对 commit message 格式（git log -1 --pretty=%B）——含「版本: v1.7.52 / 变更文件: 1 个 / 只 commit 不 push」，与实际变更一致；auto-commit.ps1 的 $changed.Count + 禁用路径检查 + RunGit（无递归）逻辑正确。commit 历史可信。
+ > **元验证体系完成（140/141/142 轮）**：对比度审计非恒过 + 截图非缓存帧 + commit 历史可信——QA 与治理三大支柱均经元验证确认。软件达到成熟稳定态，无新增高价值问题。

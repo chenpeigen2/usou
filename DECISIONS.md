@@ -3555,3 +3555,8 @@ D:\code\usou\workbench-electron\out\
 
  > **选题依据**：造活源第 7 项「文档治理」——第 137 轮门禁升级到 14 项并新增 verify-invariants.js，第 126 轮的 ARCHITECTURE.md 已过时（还写「动态枚举 renderer/*.js」、无数据自证守卫）。
  > **做法**：ARCHITECTURE.md 关键不变量加第 7 条「数据自证」（sizeTotals 单一事实源 + verify-invariants.js 6 项数学自证），新增「验证工具」章节（verify-delivery 14 项 / verify-invariants 6 项 / auto-commit，均自身路径推导）。纯文档轮，不改业务代码、不重建。
+
+ # 第一百三十九轮：刷新本地变更汇总 CHANGELOG-LOCAL.md（纯本地辅助，不入库）
+
+ > **选题依据**：造活源第 7 项「文档治理」——第 121 轮生成的 CHANGELOG-LOCAL.md 写的是「50 commit / v1.7.45」，实际已 69 commit / v1.7.52，过时信息对用户 review/push 有误导性。
+ > **做法**：按本地领先 69 commit 重新归类（审计证伪 25/代码组织 13/治理门禁文档 11/新功能 10/缺陷修复 7/其他 3）、补全 v1.7.41~1.7.52 版本脉络、补第 130/137 轮里程碑。该文件在 .gitignore（push 后过时、不入库）。纯本地辅助轮，不改业务代码、不重建。

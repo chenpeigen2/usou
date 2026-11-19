@@ -131,6 +131,12 @@ function bindDelegation() {
       e.preventDefault();
       togglePal();
     }
+    // v1.7.69：详情弹窗内 ← → 翻到上/下一个项目
+    if ((e.key === 'ArrowLeft' || e.key === 'ArrowRight') && detailPath && !$('#modal').classList.contains('hidden')) {
+      const t = e.target;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+      if (stepProject(e.key === 'ArrowRight' ? 1 : -1)) e.preventDefault();
+    }
     // v1.7.65：? 显示快捷键帮助（输入框内不触发，避免打字误弹）
     if (e.key === '?' && !e.ctrlKey && !e.metaKey && !e.altKey) {
       const t = e.target;

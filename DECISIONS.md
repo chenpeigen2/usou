@@ -3711,3 +3711,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：format.js 加纯函数 findDuplicates(projects)（同名分组 / 路径嵌套 / 近似名去后缀）；lists.js 工具栏加「🔍 查重」按钮；detail.js 加 openDupFind 弹窗（三组分类展示）；style.css 加 .dup-* 样式。零 IPC、零副作用。
  > **实证（CDP）**：真实数据检出 2 组同名 + 5 对嵌套（与第 109 轮独立重算一致）、弹窗 7 行、分组正确。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.68 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百六十一步：新功能「详情弹窗 ← → 项目间翻页」（连续第 17 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——批量浏览项目详情时，每次要关弹窗重新点，效率低。加 ← → 在详情弹窗内翻到上/下一个项目（呼应第 157 轮快捷键工作）。
+ > **做法**：state.js 加 detailPath 状态；detail.js 的 openProject 记录当前路径、closeModal 清空、加 stepProject(dir) 纯函数（按 DATA.projects 顺序切换，边界返回 false）；interaction.js keydown 加 ← → 处理（仅详情弹窗打开且非输入框）；快捷键帮助加一行。零 IPC。
+ > **实证（CDP）**：翻页成功且切到下一个项目（Australia→CNBMoblieBank）、最后一项翻页返回 false（边界正确）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.69 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

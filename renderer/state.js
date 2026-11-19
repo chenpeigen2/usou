@@ -7,6 +7,7 @@ let rq = '';     // v1.7.12：最近视图搜索词（与项目视图的 q 分�
 let rqDeadOnly = false; // v1.7.41：最近视图「仅看已删除」筛选开关
 let recentGrouped = false; // v1.7.62：最近视图按项目分组开关
 let projCompact = false;   // v1.7.66：项目视图紧凑模式（settings 持久化）
+let detailPath = '';       // v1.7.69：当前详情弹窗的项目路径（支持 ← → 翻页）
 let lastAnalysis = null;
 let QA_DETAIL = '';   // QA 钩子：URL ?detail=项目名，renderProjects 末尾消费
 let detailSeq = 0;    // 项目详情弹窗序号：接口慢返回时不覆盖已关闭/已切换的弹窗

@@ -5,7 +5,7 @@ function openModal(html) {
   $('#modal-box').innerHTML = html;
   $('#modal').classList.remove('hidden');
 }
-function closeModal() { $('#modal').classList.add('hidden'); currentDetail = null; }
+function closeModal() { $('#modal').classList.add('hidden'); currentDetail = null; detailPath = ''; }
 
 /* ---------- 项目对比（v1.7.36）----------
    两个 git 项目并排对比：分支 / 未提交 / 提交 / 体量 / 文件数。
@@ -302,6 +302,17 @@ async function bulkTagRun() {
   toast('已给 ' + selPaths.size + ' 个项目添加标签', 'ok');
 }
 /* v1.7.65：快捷键速查（按 ? 唤起，输入框内不触发） */
+/* v1.7.69：详情弹窗项目间翻页（← →，仅详情弹窗打开时） */
+function stepProject(dir) {
+  if (!detailPath || $('#modal').classList.contains('hidden')) return false;
+  const list = (DATA && DATA.projects || []).map(p => p.path);
+  const i = list.indexOf(detailPath);
+  if (i < 0) return false;
+  const j = i + dir;
+  if (j < 0 || j >= list.length) return false;
+  openProject(list[j]);
+  return true;
+}
 function openShortcutHelp() {
   const rows = [
     ['Ctrl + K', '打开/关闭命令面板（万物直达）'],
@@ -309,6 +320,7 @@ function openShortcutHelp() {
     ['Enter', '执行命令面板选中项'],
     ['Esc', '关闭弹窗 / 关闭命令面板'],
     ['F5', '全量重扫项目数据'],
+    ['← / →', '详情弹窗中翻到上/下一个项目'],
     ['?', '显示本快捷键帮助'],
     ['Tab', '在按钮/输入框间移动焦点（键盘导航）']
   ];
@@ -400,6 +412,7 @@ function dirsRows(dd) {
 
 async function openProject(p) {
   const seq = ++detailSeq;
+  detailPath = p; // v1.7.69：记住当前项目，支持 ← → 翻页
   const name = String(p).split('\\').pop();
   openModal('<button class="close" data-act="closeModal">✕</button><div class="muted">读取项目详情…</div>');
   let d = null, err = '';

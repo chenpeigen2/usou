@@ -124,6 +124,7 @@ async function init() {
   bindWinControls();
   bindPalette();
   bindPulse();
+  bindSystemTheme(); // v1.7.78：跟随系统主题的实时监听
   clockTick();
   const qs = new URLSearchParams(location.search);
   if (qs.get('detail')) QA_DETAIL = qs.get('detail').trim(); // QA 钩子：--detail=xxx 透传

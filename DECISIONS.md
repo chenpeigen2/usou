@@ -3776,3 +3776,10 @@ D:\code\usou\workbench-electron\out\
  > **做法**：interaction.js 命令面板 Enter 处理加 shiftKey 分支（item.acts 有 show act 时 doAct('show', path)），项目项 acts 加 show；快捷键帮助加一行。零 IPC。
  > **实证（CDP）**：项目项有 show act、129 个项支持 show（69 项目+60 最近文件）、快捷键帮助含 Shift+Enter。六视图审计 failCount 0 / min 4.64。
  > **交付**：v1.7.77 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。
+
+ # 第一百七十轮：新功能「主题跟随系统」（连续第 26 个功能轮）
+
+ > **选题依据**：用户「继续迭代」——主题只有深色/浅色手动切换，加第三个「跟随系统」（prefers-color-scheme）是真实个性化需求。
+ > **做法**：theme.js 加 systemPrefersLight()/resolveTheme()（'system'→检测系统偏好解析为 light/dark）、applyTheme 统一走 resolveTheme、setTheme 保存原值（含 'system'）、bindSystemTheme() 监听 matchMedia change 实时应用；state.js init 调 bindSystemTheme；设置页加「🖥 跟随系统」按钮（选中态按 SETTINGS.theme 原始值判断，不用 themeIsLight 避免解析后误高亮）。零 IPC。
+ > **实证（CDP）**：resolveTheme('system')=light（系统偏好浅色）、setTheme('system') 应用 light 但存储/persist 'system'、三个主题按钮都在、恢复 settings（theme=light）。六视图审计 failCount 0 / min 4.64。
+ > **交付**：v1.7.78 本地重建、4 进程、verify-delivery 14 项全 PASS。只 commit 不 push。

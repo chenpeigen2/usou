@@ -191,8 +191,9 @@ function renderSettings() {
     '<label class="ckrow"><input type="checkbox" id="ck-login"' + (LOGINITEM ? ' checked' : '') + '> 开机自动启动工作台</label>' +
     '<h2>外观<span class="sub">切换即时生效，并跨重启保留</span></h2>' +
     '<div class="field"><label>主题</label><div class="theme-pick">' +
-    '<button class="chipbtn' + (themeIsLight() ? '' : ' on') + '" data-act="theme:set" data-p="dark">🌙 深色</button>' +
-    '<button class="chipbtn' + (themeIsLight() ? ' on' : '') + '" data-act="theme:set" data-p="light">☀️ 浅色</button>' +
+    '<button class="chipbtn' + (SETTINGS.theme === 'dark' ? ' on' : '') + '" data-act="theme:set" data-p="dark">🌙 深色</button>' +
+    '<button class="chipbtn' + (SETTINGS.theme === 'light' ? ' on' : '') + '" data-act="theme:set" data-p="light">☀️ 浅色</button>' +
+    '<button class="chipbtn' + (SETTINGS.theme === 'system' ? ' on' : '') + '" data-act="theme:set" data-p="system">🖥 跟随系统</button>' +
     '</div><div class="hint">浅色主题对六个视图（总览 / 项目 / 最近 / 空间 / 系统 / 设置）整体换肤，含标题栏、侧栏、卡片、弹窗、命令面板与图表。</div></div>' +
     '<h2>扫描设置</h2>' +
     '<div class="field"><label>扫描根目录（每行一个路径；其下子目录会被发现为项目。留空 = 扫描各盘符根与用户目录）</label>' +

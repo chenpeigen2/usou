@@ -129,8 +129,14 @@ function logLine(s) {
 /* ---------- 主题引擎（v1.7.8 浅色主题） ----------
    深色为默认；浅色靠 <html data-theme="light"> + CSS 语义变量整体换肤。
    主题状态落 settings.theme（走既有 settings:set，不新增 IPC）。 */
+/* v1.7.78：跟随系统主题 —— 'system' 时按 prefers-color-scheme 解析为 light/dark，并监听系统变化 */
+function systemPrefersLight() {
+  try { return window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches; }
+  catch (_e) { return false; }
+}
+function resolveTheme(t) { return t === 'system' ? (systemPrefersLight() ? 'light' : 'dark') : (t === 'light' ? 'light' : 'dark'); }
 function applyTheme(t, opts) {
-  const th = t === 'light' ? 'light' : 'dark';
+  const th = resolveTheme(t);
   const root = document.documentElement;
   // 主题切换期间冻结过渡：整页换肤有 40+ 处 transition:all .13s，
   // 不冻结则切换是「逐元素渐变」而非瞬时换肤；且窗口被遮挡时 Chromium 会冻结动画，
@@ -153,16 +159,25 @@ function applyTheme(t, opts) {
 async function setTheme(t) {
   const th = applyTheme(t);   // 立即重渲染 → 主题相关颜色同步生效
   try {
-    const res = await window.wb.saveSettings({ theme: th });
+    const res = await window.wb.saveSettings({ theme: t }); // v1.7.78：保存原值（含 'system'），非解析后的 th
     // settings:set 返回合并后的完整对象（v1.7.2 起）；非对象则保留原对象合并 patch，绝不整体覆盖
-    SETTINGS = (res && typeof res === 'object') ? res : Object.assign({}, SETTINGS, { theme: th });
-    SETTINGS.theme = th;
+    SETTINGS = (res && typeof res === 'object') ? res : Object.assign({}, SETTINGS, { theme: t });
+    SETTINGS.theme = t;
   } catch (e) {
     toast('主题保存失败：' + String((e && e.message) || e), 'err');
   }
-  toast(th === 'light' ? '已切换到浅色主题' : '已切换到深色主题', 'ok');
+  toast(t === 'system' ? '已设为跟随系统主题' : (th === 'light' ? '已切换到浅色主题' : '已切换到深色主题'), 'ok');
 }
 function toggleTheme() { setTheme(themeIsLight() ? 'dark' : 'light'); }
+// v1.7.78：系统主题变化时，若当前设为跟随系统则实时应用
+function bindSystemTheme() {
+  try {
+    const mq = window.matchMedia('(prefers-color-scheme: light)');
+    const onChange = () => { if (SETTINGS && SETTINGS.theme === 'system') applyTheme('system'); };
+    if (mq.addEventListener) mq.addEventListener('change', onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  } catch (_e) { /* 老浏览器不支持则忽略 */ }
+}
 
 /* 对比度审计已按 nodebestpractices 1.3 抽为平铺文件 renderer/contrast.js（v1.7.41）。
    _contrast / auditContrast / CONTRAST_TARGETS 在同一全局作用域直接可见，
